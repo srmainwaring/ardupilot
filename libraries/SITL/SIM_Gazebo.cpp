@@ -160,6 +160,22 @@ void Gazebo::drain_sockets()
  */
 void Gazebo::update(const struct sitl_input &input)
 {
+    // temp modifications for sailing boats.
+    {
+        update_wind(input);
+
+        // calculate apparent wind in earth-frame (this is the direction the wind is coming from)
+        // Note than the SITL wind direction is defined as the direction the wind is travelling to
+        // This is accounted for in these calculations
+        Vector3f wind_apparent_ef = wind_ef + velocity_ef;
+        // const float wind_apparent_dir_ef = degrees(atan2f(wind_apparent_ef.y, wind_apparent_ef.x));
+        const float wind_apparent_speed = safe_sqrt(sq(wind_apparent_ef.x)+sq(wind_apparent_ef.y));
+
+        // set RPM and airspeed from wind speed, allows to test RPM and Airspeed wind vane back end in SITL
+        rpm[0] = wind_apparent_speed;
+        airspeed_pitot = wind_apparent_speed;
+    }
+
     send_servos(input);
     recv_fdm(input);
     update_position();
