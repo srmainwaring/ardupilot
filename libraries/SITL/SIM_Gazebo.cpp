@@ -158,6 +158,31 @@ void Gazebo::drain_sockets()
  */
 void Gazebo::update(const struct sitl_input &input)
 {
+    // @CURIO_ROVER
+    // bool is_pwm_off_mid = false;
+    // for (unsigned i = 0; i < 16; ++i)
+    // {
+    //     // printf("input.servos[%d]: %d\n", i, input.servos[i]);
+    //     if (input.servos[i] != 1500) {
+    //         is_pwm_off_mid = true;
+    //         break;
+    //     }
+    // }
+    // printf("\n");
+
+    // sitl_input input_copy;
+    // input_copy.wind = input.wind;
+    // for (unsigned i = 0; i < 16; ++i) {
+    //     input_copy.servos[i] = 1500;
+    // }
+
+    // if (is_pwm_off_mid) {
+    //     send_servos(input_copy);
+    // }
+    // else {
+    //     send_servos(input);
+    // }
+
     send_servos(input);
     recv_fdm(input);
     update_position();
