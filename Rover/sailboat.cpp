@@ -235,6 +235,8 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     // mainsail control
     //
 
+    pid_offset = constrain_float(pid_offset, 0.0f, 200.0f);
+
     // main sails cannot be used to reverse
     if (!is_positive(desired_speed)) {
         mainsail_out = 100.0f;
@@ -260,6 +262,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     // wing sails auto trim, we only need to reduce power if we are tipping over, must also be trimmed for correct tack
     // dont allow to reduce power to less than 0, ie not backwinding the sail to self-right
     wingsail_out = (100.0f - MIN(pid_offset,100.0f)) * wind_dir_apparent_sign;
+    // wingsail_out = 100.0f - pid_offset;
 
     // wing sails can be used to go backwards, probably not recommended though
     if (is_negative(desired_speed)) {
