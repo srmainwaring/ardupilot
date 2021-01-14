@@ -217,11 +217,31 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
 
     // use PID controller to sheet out
     float pid_offset = rover.g2.attitude_control.get_sail_out_from_heel(radians(sail_heel_angle_max), rover.G_Dt) * 100.0f;
-    pid_offset = constrain_float(pid_offset, 0.0f, 100.0f);
+
+    //
+    // wingsail control - allow controller to reverse the elevator
+    //
+
+    pid_offset = constrain_float(pid_offset, 0.0f, 200.0f);
+
+    // wing sails auto trim, we only need to reduce power if we are tipping over
+    wingsail_out = 100.0f - pid_offset;
+
+    // wing sails must be trimmed for the correct tack
+    if (rover.g2.windvane.get_current_tack() == AP_WindVane::Sailboat_Tack::TACK_PORT) {
+        wingsail_out *= -1.0f;
+    }
+
+    // wing sails can be used to go backwards, probably not recommended though
+    if (!is_positive(desired_speed)) {
+        wingsail_out *= -1.0f;
+    }
 
     //
     // mainsail control
     //
+
+    pid_offset = constrain_float(pid_offset, 0.0f, 100.0f);
 
     // main sails cannot be used to reverse
     if (!is_positive(desired_speed)) {
@@ -242,24 +262,6 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
 
         mainsail_out = constrain_float((mainsail_base + pid_offset), 0.0f ,100.0f);
     }
-
-    //
-    // wingsail control
-    //
-
-    // wing sails auto trim, we only need to reduce power if we are tipping over
-    wingsail_out = 100.0f - pid_offset;
-
-    // wing sails must be trimmed for the correct tack
-    if (rover.g2.windvane.get_current_tack() == AP_WindVane::Sailboat_Tack::TACK_PORT) {
-        wingsail_out *= -1.0f;
-    }
-
-    // wing sails can be used to go backwards, probably not recommended though
-    if (!is_positive(desired_speed)) {
-        wingsail_out *= -1.0f;
-    }
-
 }
 
 // Velocity Made Good, this is the speed we are traveling towards the desired destination
