@@ -429,7 +429,18 @@ void Mode::navigate_to_waypoint()
         desired_heading_cd = g2.sailboat.calc_heading(desired_heading_cd);
         // use pivot turn rate for tacks
         const float turn_rate = g2.sailboat.tacking() ? g2.wp_nav.get_pivot_rate() : 0.0f;
-        calc_steering_to_heading(desired_heading_cd, turn_rate);
+
+        // apply lateral acceleration limiting (high speed tacking) 
+        const float lat_accel_max = g.turn_max_g * GRAVITY_MSS;
+
+        // get current speed
+        float speed = 0.0;
+        attitude_control.get_forward_speed(speed);
+
+        // constrain turn rate and call controller
+        const float turn_rate_max = attitude_control.get_turn_rate_from_lat_accel(lat_accel_max, speed);        
+        const float turn_rate_limited = constrain_float(turn_rate, -turn_rate_max, turn_rate_max);        
+        calc_steering_to_heading(desired_heading_cd, turn_rate_limited);
     } else {
         // call turn rate steering controller
         calc_steering_from_turn_rate(g2.wp_nav.get_turn_rate_rads());
