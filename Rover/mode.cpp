@@ -409,9 +409,9 @@ float Mode::calc_speed_nudge(float target_speed, bool reversed)
     }
 }
 
-// calculate the lateral acceleration limited turn rate
+// calculate the lateral acceleration limited turn rate in rad/s
+// desired_turn_rate is in rad/s
 //
-// Notes
 // - lateral acceleration limiting has similar effect to motor speed scaling
 //   (MOT_SPD_SCA_BASE) as both parameters modify (decrease) the turn rate.
 // - lateral acceleration limiting is disabled if TURN_MAX_G is not positive
@@ -455,11 +455,11 @@ void Mode::navigate_to_waypoint()
         // sailboats use heading controller when tacking upwind
         desired_heading_cd = g2.sailboat.calc_heading(desired_heading_cd);
         // use pivot turn rate for tacks
-        const float desired_turn_rate = g2.sailboat.tacking() ? g2.wp_nav.get_pivot_rate() : 0.0f;
+        const float desired_turn_rate = g2.sailboat.tacking() ? radians(g2.wp_nav.get_pivot_rate()) : 0.0f;
         const float turn_rate = calc_accel_limited_turn_rate(desired_turn_rate);
 
         // call heading steering controller
-        calc_steering_to_heading(desired_heading_cd, turn_rate);
+        calc_steering_to_heading(desired_heading_cd, degrees(turn_rate));
     } else {
         const float desired_turn_rate = g2.wp_nav.get_turn_rate_rads();
         const float turn_rate = calc_accel_limited_turn_rate(desired_turn_rate);

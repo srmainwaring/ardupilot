@@ -268,7 +268,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
             target_angle *= -1.0f;
         }
 
-        wingsail_out = rover.g2.attitude_control.get_wing_sail_out_from_heel(target_angle, rover.G_Dt) * 100.0f;
+        wingsail_out = rover.g2.attitude_control.get_wing_sail_out_from_heel(target_angle, rover.G_Dt) * -100.0f;
 
         // wing sails can be used to go backwards, probably not recommended though
         if (!is_positive(desired_speed)) {
