@@ -62,12 +62,36 @@ private:
       reply packet sent from Gazebo to ArduPilot
      */
     struct fdm_packet {
+      // Enum to set bitmask. See: SIM_JSON.h
+      enum DataKey {
+        TIMESTAMP   = 1U << 0,  // timestamp
+        GYRO        = 1U << 1,  // imu_angular_velocity_rpy
+        ACCEL_BODY  = 1U << 2,  // imu_linear_acceleration_xyz
+        POSITION    = 1U << 3,  // position_xyz
+        EULER_ATT   = 1U << 4,  // not used
+        QUAT_ATT    = 1U << 5,  // imu_orientation_quat
+        VELOCITY    = 1U << 6,  // velocity_xyz
+        RNG_1       = 1U << 7,  // not used
+        RNG_2       = 1U << 8,  // not used
+        RNG_3       = 1U << 9,  // not used
+        RNG_4       = 1U << 10, // not used
+        RNG_5       = 1U << 11, // not used
+        RNG_6       = 1U << 12, // not used
+        WIND_DIR    = 1U << 13, // wind_apparent.direction
+        WIND_SPD    = 1U << 14, // wind_apparent.speed
+      };
+      uint16_t bitmask;
+
       double timestamp;  // in seconds
       double imu_angular_velocity_rpy[3];
       double imu_linear_acceleration_xyz[3];
       double imu_orientation_quat[4];
       double velocity_xyz[3];
       double position_xyz[3];
+      struct {
+        float direction;  // apparent wind direction in radians
+        float speed;      // apparent wind speed in m/s 
+      } wind_apparent;
     };
 
     void recv_fdm(const struct sitl_input &input);
