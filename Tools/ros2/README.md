@@ -233,7 +233,6 @@ baudrate:=115200 \
 device:=./dev/ttyROS0 \
 \
 synthetic_clock:=True \
-wipe:=True \
 model:=quad \
 speedup:=1 \
 slave:=0 \
