@@ -45,6 +45,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
+#include <fenv.h>
 
 extern HAL_SITL& hal;
 
@@ -55,6 +56,43 @@ using namespace SITL;
 static void _sig_fpe(int signum)
 {
     fprintf(stderr, "ERROR: Floating point exception - aborting\n");
+
+    // fenv.h
+    if (fetestexcept(FE_INVALID))     fprintf(stderr, "FE_INVALID\n");
+    if (fetestexcept(FE_DIVBYZERO))   fprintf(stderr, "FE_DIVBYZERO\n");
+    if (fetestexcept(FE_OVERFLOW))    fprintf(stderr, "FE_OVERFLOW\n");
+    if (fetestexcept(FE_UNDERFLOW))   fprintf(stderr, "FE_UNDERFLOW\n");
+    if (fetestexcept(FE_INEXACT))     fprintf(stderr, "FE_INEXACT\n");
+
+    AP_HAL::dump_stack_trace();
+    AP_HAL::dump_core_file();
+    abort();
+}
+
+// https://man7.org/linux/man-pages/man2/sigaction.2.html
+static void _sig_fpe_action(int sig, siginfo_t *info, void *ucontext)
+{
+    fprintf(stderr, "ERROR: Floating point exception - aborting\n");
+
+    // siginfo_t codes
+    if (info->si_code == FPE_NOOP)    fprintf(stderr, "FPE_NOOP/\n");
+    if (info->si_code == FPE_FLTDIV)  fprintf(stderr, "FPE_FLTDIV/\n");
+    if (info->si_code == FPE_FLTOVF)  fprintf(stderr, "FPE_FLTOVF/\n");
+    if (info->si_code == FPE_FLTUND)  fprintf(stderr, "FPE_FLTUND/\n");
+    if (info->si_code == FPE_FLTRES)  fprintf(stderr, "FPE_FLTRES/\n");
+    if (info->si_code == FPE_FLTINV)  fprintf(stderr, "FPE_FLTINV/\n");
+    if (info->si_code == FPE_FLTSUB)  fprintf(stderr, "FPE_FLTSUB/\n");
+    if (info->si_code == FPE_FLTSUB)  fprintf(stderr, "FPE_FLTSUB/\n");
+    if (info->si_code == FPE_INTDIV)  fprintf(stderr, "FPE_INTDIV/\n");
+    if (info->si_code == FPE_INTOVF)  fprintf(stderr, "FPE_INTOVF/\n");
+
+    // fenv.h
+    if (fetestexcept(FE_INVALID))     fprintf(stderr, "FE_INVALID\n");
+    if (fetestexcept(FE_DIVBYZERO))   fprintf(stderr, "FE_DIVBYZERO\n");
+    if (fetestexcept(FE_OVERFLOW))    fprintf(stderr, "FE_OVERFLOW\n");
+    if (fetestexcept(FE_UNDERFLOW))   fprintf(stderr, "FE_UNDERFLOW\n");
+    if (fetestexcept(FE_INEXACT))     fprintf(stderr, "FE_INEXACT\n");
+
     AP_HAL::dump_stack_trace();
     AP_HAL::dump_core_file();
     abort();
@@ -184,7 +222,9 @@ void SITL_State::_set_signal_handlers(void) const
 {
     struct sigaction sa_fpe = {};
     sigemptyset(&sa_fpe.sa_mask);
-    sa_fpe.sa_handler = _sig_fpe;
+    // sa_fpe.sa_handler = _sig_fpe;
+    sa_fpe.sa_sigaction = _sig_fpe_action;
+    sa_fpe.sa_flags = SA_SIGINFO;
     sigaction(SIGFPE, &sa_fpe, nullptr);
 
     struct sigaction sa_pipe = {};
