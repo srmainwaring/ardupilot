@@ -4,7 +4,7 @@
 
 #ifndef HAVE_FEENABLEEXCEPT
 
-inline int feenableexcept(unsigned int excepts)
+inline int feenableexcept(int excepts)
 {
     #pragma STDC FENV_ACCESS ON
     fexcept_t flags;
@@ -16,7 +16,7 @@ inline int feenableexcept(unsigned int excepts)
 
 }
 
-inline int fedisableexcept(unsigned int excepts)
+inline int fedisableexcept(int excepts)
 {
     #pragma STDC FENV_ACCESS ON
     fexcept_t flags;
