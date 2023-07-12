@@ -475,7 +475,7 @@ void AP_DDS_Client::on_request([[maybe_unused]] uxrSession* uxr_session, uxrObje
         uint32_t* count_ptr = (uint32_t*) args;
         (*count_ptr)++;
 
-        uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id, reply_buffer, sizeof(reply_buffer));
+        uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id, reply_buffer, sizeof(result));
         if(result == true){
             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Reply : Armed ");
         }else{
