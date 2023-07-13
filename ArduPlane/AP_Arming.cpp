@@ -326,9 +326,10 @@ bool AP_Arming_Plane::disarm(const AP_Arming::Method method, bool do_disarm_chec
 {
     if (do_disarm_checks &&
         (method == AP_Arming::Method::MAVLINK ||
-         method == AP_Arming::Method::RUDDER)) {
+         method == AP_Arming::Method::RUDDER ||
+         method == AP_Arming::Method::DDS)) {
         if (plane.is_flying()) {
-            // don't allow mavlink or rudder disarm while flying
+            // don't allow mavlink or rudder or dds disarm while flying
             return false;
         }
     }
