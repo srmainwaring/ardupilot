@@ -99,8 +99,8 @@ void ModeGuided::run()
 
 bool ModeGuided::allows_arming(AP_Arming::Method method) const
 {
-    // always allow arming from the ground station or scripting
-    if (method == AP_Arming::Method::MAVLINK || method == AP_Arming::Method::SCRIPTING) {
+    // always allow arming from the ground station or scripting or dds
+    if (method == AP_Arming::Method::MAVLINK || method == AP_Arming::Method::SCRIPTING || method == AP_Arming::Method::DDS) {
         return true;
     }
 
