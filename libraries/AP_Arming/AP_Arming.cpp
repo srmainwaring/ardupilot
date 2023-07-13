@@ -1812,6 +1812,7 @@ void AP_Arming::check_forced_logging(const AP_Arming::Method method)
             AP::logger().set_long_log_persist(true);
             return;
 
+        case Method::DDS:
         case Method::RUDDER:
         case Method::MAVLINK:
         case Method::AUXSWITCH:
