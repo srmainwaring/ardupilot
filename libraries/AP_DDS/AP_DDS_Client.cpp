@@ -2,6 +2,7 @@
 
 #if AP_DDS_ENABLED
 
+#include <AP_Arming/AP_Arming.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RTC/AP_RTC.h>
@@ -448,10 +449,10 @@ void AP_DDS_Client::on_request([[maybe_unused]] uxrSession* uxr_session, uxrObje
             break;
         }
         
-        if(arm == true) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Request for arming recieved");
+        if(arm) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: arm requested");
         } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Request for disarming recieved");
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: disarm requested");
         }
         
         const uxrObjectId replier_id = {
@@ -463,9 +464,14 @@ void AP_DDS_Client::on_request([[maybe_unused]] uxrSession* uxr_session, uxrObje
         };
         ucdrBuffer reply_ub;
 
-        // dummy code
-        // TODO : add arming/disarming checks here 
-        bool result = arm;
+        // arming / disarming
+        bool result {false};
+        if (arm) {
+          result = AP_Arming::get_singleton()->arm(AP_Arming::Method::DDS);
+        } else {
+          result = AP_Arming::get_singleton()->disarm(AP_Arming::Method::DDS);
+        }
+
         ucdr_init_buffer(&reply_ub, reply_buffer, sizeof(reply_buffer));
         const bool serialize_success = ucdr_serialize_bool(&reply_ub,result);
         if(serialize_success == false){
@@ -476,13 +482,22 @@ void AP_DDS_Client::on_request([[maybe_unused]] uxrSession* uxr_session, uxrObje
         (*count_ptr)++;
 
         uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id, reply_buffer, sizeof(result));
-        if(result == true){
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Reply : Armed ");
-        }else{
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Reply : Disarmed ");
+
+        if (arm) {
+          if (result) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: arm succeeded");
+          } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: arm failed");
+          }
+        } else {
+          if (result) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: disarm succeeded");
+          } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: disarm failed");
+          }
         }
         break;
-    }    
+    }
 }
 
 /*
