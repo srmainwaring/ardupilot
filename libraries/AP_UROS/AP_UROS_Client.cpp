@@ -16,7 +16,7 @@
     rcl_ret_t temp_rc = fn;\
     if ((temp_rc != RCL_RET_OK)) {\
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, \
-            "UROS: failed status on line %d: %d.\n", \
+            "UROS: failed status on line %d: %d", \
             __LINE__, (int)temp_rc);\
         return false;\
     } \
@@ -26,7 +26,7 @@
     rcl_ret_t temp_rc = fn;\
     if ((temp_rc != RCL_RET_OK)) {\
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, \
-            "UROS: failed status on line %d: %d. Continuing.\n", \
+            "UROS: failed status on line %d: %d. Continuing", \
             __LINE__, (int)temp_rc);\
     }\
 }
@@ -52,6 +52,16 @@ const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
     // @User: Advanced
     AP_GROUPINFO_FLAGS("_ENABLE", 1, AP_UROS_Client, enabled, 0,
         AP_PARAM_FLAG_ENABLE),
+
+#if AP_UROS_UDP_ENABLED
+    // @Param: _UDP_PORT
+    // @DisplayName: UROS UDP port
+    // @Description: UDP port number for UROS
+    // @Range: 1 65535
+    // @RebootRequired: True
+    // @User: Standard
+    AP_GROUPINFO("_PORT", 2, AP_UROS_Client, udp.port, 2019),
+#endif
 
     AP_GROUPEND
 };
@@ -100,6 +110,25 @@ void AP_UROS_Client::main_loop(void)
 
 bool AP_UROS_Client::init()
 {
+    // initialize transport
+    bool initTransportStatus = true;
+
+#if AP_UROS_UDP_ENABLED
+    // fallback to UDP if available
+    if (!initTransportStatus) {
+        initTransportStatus = urosUdpInit();
+    }
+#endif
+
+    if (initTransportStatus) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: transport initializated");
+    }
+    else {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,
+            "UROS: transport initialization failed");
+        return false;
+    }
+
     // create allocator
     allocator = rcl_get_default_allocator();
 
