@@ -548,6 +548,12 @@ void AP_Vehicle::setup()
         gcs().send_text(MAV_SEVERITY_ERROR, "UROS: Failed to initialize");
     }
 #endif
+
+#if AP_UROS_ENABLED
+    if (!init_uros_client()) {
+        gcs().send_text(MAV_SEVERITY_ERROR, "UROS: Failed to initialize");
+    }
+#endif
 }
 
 void AP_Vehicle::loop()
