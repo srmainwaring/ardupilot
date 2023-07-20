@@ -29,6 +29,10 @@ def configure(cfg):
     # fatal error: '__STDC_VERSION__' is not defined, evaluates to 0 [-Wundef]
     # #if __STDC_VERSION__ >= 201112L && !defined(RCUTILS_AVOID_DYNAMIC_ALLOCATION)
     #
+    # Better to edit error_handling.h:139:5 ??
+    # 
+    # #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(RCUTILS_AVOID_DYNAMIC_ALLOCATION)
+    # 
     cfg.env.AP_LIB_EXTRA_CXXFLAGS['AP_UROS'] = ['-Wno-undef']
 
 

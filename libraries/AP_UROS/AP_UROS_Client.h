@@ -11,6 +11,15 @@
 
 #include <AP_Param/AP_Param.h>
 
+// micro-ROS
+#include <rcl/rcl.h>
+#include <rcl/error_handling.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+
+#include <std_msgs/msg/int32.h>
+#include <geometry_msgs/msg/vector3.h>
+
 extern const AP_HAL::HAL& hal;
 
 class AP_UROS_Client
@@ -20,6 +29,12 @@ private:
     AP_Int8 enabled;
 
     HAL_Semaphore csem;
+
+    // micro-ROS
+    rcl_allocator_t allocator;
+    rclc_support_t support;
+    rcl_node_t node;
+    rclc_executor_t executor;
 
 public:
     bool start(void);
@@ -32,9 +47,6 @@ public:
     //! @brief Set up the client.
     //! @return True on successful creation, false on failure
     bool create() WARN_IF_UNUSED;
-
-    //! @brief Update the client.
-    void update();
 
     //! @brief Parameter storage.
     static const struct AP_Param::GroupInfo var_info[];
