@@ -419,6 +419,8 @@ def do_build(opts, frame_options):
 
     if opts.enable_networking_tests:
         cmd_configure.append("--enable-networking-tests")
+    if opts.enable_uros:
+        cmd_configure.append("--enable-uros")
 
     pieces = [shlex.split(x) for x in opts.waf_configure_args]
     for piece in pieces:
@@ -1357,6 +1359,8 @@ group_sim.add_option("--enable-networking-tests", action='store_true',
                      help="Enable networking tests")
 group_sim.add_option("--enable-fgview", action='store_true',
                      help="Enable FlightGear output")
+group_sim.add_option("--enable-uros", action='store_true',
+                     help="Enable the micro-ros client to connect with ROS2/DDS")
 
 parser.add_option_group(group_sim)
 
