@@ -16,6 +16,7 @@ option(ARDUPILOT_DISABLE_NETWORKING "Disable the networking API code" OFF)
 option(ARDUPILOT_DISABLE_SCRIPTING "Disable the scripting API code" OFF)
 option(ARDUPILOT_DISABLE_WATCHDOG "Build with watchdog disabled" OFF)
 option(ARDUPILOT_ENABLE_DDS "Enable the DDS client" ON)
+option(ARDUPILOT_ENABLE_UROS "Enable the UROS client" ON)
 option(ARDUPILOT_ENABLE_NETWORKING_TESTS "Enable the networking test code" OFF)
 option(ARDUPILOT_ENABLE_PPP "Enable PPP networking" OFF)
 set(ARDUPILOT_WAF_CONFIGURE_ARGS "" CACHE STRING "Arbitrary waf configure arguments")
@@ -36,6 +37,7 @@ set(WAF_DISABLE_NETWORKING $<$<BOOL:${ARDUPILOT_DISABLE_NETWORKING}>:"--disable-
 set(WAF_DISABLE_SCRIPTING $<$<BOOL:${ARDUPILOT_DISABLE_SCRIPTING}>:"--disable-scripting">)
 set(WAF_DISABLE_WATCHDOG $<$<BOOL:${ARDUPILOT_DISABLE_WATCHDOG}>:"--disable-watchdog">)
 set(WAF_ENABLE_DDS $<$<BOOL:${ARDUPILOT_ENABLE_DDS}>:"--enable-dds">)
+set(WAF_ENABLE_UROS $<$<BOOL:${ARDUPILOT_ENABLE_UROS}>:"--enable-uros">)
 set(WAF_ENABLE_NETWORKING_TESTS $<$<BOOL:${ARDUPILOT_ENABLE_NETWORKING_TESTS}>:"--enable-networking-tests">)
 set(WAF_ENABLE_PPP $<$<BOOL:${ARDUPILOT_ENABLE_PPP}>:"--enable-PPP">)
 
@@ -46,6 +48,7 @@ add_custom_target(ardupilot_configure ALL
     ${WAF_DISABLE_SCRIPTING}
     ${WAF_DISABLE_WATCHDOG}
     ${WAF_ENABLE_DDS}
+    ${WAF_ENABLE_UROS}
     ${WAF_ENABLE_NETWORKING_TESTS}
     ${WAF_ENABLE_PPP}
     ${ARDUPILOT_WAF_CONFIGURE_ARGS}
@@ -53,7 +56,7 @@ add_custom_target(ardupilot_configure ALL
 )
 
 add_custom_target(ardupilot_build ALL
-  ${WAF_COMMAND} build --enable-dds ${WAF_CONFIG} ${ARDUPILOT_WAF_BUILD_ARGS}
+  ${WAF_COMMAND} build --enable-dds --enable-uros ${WAF_CONFIG} ${ARDUPILOT_WAF_BUILD_ARGS}
   WORKING_DIRECTORY ${ARDUPILOT_ROOT}
 )
 add_dependencies(ardupilot_build ardupilot_configure)
