@@ -20,7 +20,6 @@
 #include <sensor_msgs/msg/battery_state.h>
 #include <sensor_msgs/msg/joy.h>
 #include <sensor_msgs/msg/nav_sat_fix.h>
-#include <std_msgs/msg/int32.h>
 #include <tf2_msgs/msg/tf_message.h>
 
 #include <AP_HAL/AP_HAL.h>
