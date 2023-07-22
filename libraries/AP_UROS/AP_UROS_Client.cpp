@@ -32,15 +32,15 @@
 }
 
 // publishers
-rcl_publisher_t int32_publisher;
-std_msgs__msg__Int32 int32_msg;
-uint64_t last_int32_time_ms;
-static constexpr uint16_t DELAY_INT32_TOPIC_MS = 1000;
+rcl_publisher_t battery_state_publisher;
+sensor_msgs__msg__BatteryState battery_state_msg;
+uint64_t last_battery_state_time_ms;
+static constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
 
-rcl_publisher_t time_publisher;
-builtin_interfaces__msg__Time time_msg;
-uint64_t last_time_time_ms;
-static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
+rcl_publisher_t clock_publisher;
+rosgraph_msgs__msg__Clock clock_msg;
+uint64_t last_clock_time_ms;
+static constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
 
 rcl_publisher_t local_pose_publisher;
 geometry_msgs__msg__PoseStamped local_pose_msg;
@@ -52,14 +52,48 @@ geometry_msgs__msg__TwistStamped local_twist_msg;
 uint64_t last_local_twist_time_ms;
 static constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
 
+rcl_publisher_t nav_sat_fix_publisher;
+sensor_msgs__msg__NavSatFix nav_sat_fix_msg;
+uint64_t last_nav_sat_fix_time_ms;
+static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
+
+rcl_publisher_t static_transform_publisher;
+tf2_msgs__msg__TFMessage static_transform_msg;
+uint64_t last_static_transform_time_ms;
+static constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
+
+rcl_publisher_t time_publisher;
+builtin_interfaces__msg__Time time_msg;
+uint64_t last_time_time_ms;
+static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
+
 // subscribers
 rcl_subscription_t vector3_subscriber;
 geometry_msgs__msg__Vector3 vector3_msg;
 
-// update topics
-void update_topic(std_msgs__msg__Int32& msg)
+// update published topics
+void update_topic(sensor_msgs__msg__BatteryState& msg)
 {
-    msg.data++;
+}
+
+void update_topic(rosgraph_msgs__msg__Clock& msg)
+{
+}
+
+void update_topic(geometry_msgs__msg__PoseStamped& msg)
+{
+}
+
+void update_topic(geometry_msgs__msg__TwistStamped& msg)
+{
+}
+
+void update_topic(tf2_msgs__msg__TFMessage& msg)
+{
+}
+
+void update_topic(sensor_msgs__msg__NavSatFix& msg)
+{
 }
 
 void update_topic(builtin_interfaces__msg__Time& msg)
@@ -72,14 +106,7 @@ void update_topic(builtin_interfaces__msg__Time& msg)
     msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
 }
 
-void update_topic(geometry_msgs__msg__PoseStamped& msg)
-{
-}
-
-void update_topic(geometry_msgs__msg__TwistStamped& msg)
-{
-}
-
+// subscriber callbacks
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
     (void) last_call_time;
@@ -95,20 +122,16 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 
     if (timer != NULL) {
 
-        if (cur_time_ms - last_int32_time_ms > DELAY_INT32_TOPIC_MS) {
-            update_topic(time_msg);
-            last_int32_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&int32_publisher, &int32_msg, NULL));
-            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
-            //     "UROS: sent int32: %d", int32_msg.data);
+        if (cur_time_ms - last_battery_state_time_ms > DELAY_BATTERY_STATE_TOPIC_MS) {
+            update_topic(battery_state_msg);
+            last_battery_state_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&battery_state_publisher, &battery_state_msg, NULL));
         }
 
-        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
-            update_topic(time_msg);
-            last_time_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&time_publisher, &time_msg, NULL));
-            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
-            //     "UROS: sent time: %d, %d", time_msg.sec, time_msg.nanosec);
+        if (cur_time_ms - last_clock_time_ms > DELAY_CLOCK_TOPIC_MS) {
+            update_topic(clock_msg);
+            last_clock_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&clock_publisher, &clock_msg, NULL));
         }
 
         if (cur_time_ms - last_local_pose_time_ms > DELAY_LOCAL_POSE_TOPIC_MS) {
@@ -121,6 +144,26 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             update_topic(local_twist_msg);
             last_local_twist_time_ms = cur_time_ms;
             RCSOFTCHECK(rcl_publish(&local_twist_publisher, &local_twist_msg, NULL));
+        }
+
+        if (cur_time_ms - last_nav_sat_fix_time_ms > DELAY_NAV_SAT_FIX_TOPIC_MS) {
+            update_topic(nav_sat_fix_msg);
+            last_nav_sat_fix_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&nav_sat_fix_publisher, &nav_sat_fix_msg, NULL));
+        }
+
+        if (cur_time_ms - last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
+            update_topic(static_transform_msg);
+            last_static_transform_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&static_transform_publisher, &static_transform_msg, NULL));
+        }
+
+        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
+            update_topic(time_msg);
+            last_time_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&time_publisher, &time_msg, NULL));
+            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
+            //     "UROS: sent time: %d, %d", time_msg.sec, time_msg.nanosec);
         }
     }
 }
@@ -196,10 +239,13 @@ void AP_UROS_Client::main_loop(void)
 
     RCSOFTCHECK(rcl_subscription_fini(&vector3_subscriber, &node));
 
-    RCSOFTCHECK(rcl_publisher_fini(&int32_publisher, &node));
-    RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&battery_state_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&clock_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&local_pose_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&local_twist_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&nav_sat_fix_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&static_transform_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
 
     RCSOFTCHECK(rcl_node_fini(&node));
 }
@@ -246,16 +292,16 @@ bool AP_UROS_Client::create()
 
     // create publishers
     RCCHECK(rclc_publisher_init_default(
-        &int32_publisher,
+        &battery_state_publisher,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-        "std_msgs_msg_Int32"));
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
+        "ap/battery/battery0"));
 
     RCCHECK(rclc_publisher_init_default(
-        &time_publisher,
+        &clock_publisher,
         &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
-        "ap/time"));
+        ROSIDL_GET_MSG_TYPE_SUPPORT(rosgraph_msgs, msg, Clock),
+        "ap/clock"));
 
     RCCHECK(rclc_publisher_init_default(
         &local_pose_publisher,
@@ -268,6 +314,24 @@ bool AP_UROS_Client::create()
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
         "ap/twist/filtered"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &nav_sat_fix_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
+        "ap/navsat/navsat0"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &static_transform_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+        "ap/tf_static"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &time_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
+        "ap/time"));
 
     // create subscribers
     RCCHECK(rclc_subscription_init_default(
@@ -284,7 +348,7 @@ bool AP_UROS_Client::create()
         timer_callback));
 
     // create executor
-    const size_t number_of_handles = 5;
+    const size_t number_of_handles = 7 + 1;
     executor = rclc_executor_get_zero_initialized_executor();
     RCCHECK(rclc_executor_init(&executor, &support.context,
         number_of_handles, &allocator));
