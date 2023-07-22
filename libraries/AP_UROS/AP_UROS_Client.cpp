@@ -347,8 +347,13 @@ bool AP_UROS_Client::create()
         RCL_MS_TO_NS(timer_timeout_ms),
         timer_callback));
 
+    // number of entities
+    constexpr size_t number_of_publishers = 7;
+    constexpr size_t number_of_subscribers = 1;
+    constexpr size_t number_of_handles =
+        number_of_publishers + number_of_subscribers;
+
     // create executor
-    const size_t number_of_handles = 7 + 1;
     executor = rclc_executor_get_zero_initialized_executor();
     RCCHECK(rclc_executor_init(&executor, &support.context,
         number_of_handles, &allocator));
