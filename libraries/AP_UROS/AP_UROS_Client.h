@@ -24,7 +24,7 @@
 #include <geometry_msgs/msg/vector3.h>
 
 // UDP only on SITL for now
-#define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
+#define AP_UROS_UDP_ENABLED 1 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
 
 #if AP_UROS_UDP_ENABLED
 #include <AP_HAL/utility/Socket.h>
