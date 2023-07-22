@@ -164,3 +164,4 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+libraries/AP_UROS/uros
