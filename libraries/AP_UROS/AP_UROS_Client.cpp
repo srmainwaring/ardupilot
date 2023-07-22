@@ -42,7 +42,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     (void) last_call_time;
     if (timer != NULL) {
         RCSOFTCHECK(rcl_publish(&publisher, &int32_msg, NULL));
-        printf("Sent: %d\n", int32_msg.data);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: sent: %d", int32_msg.data);
         int32_msg.data++;
     }
 }
