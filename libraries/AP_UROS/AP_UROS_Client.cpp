@@ -143,7 +143,7 @@ void update_topic(sensor_msgs__msg__BatteryState& msg)
 
     msg.power_supply_technology = 0; //POWER_SUPPLY_TECHNOLOGY_UNKNOWN
 
-    // TODO(srmainwaring) - initialise cell_voltage sequence
+    //! @todo(srmainwaring) - initialise cell_voltage sequence
     // if (battery.has_cell_voltages(instance)) {
     //     const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
     //     std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage);
@@ -163,7 +163,7 @@ void update_topic(geometry_msgs__msg__PoseStamped& msg)
 {
     update_topic(msg.header.stamp);
 
-    // TODO(srmainwaring) - initialise frame_id memory
+    //! @todo(srmainwaring) - initialise frame_id memory
     // strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
 
     auto &ahrs = AP::ahrs();
@@ -214,7 +214,7 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 {
     update_topic(msg.header.stamp);
 
-    // TODO(srmainwaring) - initialise frame_id memory
+    //! @todo(srmainwaring) - initialise frame_id memory
     // strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
 
     auto &ahrs = AP::ahrs();
@@ -255,13 +255,54 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 }
 
 // implementation copied from:
+// void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
+//! @todo(srmainwaring) - initialise TFMessage correctly.
 void update_topic(tf2_msgs__msg__TFMessage& msg)
 {
+    //! @todo(srmainwaring) - use micro-ROS version of TFMessage
+    // msg.transforms_size = 0;
+
+#if 0
+    auto &gps = AP::gps();
+    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+        const auto gps_type = gps.get_type(i);
+        if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
+            continue;
+        }
+        update_topic(msg.transforms[i].header.stamp);
+        char gps_frame_id[16];
+        //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
+        hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
+
+        //! @todo(srmainwaring) - initialise string memory
+        // strcpy(msg.transforms[i].header.frame_id, BASE_LINK_FRAME_ID);
+        // strcpy(msg.transforms[i].child_frame_id, gps_frame_id);
+        // The body-frame offsets
+        // X - Forward
+        // Y - Right
+        // Z - Down
+        // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
+
+        const auto offset = gps.get_antenna_offset(i);
+
+        // In ROS REP 103, it follows this convention
+        // X - Forward
+        // Y - Left
+        // Z - Up
+        // https://www.ros.org/reps/rep-0103.html#axis-orientation
+
+        msg.transforms[i].transform.translation.x = offset[0];
+        msg.transforms[i].transform.translation.y = -1 * offset[1];
+        msg.transforms[i].transform.translation.z = -1 * offset[2];
+
+        msg.transforms_size++;
+    }
+#endif
 }
 
 // implementation copied from:
 // bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
-// TODO(srmainwaring) - this version always provides an update - which may be valid;
+//! @todo(srmainwaring) - this version always provides an update - which may be valid;
 //                      update scheduling to match AP_DDS
 void update_topic(sensor_msgs__msg__NavSatFix& msg)
 {
@@ -301,7 +342,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
 
     update_topic(msg.header.stamp);
 
-    // TODO(srmainwaring) - initialise frame_id memory
+    //! @todo(srmainwaring) - initialise frame_id memory
     // strcpy(msg.header.frame_id, WGS_84_FRAME_ID);
     msg.status.service = 0; // SERVICE_GPS
     msg.status.status = -1; // STATUS_NO_FIX
@@ -387,7 +428,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     rcl_clock_t * clock;
     RCSOFTCHECK(rcl_timer_clock(timer, &clock));
 
-    // TODO(srmainwaring) - use the rcl_clock...
+    /// \todo(srmainwaring) - use the rcl_clock...
     const auto cur_time_ms = AP_HAL::millis64();
 
     if (timer != NULL) {
