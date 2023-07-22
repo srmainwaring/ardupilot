@@ -5,6 +5,24 @@
 // micro-xrce-dds
 #include "uxr/client/client.h"
 
+// micro-ROS
+#include <rcl/rcl.h>
+#include <rcl/error_handling.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+
+// ROS msgs
+#include <builtin_interfaces/msg/time.h>
+#include <geometry_msgs/msg/pose_stamped.h>
+#include <geometry_msgs/msg/twist_stamped.h>
+#include <geometry_msgs/msg/vector3.h>
+#include <rosgraph_msgs/msg/clock.h>
+#include <sensor_msgs/msg/battery_state.h>
+#include <sensor_msgs/msg/joy.h>
+#include <sensor_msgs/msg/nav_sat_fix.h>
+#include <std_msgs/msg/int32.h>
+#include <tf2_msgs/msg/tf_message.h>
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
@@ -13,15 +31,6 @@
 #include "fcntl.h"
 
 #include <AP_Param/AP_Param.h>
-
-// micro-ROS
-#include <rcl/rcl.h>
-#include <rcl/error_handling.h>
-#include <rclc/rclc.h>
-#include <rclc/executor.h>
-
-#include <std_msgs/msg/int32.h>
-#include <geometry_msgs/msg/vector3.h>
 
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 1 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
