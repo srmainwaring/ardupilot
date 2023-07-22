@@ -42,10 +42,21 @@ builtin_interfaces__msg__Time time_msg;
 uint64_t last_time_time_ms;
 static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
+rcl_publisher_t local_pose_publisher;
+geometry_msgs__msg__PoseStamped local_pose_msg;
+uint64_t last_local_pose_time_ms;
+static constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
+
+rcl_publisher_t local_twist_publisher;
+geometry_msgs__msg__TwistStamped local_twist_msg;
+uint64_t last_local_twist_time_ms;
+static constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
+
 // subscribers
 rcl_subscription_t vector3_subscriber;
 geometry_msgs__msg__Vector3 vector3_msg;
 
+// update topics
 void update_topic(std_msgs__msg__Int32& msg)
 {
     msg.data++;
@@ -59,6 +70,14 @@ void update_topic(builtin_interfaces__msg__Time& msg)
     }
     msg.sec = utc_usec / 1000000ULL;
     msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
+}
+
+void update_topic(geometry_msgs__msg__PoseStamped& msg)
+{
+}
+
+void update_topic(geometry_msgs__msg__TwistStamped& msg)
+{
 }
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
@@ -76,8 +95,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 
     if (timer != NULL) {
 
-        if (cur_time_ms - last_int32_time_ms > DELAY_INT32_TOPIC_MS)
-        {
+        if (cur_time_ms - last_int32_time_ms > DELAY_INT32_TOPIC_MS) {
             update_topic(time_msg);
             last_int32_time_ms = cur_time_ms;
             RCSOFTCHECK(rcl_publish(&int32_publisher, &int32_msg, NULL));
@@ -85,8 +103,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             //     "UROS: sent int32: %d", int32_msg.data);
         }
 
-        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS)
-        {
+        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
             update_topic(time_msg);
             last_time_time_ms = cur_time_ms;
             RCSOFTCHECK(rcl_publish(&time_publisher, &time_msg, NULL));
@@ -94,6 +111,17 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             //     "UROS: sent time: %d, %d", time_msg.sec, time_msg.nanosec);
         }
 
+        if (cur_time_ms - last_local_pose_time_ms > DELAY_LOCAL_POSE_TOPIC_MS) {
+            update_topic(local_pose_msg);
+            last_local_pose_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&local_pose_publisher, &local_pose_msg, NULL));
+        }
+
+        if (cur_time_ms - last_local_twist_time_ms > DELAY_LOCAL_TWIST_TOPIC_MS) {
+            update_topic(local_twist_msg);
+            last_local_twist_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&local_twist_publisher, &local_twist_msg, NULL));
+        }
     }
 }
 
@@ -170,6 +198,8 @@ void AP_UROS_Client::main_loop(void)
 
     RCSOFTCHECK(rcl_publisher_fini(&int32_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&local_pose_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&local_twist_publisher, &node));
 
     RCSOFTCHECK(rcl_node_fini(&node));
 }
@@ -227,6 +257,18 @@ bool AP_UROS_Client::create()
         ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
         "ap/time"));
 
+    RCCHECK(rclc_publisher_init_default(
+        &local_pose_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
+        "ap/pose/filtered"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &local_twist_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+        "ap/twist/filtered"));
+
     // create subscribers
     RCCHECK(rclc_subscription_init_default(
         &vector3_subscriber,
@@ -242,7 +284,7 @@ bool AP_UROS_Client::create()
         timer_callback));
 
     // create executor
-    const size_t number_of_handles = 3;
+    const size_t number_of_handles = 5;
     executor = rclc_executor_get_zero_initialized_executor();
     RCCHECK(rclc_executor_init(&executor, &support.context,
         number_of_handles, &allocator));
