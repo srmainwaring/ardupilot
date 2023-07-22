@@ -111,7 +111,7 @@ void AP_UROS_Client::main_loop(void)
 bool AP_UROS_Client::init()
 {
     // initialize transport
-    bool initTransportStatus = true;
+    bool initTransportStatus = false;
 
 #if AP_UROS_UDP_ENABLED
     // fallback to UDP if available
