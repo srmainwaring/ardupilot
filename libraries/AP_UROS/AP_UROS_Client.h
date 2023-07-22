@@ -45,6 +45,8 @@ private:
     rclc_support_t support;
     rcl_node_t node;
     rclc_executor_t executor;
+    rcl_timer_t timer;
+    const unsigned int timer_timeout = 1000;
 
 #if AP_UROS_UDP_ENABLED
     // functions for udp transport
