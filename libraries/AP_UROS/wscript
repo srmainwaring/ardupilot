@@ -16,6 +16,8 @@ def configure(cfg):
         'libraries/AP_UROS/uros/include/action_msgs',
         'libraries/AP_UROS/uros/include/builtin_interfaces',
         'libraries/AP_UROS/uros/include/geometry_msgs',
+        'libraries/AP_UROS/uros/include/rosgraph_msgs',
+        'libraries/AP_UROS/uros/include/sensor_msgs',
         'libraries/AP_UROS/uros/include/std_msgs',
         'libraries/AP_UROS/uros/include/tf2_msgs',
         'libraries/AP_UROS/uros/include/unique_identifier_msgs',
