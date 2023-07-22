@@ -31,19 +31,69 @@
     }\
 }
 
-rcl_publisher_t publisher;
+// publishers
+rcl_publisher_t int32_publisher;
 std_msgs__msg__Int32 int32_msg;
+uint64_t last_int32_time_ms;
+static constexpr uint16_t DELAY_INT32_TOPIC_MS = 1000;
 
-rcl_subscription_t subscriber;
+rcl_publisher_t time_publisher;
+builtin_interfaces__msg__Time time_msg;
+uint64_t last_time_time_ms;
+static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
+
+// subscribers
+rcl_subscription_t vector3_subscriber;
 geometry_msgs__msg__Vector3 vector3_msg;
+
+void update_topic(std_msgs__msg__Int32& msg)
+{
+    msg.data++;
+}
+
+void update_topic(builtin_interfaces__msg__Time& msg)
+{
+    uint64_t utc_usec;
+    if (!AP::rtc().get_utc_usec(utc_usec)) {
+        utc_usec = AP_HAL::micros64();
+    }
+    msg.sec = utc_usec / 1000000ULL;
+    msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
+}
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
     (void) last_call_time;
+
+    // WITH_SEMAPHORE(csem);
+
+    // get the timer clock
+    rcl_clock_t * clock;
+    RCSOFTCHECK(rcl_timer_clock(timer, &clock));
+
+    // TODO(srmainwaring) - use the rcl_clock...
+    const auto cur_time_ms = AP_HAL::millis64();
+
     if (timer != NULL) {
-        RCSOFTCHECK(rcl_publish(&publisher, &int32_msg, NULL));
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: sent: %d", int32_msg.data);
-        int32_msg.data++;
+
+        if (cur_time_ms - last_int32_time_ms > DELAY_INT32_TOPIC_MS)
+        {
+            update_topic(time_msg);
+            last_int32_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&int32_publisher, &int32_msg, NULL));
+            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
+            //     "UROS: sent int32: %d", int32_msg.data);
+        }
+
+        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS)
+        {
+            update_topic(time_msg);
+            last_time_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&time_publisher, &time_msg, NULL));
+            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
+            //     "UROS: sent time: %d, %d", time_msg.sec, time_msg.nanosec);
+        }
+
     }
 }
 
@@ -116,8 +166,11 @@ void AP_UROS_Client::main_loop(void)
     // periodic actions
     rclc_executor_spin(&executor);
 
-    RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
-    RCSOFTCHECK(rcl_publisher_fini(&publisher, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&vector3_subscriber, &node));
+
+    RCSOFTCHECK(rcl_publisher_fini(&int32_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
+
     RCSOFTCHECK(rcl_node_fini(&node));
 }
 
@@ -150,7 +203,7 @@ bool AP_UROS_Client::init()
 
     // create node
     RCCHECK(rclc_node_init_default(
-        &node, "ardupilot_uros_rclc", "", &support));
+        &node, "ardupilot_uros", "", &support));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init complete");
 
@@ -161,16 +214,22 @@ bool AP_UROS_Client::create()
 {
     WITH_SEMAPHORE(csem);
 
-    // create publisher
+    // create publishers
     RCCHECK(rclc_publisher_init_default(
-        &publisher,
+        &int32_publisher,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "std_msgs_msg_Int32"));
 
-    // create subscriber
+    RCCHECK(rclc_publisher_init_default(
+        &time_publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
+        "ap/time"));
+
+    // create subscribers
     RCCHECK(rclc_subscription_init_default(
-        &subscriber,
+        &vector3_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
         "geometry_msgs_msg_Vector3"));
@@ -179,16 +238,18 @@ bool AP_UROS_Client::create()
     RCCHECK(rclc_timer_init_default(
         &timer,
         &support,
-        RCL_MS_TO_NS(timer_timeout),
+        RCL_MS_TO_NS(timer_timeout_ms),
         timer_callback));
 
     // create executor
+    const size_t number_of_handles = 3;
     executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+    RCCHECK(rclc_executor_init(&executor, &support.context,
+        number_of_handles, &allocator));
 
   	RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
-    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber,
+    RCCHECK(rclc_executor_add_subscription(&executor, &vector3_subscriber,
         &vector3_msg, &subscription_callback, ON_NEW_DATA));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
