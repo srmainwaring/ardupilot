@@ -31,15 +31,28 @@
     }\
 }
 
+rcl_publisher_t publisher;
+std_msgs__msg__Int32 int32_msg;
+
 rcl_subscription_t subscriber;
-geometry_msgs__msg__Vector3 msg;
+geometry_msgs__msg__Vector3 vector3_msg;
+
+void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
+{
+    (void) last_call_time;
+    if (timer != NULL) {
+        RCSOFTCHECK(rcl_publish(&publisher, &int32_msg, NULL));
+        printf("Sent: %d\n", int32_msg.data);
+        int32_msg.data++;
+    }
+}
 
 void subscription_callback(const void * msgin)
 {
-    const geometry_msgs__msg__Vector3 * pmsg =
+    const geometry_msgs__msg__Vector3 * msg =
         (const geometry_msgs__msg__Vector3 *)msgin;
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: x: %f, y: %f, z: %f",
-        pmsg->x, pmsg->y, pmsg->z);
+        msg->x, msg->y, msg->z);
 }
 
 const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
@@ -100,11 +113,11 @@ void AP_UROS_Client::main_loop(void)
 
     // one-time actions
 
-
     // periodic actions
     rclc_executor_spin(&executor);
 
     RCSOFTCHECK(rcl_subscription_fini(&subscriber, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&publisher, &node));
     RCSOFTCHECK(rcl_node_fini(&node));
 }
 
@@ -139,10 +152,6 @@ bool AP_UROS_Client::init()
     RCCHECK(rclc_node_init_default(
         &node, "ardupilot_uros_rclc", "", &support));
 
-    // create executor
-    executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init complete");
 
     return true;
@@ -152,6 +161,13 @@ bool AP_UROS_Client::create()
 {
     WITH_SEMAPHORE(csem);
 
+    // create publisher
+    RCCHECK(rclc_publisher_init_default(
+        &publisher,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        "std_msgs_msg_Int32"));
+
     // create subscriber
     RCCHECK(rclc_subscription_init_default(
         &subscriber,
@@ -159,8 +175,21 @@ bool AP_UROS_Client::create()
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
         "geometry_msgs_msg_Vector3"));
 
-    RCCHECK(rclc_executor_add_subscription(
-        &executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
+    // create timer
+    RCCHECK(rclc_timer_init_default(
+        &timer,
+        &support,
+        RCL_MS_TO_NS(timer_timeout),
+        timer_callback));
+
+    // create executor
+    executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator));
+
+  	RCCHECK(rclc_executor_add_timer(&executor, &timer));
+
+    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber,
+        &vector3_msg, &subscription_callback, ON_NEW_DATA));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
 
