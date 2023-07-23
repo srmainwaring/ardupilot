@@ -68,7 +68,7 @@ micro_ros_utilities_memory_conf_t local_twist_conf;
 rcl_publisher_t nav_sat_fix_publisher;
 sensor_msgs__msg__NavSatFix nav_sat_fix_msg;
 uint64_t last_nav_sat_fix_time_ms;
-static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
+// static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
 micro_ros_utilities_memory_conf_t nav_sat_fix_conf;
 
 rcl_publisher_t static_transform_publisher;
@@ -298,9 +298,7 @@ void update_topic(tf2_msgs__msg__TFMessage& msg)
 
 // implementation copied from:
 // bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
-//! @todo(srmainwaring) - this version always provides an update - which may be valid;
-//                      update scheduling to match AP_DDS
-void update_topic(sensor_msgs__msg__NavSatFix& msg)
+bool update_topic(sensor_msgs__msg__NavSatFix& msg)
 {
     const uint8_t instance = 0;
 
@@ -311,8 +309,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
 
     // assert(instance >= GPS_MAX_RECEIVERS);
     if (instance >= GPS_MAX_RECEIVERS) {
-        // return false;
-        return;
+        return false;
     }
 
     auto &gps = AP::gps();
@@ -322,15 +319,13 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
         msg.status.status = -1; // STATUS_NO_FIX
         msg.status.service = 0; // No services supported
         msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        // return false;
-        return;
+        return false;
     }
 
     // No update is needed
     const auto last_fix_time_ms = gps.last_fix_time_ms(instance);
     if (last_nav_sat_fix_time_ms == last_fix_time_ms) {
-        // return false;
-        return;
+        return false;
     } else {
         last_nav_sat_fix_time_ms = last_fix_time_ms;
     }
@@ -352,8 +347,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
     case AP_GPS::NO_FIX:
         msg.status.status = -1; // STATUS_NO_FIX
         msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        // return true;
-        return;
+        return true;
     case AP_GPS::GPS_OK_FIX_2D:
     case AP_GPS::GPS_OK_FIX_3D:
         msg.status.status = 0; // STATUS_FIX
@@ -378,8 +372,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
         // With absolute frame, this condition is unlikely
         msg.status.status = -1; // STATUS_NO_FIX
         msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        // return true;
-        return;
+        return true;
     }
     msg.altitude = alt_cm * 0.01;
 
@@ -396,7 +389,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
     msg.position_covariance[7] = cov[2][1];
     msg.position_covariance[8] = cov[2][2];
 
-    // return true;
+    return true;
 }
 
 // implementation copied from:
@@ -451,9 +444,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             RCSOFTCHECK(rcl_publish(&local_twist_publisher, &local_twist_msg, NULL));
         }
 
-        if (cur_time_ms - last_nav_sat_fix_time_ms > DELAY_NAV_SAT_FIX_TOPIC_MS) {
-            update_topic(nav_sat_fix_msg);
-            last_nav_sat_fix_time_ms = cur_time_ms;
+        if (update_topic(nav_sat_fix_msg)) {
             RCSOFTCHECK(rcl_publish(&nav_sat_fix_publisher, &nav_sat_fix_msg, NULL));
         }
 
