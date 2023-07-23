@@ -83,11 +83,14 @@ uint64_t last_time_time_ms;
 static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
 // subscribers
+rcl_subscription_t joy_subscriber;
+sensor_msgs__msg__Joy joy_msg;
+micro_ros_utilities_memory_conf_t joy_conf;
+
 rcl_subscription_t vector3_subscriber;
 geometry_msgs__msg__Vector3 vector3_msg;
 
 // update published topics
-
 void update_topic(builtin_interfaces__msg__Time& msg);
 
 // implementation copied from:
@@ -404,7 +407,7 @@ void update_topic(builtin_interfaces__msg__Time& msg)
     msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
 }
 
-// subscriber callbacks
+// call publishers
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
     (void) last_call_time;
@@ -464,7 +467,21 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     }
 }
 
-void subscription_callback(const void * msgin)
+// subscriber callbacks
+void on_joy_msg(const void * msgin)
+{
+    const sensor_msgs__msg__Joy * msg =
+        (const sensor_msgs__msg__Joy *)msgin;
+
+    if (msg->axes.size >= 4) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"UROS: sensor_msgs/Joy: %f, %f, %f, %f",
+            msg->axes.data[0], msg->axes.data[1], msg->axes.data[2], msg->axes.data[3]);
+    } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"UROS: sensor_msgs/Joy must have axes size >= 4");
+    }
+}
+
+void on_vector3_msg(const void * msgin)
 {
     const geometry_msgs__msg__Vector3 * msg =
         (const geometry_msgs__msg__Vector3 *)msgin;
@@ -533,6 +550,7 @@ void AP_UROS_Client::main_loop(void)
     // periodic actions
     rclc_executor_spin(&executor);
 
+    RCSOFTCHECK(rcl_subscription_fini(&joy_subscriber, &node));
     RCSOFTCHECK(rcl_subscription_fini(&vector3_subscriber, &node));
 
     RCSOFTCHECK(rcl_publisher_fini(&battery_state_publisher, &node));
@@ -649,6 +667,20 @@ bool AP_UROS_Client::create()
         );
     }
 
+    {
+        joy_conf.max_string_capacity = 32;
+        joy_conf.max_ros2_type_sequence_capacity = 32;
+        joy_conf.max_basic_type_sequence_capacity = 32;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
+            &joy_msg,
+            joy_conf
+        );
+    }
+
+
     // create publishers
     RCCHECK(rclc_publisher_init_default(
         &battery_state_publisher,
@@ -694,6 +726,12 @@ bool AP_UROS_Client::create()
 
     // create subscribers
     RCCHECK(rclc_subscription_init_default(
+        &joy_subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
+        "ap/joy"));
+
+    RCCHECK(rclc_subscription_init_default(
         &vector3_subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
@@ -708,7 +746,7 @@ bool AP_UROS_Client::create()
 
     // number of entities
     constexpr size_t number_of_publishers = 7;
-    constexpr size_t number_of_subscribers = 1;
+    constexpr size_t number_of_subscribers = 2;
     constexpr size_t number_of_handles =
         number_of_publishers + number_of_subscribers;
 
@@ -719,8 +757,11 @@ bool AP_UROS_Client::create()
 
   	RCCHECK(rclc_executor_add_timer(&executor, &timer));
 
+    RCCHECK(rclc_executor_add_subscription(&executor, &joy_subscriber,
+        &joy_msg, &on_joy_msg, ON_NEW_DATA));
+
     RCCHECK(rclc_executor_add_subscription(&executor, &vector3_subscriber,
-        &vector3_msg, &subscription_callback, ON_NEW_DATA));
+        &vector3_msg, &on_vector3_msg, ON_NEW_DATA));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
 
