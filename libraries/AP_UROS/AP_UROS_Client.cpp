@@ -87,9 +87,6 @@ rcl_subscription_t joy_subscriber;
 sensor_msgs__msg__Joy joy_msg;
 micro_ros_utilities_memory_conf_t joy_conf;
 
-rcl_subscription_t vector3_subscriber;
-geometry_msgs__msg__Vector3 vector3_msg;
-
 // update published topics
 void update_topic(builtin_interfaces__msg__Time& msg);
 
@@ -481,14 +478,6 @@ void on_joy_msg(const void * msgin)
     }
 }
 
-void on_vector3_msg(const void * msgin)
-{
-    const geometry_msgs__msg__Vector3 * msg =
-        (const geometry_msgs__msg__Vector3 *)msgin;
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: x: %f, y: %f, z: %f",
-        msg->x, msg->y, msg->z);
-}
-
 const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
 
     // @Param: _ENABLE
@@ -551,7 +540,6 @@ void AP_UROS_Client::main_loop(void)
     rclc_executor_spin(&executor);
 
     RCSOFTCHECK(rcl_subscription_fini(&joy_subscriber, &node));
-    RCSOFTCHECK(rcl_subscription_fini(&vector3_subscriber, &node));
 
     RCSOFTCHECK(rcl_publisher_fini(&battery_state_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&clock_publisher, &node));
@@ -731,12 +719,6 @@ bool AP_UROS_Client::create()
         ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
         "ap/joy"));
 
-    RCCHECK(rclc_subscription_init_default(
-        &vector3_subscriber,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Vector3),
-        "geometry_msgs_msg_Vector3"));
-
     // create timer
     RCCHECK(rclc_timer_init_default(
         &timer,
@@ -746,7 +728,7 @@ bool AP_UROS_Client::create()
 
     // number of entities
     constexpr size_t number_of_publishers = 7;
-    constexpr size_t number_of_subscribers = 2;
+    constexpr size_t number_of_subscribers = 1;
     constexpr size_t number_of_handles =
         number_of_publishers + number_of_subscribers;
 
@@ -759,9 +741,6 @@ bool AP_UROS_Client::create()
 
     RCCHECK(rclc_executor_add_subscription(&executor, &joy_subscriber,
         &joy_msg, &on_joy_msg, ON_NEW_DATA));
-
-    RCCHECK(rclc_executor_add_subscription(&executor, &vector3_subscriber,
-        &vector3_msg, &on_vector3_msg, ON_NEW_DATA));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
 
