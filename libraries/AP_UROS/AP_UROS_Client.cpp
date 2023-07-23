@@ -415,7 +415,7 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     rcl_clock_t * clock;
     RCSOFTCHECK(rcl_timer_clock(timer, &clock));
 
-    /// \todo(srmainwaring) - use the rcl_clock...
+    //! @todo(srmainwaring) - use the rcl_clock...
     const auto cur_time_ms = AP_HAL::millis64();
 
     if (timer != NULL) {
