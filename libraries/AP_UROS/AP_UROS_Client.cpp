@@ -87,8 +87,19 @@ rcl_subscription_t joy_subscriber;
 sensor_msgs__msg__Joy joy_msg;
 micro_ros_utilities_memory_conf_t joy_conf;
 
-// update published topics
+// declarations
 void update_topic(builtin_interfaces__msg__Time& msg);
+void update_topic(sensor_msgs__msg__BatteryState& msg);
+void update_topic(rosgraph_msgs__msg__Clock& msg);
+void update_topic(geometry_msgs__msg__PoseStamped& msg);
+void update_topic(geometry_msgs__msg__TwistStamped& msg);
+void update_topic(tf2_msgs__msg__TFMessage& msg);
+bool update_topic(sensor_msgs__msg__NavSatFix& msg);
+void update_topic(builtin_interfaces__msg__Time& msg);
+void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
+void on_joy_msg(const void * msgin);
+
+// update published topics
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance) 
