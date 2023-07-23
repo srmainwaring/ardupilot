@@ -2,8 +2,12 @@
 
 #if AP_UROS_ENABLED
 
+#include "AP_UROS_Client.h"
+
 #include <algorithm>
 #include <string.h>
+
+#include <micro_ros_utilities/type_utilities.h>
 
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
@@ -12,8 +16,6 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_AHRS/AP_AHRS.h>
-
-#include "AP_UROS_Client.h"
 
 #define RCCHECK(fn) {\
     rcl_ret_t temp_rc = fn;\
@@ -35,15 +37,16 @@
 }
 
 // topic constants
-// static char WGS_84_FRAME_ID[] = "WGS-84";
+static char WGS_84_FRAME_ID[] = "WGS-84";
 // https://www.ros.org/reps/rep-0105.html#base-link
-// static char BASE_LINK_FRAME_ID[] = "base_link";
+static char BASE_LINK_FRAME_ID[] = "base_link";
 
 // publishers
 rcl_publisher_t battery_state_publisher;
 sensor_msgs__msg__BatteryState battery_state_msg;
 uint64_t last_battery_state_time_ms;
 static constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
+micro_ros_utilities_memory_conf_t battery_state_conf;
 
 rcl_publisher_t clock_publisher;
 rosgraph_msgs__msg__Clock clock_msg;
@@ -54,21 +57,25 @@ rcl_publisher_t local_pose_publisher;
 geometry_msgs__msg__PoseStamped local_pose_msg;
 uint64_t last_local_pose_time_ms;
 static constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
+micro_ros_utilities_memory_conf_t local_pose_conf;
 
 rcl_publisher_t local_twist_publisher;
 geometry_msgs__msg__TwistStamped local_twist_msg;
 uint64_t last_local_twist_time_ms;
 static constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
+micro_ros_utilities_memory_conf_t local_twist_conf;
 
 rcl_publisher_t nav_sat_fix_publisher;
 sensor_msgs__msg__NavSatFix nav_sat_fix_msg;
 uint64_t last_nav_sat_fix_time_ms;
 static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
+micro_ros_utilities_memory_conf_t nav_sat_fix_conf;
 
 rcl_publisher_t static_transform_publisher;
 tf2_msgs__msg__TFMessage static_transform_msg;
 uint64_t last_static_transform_time_ms;
 static constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
+micro_ros_utilities_memory_conf_t static_transform_conf;
 
 rcl_publisher_t time_publisher;
 builtin_interfaces__msg__Time time_msg;
@@ -143,11 +150,10 @@ void update_topic(sensor_msgs__msg__BatteryState& msg)
 
     msg.power_supply_technology = 0; //POWER_SUPPLY_TECHNOLOGY_UNKNOWN
 
-    //! @todo(srmainwaring) - initialise cell_voltage sequence
-    // if (battery.has_cell_voltages(instance)) {
-    //     const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
-    //     std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage);
-    // }
+    if (battery.has_cell_voltages(instance)) {
+        const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
+        std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage.data);
+    }
 }
 
 // implementation copied from:
@@ -162,9 +168,7 @@ void update_topic(rosgraph_msgs__msg__Clock& msg)
 void update_topic(geometry_msgs__msg__PoseStamped& msg)
 {
     update_topic(msg.header.stamp);
-
-    //! @todo(srmainwaring) - initialise frame_id memory
-    // strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
+    strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
 
     auto &ahrs = AP::ahrs();
     WITH_SEMAPHORE(ahrs.get_semaphore());
@@ -213,9 +217,7 @@ void update_topic(geometry_msgs__msg__PoseStamped& msg)
 void update_topic(geometry_msgs__msg__TwistStamped& msg)
 {
     update_topic(msg.header.stamp);
-
-    //! @todo(srmainwaring) - initialise frame_id memory
-    // strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
+    strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
 
     auto &ahrs = AP::ahrs();
     WITH_SEMAPHORE(ahrs.get_semaphore());
@@ -256,27 +258,22 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
-//! @todo(srmainwaring) - initialise TFMessage correctly.
 void update_topic(tf2_msgs__msg__TFMessage& msg)
 {
-    //! @todo(srmainwaring) - use micro-ROS version of TFMessage
-    // msg.transforms_size = 0;
+    msg.transforms.size = 0;
 
-#if 0
     auto &gps = AP::gps();
     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
         const auto gps_type = gps.get_type(i);
         if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
             continue;
         }
-        update_topic(msg.transforms[i].header.stamp);
+        update_topic(msg.transforms.data[i].header.stamp);
         char gps_frame_id[16];
         //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
         hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
-
-        //! @todo(srmainwaring) - initialise string memory
-        // strcpy(msg.transforms[i].header.frame_id, BASE_LINK_FRAME_ID);
-        // strcpy(msg.transforms[i].child_frame_id, gps_frame_id);
+        strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
+        strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
         // The body-frame offsets
         // X - Forward
         // Y - Right
@@ -291,13 +288,12 @@ void update_topic(tf2_msgs__msg__TFMessage& msg)
         // Z - Up
         // https://www.ros.org/reps/rep-0103.html#axis-orientation
 
-        msg.transforms[i].transform.translation.x = offset[0];
-        msg.transforms[i].transform.translation.y = -1 * offset[1];
-        msg.transforms[i].transform.translation.z = -1 * offset[2];
+        msg.transforms.data[i].transform.translation.x = offset[0];
+        msg.transforms.data[i].transform.translation.y = -1 * offset[1];
+        msg.transforms.data[i].transform.translation.z = -1 * offset[2];
 
-        msg.transforms_size++;
+        msg.transforms.size++;
     }
-#endif
 }
 
 // implementation copied from:
@@ -341,9 +337,7 @@ void update_topic(sensor_msgs__msg__NavSatFix& msg)
 
 
     update_topic(msg.header.stamp);
-
-    //! @todo(srmainwaring) - initialise frame_id memory
-    // strcpy(msg.header.frame_id, WGS_84_FRAME_ID);
+    strcpy(msg.header.frame_id.data, WGS_84_FRAME_ID);
     msg.status.service = 0; // SERVICE_GPS
     msg.status.status = -1; // STATUS_NO_FIX
 
@@ -600,6 +594,69 @@ bool AP_UROS_Client::init()
 bool AP_UROS_Client::create()
 {
     WITH_SEMAPHORE(csem);
+
+    // initialise strings and sequences
+    //! @todo(srmainwaring) - check return code
+    {
+        battery_state_conf.max_string_capacity = 32;
+        battery_state_conf.max_ros2_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
+        battery_state_conf.max_basic_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
+            &battery_state_msg,
+            battery_state_conf
+        );
+    }
+    {
+        local_pose_conf.max_string_capacity = 32;
+        local_pose_conf.max_ros2_type_sequence_capacity = 2;
+        local_pose_conf.max_basic_type_sequence_capacity = 2;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
+            &local_pose_msg,
+            local_pose_conf
+        );
+    }
+    {
+        local_twist_conf.max_string_capacity = 32;
+        local_twist_conf.max_ros2_type_sequence_capacity = 2;
+        local_twist_conf.max_basic_type_sequence_capacity = 2;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+            &local_twist_msg,
+            local_twist_conf
+        );
+    }
+    {
+        nav_sat_fix_conf.max_string_capacity = 32;
+        nav_sat_fix_conf.max_ros2_type_sequence_capacity = 2;
+        nav_sat_fix_conf.max_basic_type_sequence_capacity = 2;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
+            &nav_sat_fix_msg,
+            nav_sat_fix_conf
+        );
+    }
+    {
+        static_transform_conf.max_string_capacity = 32;
+        static_transform_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
+        static_transform_conf.max_basic_type_sequence_capacity = 2;
+
+        // bool success =
+        micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+            &static_transform_msg,
+            static_transform_conf
+        );
+    }
 
     // create publishers
     RCCHECK(rclc_publisher_init_default(
