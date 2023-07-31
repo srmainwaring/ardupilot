@@ -799,6 +799,7 @@ bool AP_InertialSensor::register_accel(uint8_t &instance, uint16_t raw_sample_ra
 void AP_InertialSensor::_start_backends()
 
 {
+    hal.console->printf("detect inertial sensor backends\n");
     detect_backends();
 
     for (uint8_t i = 0; i < _backend_count; i++) {
@@ -879,6 +880,8 @@ bool AP_InertialSensor::has_fft_notch() const
 void
 AP_InertialSensor::init(uint16_t loop_rate)
 {
+    hal.console->printf("intialise inertial sensor frontend\n");
+
     // remember the sample rate
     _loop_rate = loop_rate;
     _loop_delta_t = 1.0f / loop_rate;
@@ -889,11 +892,13 @@ AP_InertialSensor::init(uint16_t loop_rate)
     _loop_delta_t_max = 10 * _loop_delta_t;
 
     if (_gyro_count == 0 && _accel_count == 0) {
+        hal.console->printf("start inertial sensor backends\n");
         _start_backends();
     }
 
     // calibrate gyros unless gyro calibration has been disabled
     if (gyro_calibration_timing() != GYRO_CAL_NEVER) {
+        hal.console->printf("initialise gyro\n");
         init_gyro();
     }
 
@@ -907,6 +912,7 @@ AP_InertialSensor::init(uint16_t loop_rate)
 
 #if AP_INERTIALSENSOR_BATCHSAMPLER_ENABLED
     // initialise IMU batch logging
+    hal.console->printf("intialise imu batch sampler\n");
     batchsampler.init();
 #endif
 
@@ -1261,6 +1267,7 @@ AP_InertialSensor::detect_backends(void)
 
         // no real INS backends avail, lets use an empty substitute to boot ok and get to mavlink
         #if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+        hal.console->printf("no INS backend found - using HAL_BOARD_ESP32 default\n");
         ADD_BACKEND(AP_InertialSensor_NONE::detect(*this, INS_NONE_SENSOR_A));
         #else
         DEV_PRINTF("INS: unable to initialise driver\n");
@@ -1346,9 +1353,11 @@ bool AP_InertialSensor::_calculate_trim(const Vector3f &accel_sample, Vector3f &
 void
 AP_InertialSensor::init_gyro()
 {
+    hal.console->printf("initialise gyro (internal)\n");
     _init_gyro();
 
     // save calibration
+    hal.console->printf("save gyro calibration\n");
     _save_gyro_calibration();
 }
 
@@ -1580,6 +1589,7 @@ AP_InertialSensor::_init_gyro()
     _board_orientation = ROTATION_NONE;
 
     // remove existing gyro offsets
+    hal.console->printf("\nremove existing gyro offsets\n");
     for (uint8_t k=0; k<num_gyros; k++) {
         _gyro_offset(k).set(Vector3f());
         new_gyro_offset[k].zero();
@@ -1588,6 +1598,7 @@ AP_InertialSensor::_init_gyro()
         converged[k] = false;
     }
 
+    hal.console->printf("update 5x\n");
     for(int8_t c = 0; c < 5; c++) {
         hal.scheduler->delay(5);
         update();
@@ -1598,6 +1609,7 @@ AP_InertialSensor::_init_gyro()
     // has just been powered on, so the temperature may be changing
     // rapidly. We use the average between start and end temperature
     // as the calibration temperature to minimise errors
+    hal.console->printf("get temperature\n");
     for (uint8_t k=0; k<num_gyros; k++) {
         start_temperature[k] = get_temperature(k);
     }
@@ -1611,6 +1623,7 @@ AP_InertialSensor::_init_gyro()
 
     // we try to get a good calibration estimate for up to 30 seconds
     // if the gyros are stable, we should get it in 1 second
+    hal.console->printf("start gyro calibration\n");
     for (int16_t j = 0; j <= 30*4 && num_converged < num_gyros; j++) {
         Vector3f gyro_sum[INS_MAX_INSTANCES], gyro_avg[INS_MAX_INSTANCES], gyro_diff[INS_MAX_INSTANCES];
         Vector3f accel_start;
@@ -1672,6 +1685,7 @@ AP_InertialSensor::_init_gyro()
         }
     }
 
+    hal.console->printf("done gyro calibration\n");
     // we've kept the user waiting long enough - use the best pair we
     // found so far
     DEV_PRINTF("\n");
@@ -1757,6 +1771,7 @@ void AP_InertialSensor::update(void)
 {
     // during initialisation update() may be called without
     // wait_for_sample(), and a wait is implied
+    // hal.console->printf("wait for imu sample\n");
     wait_for_sample();
 
         for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
@@ -1769,6 +1784,7 @@ void AP_InertialSensor::update(void)
             _delta_angle_valid[i] = false;
         }
         for (uint8_t i=0; i<_backend_count; i++) {
+            // hal.console->printf("update imu backend[%d]\n", i);
             _backends[i]->update();
         }
 
@@ -1864,6 +1880,7 @@ void AP_InertialSensor::wait_for_sample(void)
     if (_have_sample) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
+        // hal.console->printf("skip wait - have imu sample\n");
         return;
     }
 
@@ -1904,6 +1921,19 @@ void AP_InertialSensor::wait_for_sample(void)
     }
 
 check_sample:
+        // hal.console->printf("check imu sample\n");
+
+        //! @todo(srmainwaring) - esp32empty - check params set properly
+        // expect:
+        // _gyro_count = 1
+        // _accel_count = 1
+        // _use[0] = 1
+        // hal.console->printf("_gyro_count:   %d\n", _gyro_count);
+        // hal.console->printf("_accel_count:  %d\n", _accel_count);
+        // for (uint8_t i=0; i<_gyro_count; i++) {
+        //     hal.console->printf("_use[%d]:      %d\n", i, (int)_use(i));
+        // }
+
         // now we wait until we have the gyro and accel samples we need
         uint8_t gyro_available_mask = 0;
         uint8_t accel_available_mask = 0;
@@ -1914,13 +1944,17 @@ check_sample:
         const uint8_t wait_counter_limit = uint32_t(_loop_delta_t * 1.0e6) / (3*wait_per_loop);
 
         while (true) {
+            // hal.console->printf("wait counter %d/%d\n", wait_counter, wait_counter_limit);
+
             for (uint8_t i=0; i<_backend_count; i++) {
                 // this is normally a nop, but can be used by backends
                 // that don't accumulate samples on a timer
+                // hal.console->printf("imu[%d]: accumulate\n", i);
                 _backends[i]->accumulate();
             }
 
             for (uint8_t i=0; i<_gyro_count; i++) {
+                // hal.console->printf("_new_gyro_data[%d]:  %d\n", i, _new_gyro_data[i]);
                 if (_new_gyro_data[i]) {
                     const uint8_t imask = (1U<<i);
                     gyro_available_mask |= imask;
@@ -1932,6 +1966,7 @@ check_sample:
                 }
             }
             for (uint8_t i=0; i<_accel_count; i++) {
+                // hal.console->printf("_new_accel_data[%d]: %d\n", i, _new_accel_data[i]);
                 if (_new_accel_data[i]) {
                     const uint8_t imask = (1U<<i);
                     accel_available_mask |= imask;
