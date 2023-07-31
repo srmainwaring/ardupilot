@@ -16,11 +16,13 @@ static void failsafe_check_static()
 void Copter::init_ardupilot()
 {
 
+    hal.console->printf("initialise states module\n");
 #if STATS_ENABLED == ENABLED
     // initialise stats module
     g2.stats.init();
 #endif
 
+    hal.console->printf("initialise board config\n");
     BoardConfig.init();
 #if HAL_MAX_CAN_PROTOCOL_DRIVERS
     can_mgr.init();
@@ -36,18 +38,23 @@ void Copter::init_ardupilot()
     g2.winch.init();
 #endif
 
+    hal.console->printf("initialise notify system\n");
     // initialise notify system
     notify.init();
     notify_flight_mode();
 
+    hal.console->printf("initialise battery monitor\n");
     // initialise battery monitor
     battery.init();
 
+    hal.console->printf("initialise rssi\n");
     // Init RSSI
     rssi.init();
     
+    hal.console->printf("initialise barometer\n");
     barometer.init();
 
+    hal.console->printf("initialise uarts\n");
     // setup telem slots with serial ports
     gcs().setup_uarts();
 
@@ -56,10 +63,12 @@ void Copter::init_ardupilot()
 #endif
 
 #if LOGGING_ENABLED == ENABLED
+    hal.console->printf("initialise logging\n");
     log_init();
 #endif
 
     // update motor interlock state
+    hal.console->printf("initialise motor interlock\n");
     update_using_interlock();
 
 #if FRAME_CONFIG == HELI_FRAME
@@ -70,6 +79,7 @@ void Copter::init_ardupilot()
     input_manager.set_loop_rate(scheduler.get_loop_rate_hz());
 #endif
 
+    hal.console->printf("initialise rc in\n");
     init_rc_in();               // sets up rc channels from radio
 
     // initialise surface to be tracked in SurfaceTracking
@@ -77,16 +87,20 @@ void Copter::init_ardupilot()
     surface_tracking.init((SurfaceTracking::Surface)copter.g2.surftrak_mode.get());
 
     // allocate the motors class
+    hal.console->printf("allocate motors\n");
     allocate_motors();
 
     // initialise rc channels including setting mode
+    hal.console->printf("initialise rc channels\n");
     rc().convert_options(RC_Channel::AUX_FUNC::ARMDISARM_UNUSED, RC_Channel::AUX_FUNC::ARMDISARM_AIRMODE);
     rc().init();
 
     // sets up motors and output to escs
+    hal.console->printf("initialise rc out\n");
     init_rc_out();
 
     // check if we should enter esc calibration mode
+    hal.console->printf("initialise esc calib\n");
     esc_calibration_startup_check();
 
     // motors initialised so parameters can be sent
@@ -103,9 +117,11 @@ void Copter::init_ardupilot()
     hal.scheduler->register_timer_failsafe(failsafe_check_static, 1000);
 
     // Do GPS init
+    hal.console->printf("initialise gps\n");
     gps.set_log_gps_bit(MASK_LOG_GPS);
     gps.init(serial_manager);
 
+    hal.console->printf("initialise compass\n");
     AP::compass().set_log_bit(MASK_LOG_COMPASS);
     AP::compass().init();
 
@@ -117,6 +133,7 @@ void Copter::init_ardupilot()
     g2.oa.init();
 #endif
 
+    hal.console->printf("check attitude controller params\n");
     attitude_control->parameter_sanity_check();
 
 #if AP_OPTICALFLOW_ENABLED
@@ -150,11 +167,13 @@ void Copter::init_ardupilot()
 
     // read Baro pressure at ground
     //-----------------------------
+    hal.console->printf("read barometer pressure\n");
     barometer.set_log_baro_bit(MASK_LOG_IMU);
     barometer.calibrate();
 
 #if RANGEFINDER_ENABLED == ENABLED
     // initialise rangefinder
+    hal.console->printf("initialise rangefinder\n");
     init_rangefinder();
 #endif
 
@@ -175,20 +194,26 @@ void Copter::init_ardupilot()
 
 #if MODE_AUTO_ENABLED == ENABLED
     // initialise mission library
+    hal.console->printf("initialise auto mode\n");
     mode_auto.mission.init();
 #endif
 
 #if MODE_SMARTRTL_ENABLED == ENABLED
     // initialize SmartRTL
+    hal.console->printf("initialise smart rtl\n");
     g2.smart_rtl.init();
 #endif
 
     // initialise AP_Logger library
+    hal.console->printf("initialise logger\n");
     logger.setVehicle_Startup_Writer(FUNCTOR_BIND(&copter, &Copter::Log_Write_Vehicle_Startup_Messages, void));
 
+    hal.console->printf("startup ins ground\n");
+    //! @todo(srmainwaring) - skip for esp32empty
     startup_INS_ground();
 
 #if AP_SCRIPTING_ENABLED
+    hal.console->printf("initialise scripting\n");
     g2.scripting.init();
 #endif // AP_SCRIPTING_ENABLED
 
@@ -197,14 +222,18 @@ void Copter::init_ardupilot()
 #endif
 
     // set landed flags
+    hal.console->printf("set landed flags\n");
     set_land_complete(true);
     set_land_complete_maybe(true);
 
     // enable CPU failsafe
+    hal.console->printf("enable cpu failsafe\n");
     failsafe_enable();
 
+    hal.console->printf("set log raw bit\n");
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
+    hal.console->printf("set min motor outputs\n");
     motors->output_min();  // output lowest possible value to motors
 
     // attempt to set the intial_mode, else set to STABILIZE
@@ -215,6 +244,8 @@ void Copter::init_ardupilot()
 
     // flag that initialisation has completed
     ap.initialised = true;
+
+    hal.console->printf("init_ardupilot done\n");
 }
 
 
@@ -224,13 +255,18 @@ void Copter::init_ardupilot()
 void Copter::startup_INS_ground()
 {
     // initialise ahrs (may push imu calibration into the mpu6000 if using that device).
+    hal.console->printf("init ahrs\n");
     ahrs.init();
+
+    hal.console->printf("set vehicle class\n");
     ahrs.set_vehicle_class(AP_AHRS::VehicleClass::COPTER);
 
     // Warm up and calibrate gyro offsets
+    hal.console->printf("calibrate gyro offsets\n");
     ins.init(scheduler.get_loop_rate_hz());
 
     // reset ahrs including gyro bias
+    hal.console->printf("reset ahrs\n");
     ahrs.reset();
 }
 
