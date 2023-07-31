@@ -19,6 +19,7 @@ AP_InertialSensor_NONE::AP_InertialSensor_NONE(AP_InertialSensor &imu, const uin
     gyro_sample_hz(sample_rates[0]),
     accel_sample_hz(sample_rates[1])
 {
+    hal.console->printf("imu_none: construct\n");
 }
 
 /*
@@ -36,6 +37,7 @@ AP_InertialSensor_Backend *AP_InertialSensor_NONE::detect(AP_InertialSensor &_im
 
         return nullptr;
     }
+    hal.console->printf("imu_none: detected\n");
     return sensor;
 }
 
@@ -175,6 +177,8 @@ void AP_InertialSensor_NONE::generate_accel()
  */
 void AP_InertialSensor_NONE::generate_gyro()
 {
+    hal.console->printf("imu_none: generate gyro\n");
+
     Vector3f gyro_accum;
     uint8_t nsamples = enable_fast_sampling(gyro_instance) ? 8 : 1;
 
@@ -299,6 +303,7 @@ bool AP_InertialSensor_NONE::update(void)
 {
     update_accel(accel_instance);
     update_gyro(gyro_instance);
+    hal.console->printf("imu_none: updated\n");
     return true;
 }
 
@@ -313,8 +318,9 @@ void AP_InertialSensor_NONE::start()
         return;
     }
     bus_id++;
+    hal.console->printf("imu_none: register timer callback\n");
     hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_NONE::timer_update, void));
-
+    hal.console->printf("imu_none: start\n");
 }
 
 #endif // HAL_BOARD_NONE
