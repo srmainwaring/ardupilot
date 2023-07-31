@@ -319,6 +319,7 @@ void AP_Vehicle::setup()
     // validate the static parameter table, then load persistent
     // values from storage:
     AP_Param::check_var_info();
+    hal.console->printf("loading parameters\n");
     load_parameters();
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
@@ -334,6 +335,7 @@ void AP_Vehicle::setup()
     const AP_Scheduler::Task *tasks;
     uint8_t task_count;
     uint32_t log_bit;
+    hal.console->printf("initialise main loop scheduler\n");
     get_scheduler_tasks(tasks, task_count, log_bit);
     AP::scheduler().init(tasks, task_count, log_bit);
 
@@ -345,6 +347,7 @@ void AP_Vehicle::setup()
     // this is here for Plane; its failsafe_check method requires the
     // RC channels to be set as early as possible for maximum
     // survivability.
+    hal.console->printf("set control channels\n");
     set_control_channels();
 
 #if HAL_GCS_ENABLED
@@ -352,11 +355,13 @@ void AP_Vehicle::setup()
     // diagnostic output during boot process.  We have to initialise
     // the GCS singleton first as it sets the global mavlink system ID
     // which may get used very early on.
+    hal.console->printf("initialise serial manager\n");
     gcs().init();
 #endif
 
 #if AP_SERIALMANAGER_ENABLED
     // initialise serial ports
+    hal.console->printf("initialise serial ports\n");
     serial_manager.init();
 #endif
 #if HAL_GCS_ENABLED
@@ -416,6 +421,7 @@ void AP_Vehicle::setup()
 #endif
 
     // init_ardupilot is where the vehicle does most of its initialisation.
+    hal.console->printf("initialise ardupilot\n");
     init_ardupilot();
 
 #if AP_SCRIPTING_ENABLED
@@ -423,6 +429,7 @@ void AP_Vehicle::setup()
 #endif // AP_SCRIPTING_ENABLED
 
 #if AP_AIRSPEED_ENABLED
+    hal.console->printf("initialise airspeed\n");
     airspeed.init();
     if (airspeed.enabled()) {
         airspeed.calibrate(true);
@@ -442,6 +449,7 @@ void AP_Vehicle::setup()
     // gyro FFT needs to be initialized really late
 #if HAL_GYROFFT_ENABLED
 #if AP_SCHEDULER_ENABLED
+    hal.console->printf("gyro fft fit\n");
     gyro_fft.init(AP::scheduler().get_loop_rate_hz());
 #else
     gyro_fft.init(1000);
@@ -471,6 +479,7 @@ void AP_Vehicle::setup()
     AP_Param::show_all(hal.console, true);
 #endif
 
+    hal.console->printf("send watchdog reset status\n");
     send_watchdog_reset_statustext();
 
 #if AP_OPENDRONEID_ENABLED
@@ -479,10 +488,12 @@ void AP_Vehicle::setup()
 
 // init EFI monitoring
 #if HAL_EFI_ENABLED
+    hal.console->printf("initialise efi\n");
     efi.init();
 #endif
 
 #if AP_TEMPERATURE_SENSOR_ENABLED
+    hal.console->printf("initialise temperature sensor\n");
     temperature_sensor.init();
 #endif
 
@@ -503,6 +514,8 @@ void AP_Vehicle::setup()
 #endif
 
 #if AP_CUSTOMROTATIONS_ENABLED
+    //! @todo(srmainwaring) - skip for esp32empty
+    hal.console->printf("initialise custom rotations\n");
     custom_rotations.init();
 #endif
 
@@ -536,6 +549,7 @@ void AP_Vehicle::setup()
 void AP_Vehicle::loop()
 {
 #if AP_SCHEDULER_ENABLED
+    // hal.console->printf("vehicle loop\n");
     scheduler.loop();
     G_Dt = scheduler.get_loop_period_s();
 #else
@@ -551,6 +565,7 @@ void AP_Vehicle::loop()
           briefly driving a servo to a position out of the configured
           range which could damage hardware
         */
+        hal.console->printf("initialise safety\n");
         done_safety_init = true;
         BoardConfig.init_safety();
 
