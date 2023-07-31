@@ -116,6 +116,17 @@
 #define MODE_FOLLOW_ENABLED 0
 #define AP_OAPATHPLANNER_ENABLED 0
 
+#ifndef AP_FENCE_ENABLED
+#define AP_FENCE_ENABLED 0
+#endif
+
+#ifndef MODE_FOLLOW_ENABLED
+#define MODE_FOLLOW_ENABLED 0
+#endif
+
+#ifndef AC_OAPATHPLANNER_ENABLED
+#define AC_OAPATHPLANNER_ENABLED 0
+#endif
 
 // other big things..
 #define HAL_QUADPLANE_ENABLED 0
