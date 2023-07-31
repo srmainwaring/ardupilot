@@ -1,6 +1,96 @@
 
 # Ardupilot port to the esp32 series mcu
 
+## Build `esp32empty` and `micro-ROS`
+
+Additional notes for building a minimal image for esp32 on macOS
+with a view to testing a micro-ROS client.
+
+**Host system**: macOS Ventura 13.4
+
+### `esp32empty` using `esp-idf v4.4`
+
+Update git modules
+
+```bash
+./Tools/scripts/esp32_get_idf.sh
+```
+
+Install esp-idf (installs toolchain to `~/.espressif`)
+
+```bash
+./modules/esp-idf/install.sh
+. ./modules/esp-idf/export.sh
+```
+
+Export `eps-idf` environment
+
+```bash
+. ./modules/esp-idf/export.sh
+```
+
+Update python packages
+
+```bash
+python -m pip install empy pexpect
+```
+
+Configure and build
+
+```bash
+./waf distclean
+./waf configure
+./waf configure --board esp32empty --disable-scripting
+./waf copter
+```
+
+Flash
+
+```bash
+ESPBAUD=921600 ./waf copter --upload
+```
+
+Monitor
+
+```bash
+screen /dev/cu.usbserial-0001 115200
+```
+
+- Scroll - `Ctlr-a Esc`
+- Close - `Ctlr-a Ctrl-\ y`
+
+MAVProxy
+
+```bash
+# usb serial
+mavproxy.py --master=/dev/cu.usbserial-0001
+
+# wifi config is tcp
+mavproxy.py --master=tcp:192.168.4.1:5760
+
+# wifi config is udp
+mavproxy.py --master=udp:192.168.4.1:14550
+```
+
+Suppress MAVLink output to USB serial
+
+```bash
+MAV> param set SERIAL0_PROTOCOL 0
+```
+
+then reboot.
+
+Suppress MAVLink output to TCP MAVProxy console
+
+```bash
+MAV> set shownoise False
+```
+
+Issues with `AP_InertialSensor_NONE`
+
+- The sensor is not initialising because the acceleration and gyro update methods are run as a timed callback. These callbacks are not run by the timer thread until the initialisation code run by the scheduler in `setup`. However, this does not complete because the `wait_for_sample` method is blocked waiting for a new sample, which never arrives because the timed update methods are not run.
+
+
 
 ## Building instructions
 0. Build currently tested on linux
@@ -125,11 +215,13 @@ build/<board>/esp-idf_build/partition_table/partition-table.bin
 see build/<board>/esp-idf_build/flash_project_args (after building) for hints on what arguments to use
 
 ---
-OLD
+
+## OLD
 
 Alternatively, the "./waf plane' build outputs a python command that y can cut-n-paste to flash... buzz found that but using that command with a slower baudrate of 921600 instead of its recommended 2000000 worked for him:
 cd ardupilot
 python ./modules/esp_idf/components/esptool_py/esptool/esptool.py --chip esp32 --port /dev/ttyUSB0 --baud 921600 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0xf000 ./build/esp32buzz/idf-plane/ota_data_initial.bin 0x1000 ./build/esp32buzz/idf-plane/bootloader/bootloader.bin 0x20000 ./build/esp32buzz/idf-plane/arduplane.bin 0x8000 ./build/esp32buzz/idf-plane/partitions.bin
+
 ---
 
 ## How is compiled Ardupilot on esp32
