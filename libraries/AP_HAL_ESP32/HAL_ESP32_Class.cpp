@@ -98,7 +98,8 @@ HAL_ESP32::HAL_ESP32() :
         &dspDriver,
         nullptr
     )
-{}
+{
+}
 
 void HAL_ESP32::run(int argc, char * const argv[], Callbacks* callbacks) const
 {
