@@ -38,6 +38,12 @@ void UARTDriver::vprintf(const char *fmt, va_list ap)
 
 void UARTDriver::_begin(uint32_t b, uint16_t rxS, uint16_t txS)
 {
+    if (b == 0 && txS == 0 && rxS == 0 && _initialized) {
+      // just changing port owner
+      //! @todo(srmainwaring) the chibios driver checks thread ownership here
+      return;
+     }
+
     if (uart_num < ARRAY_SIZE(uart_desc)) {
         uart_port_t p = uart_desc[uart_num].port;
         if (!_initialized) {
