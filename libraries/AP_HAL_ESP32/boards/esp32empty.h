@@ -39,6 +39,8 @@
 
 #define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2   //D  UART2
 #define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+//#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_DDS_XRCE   //D  UART2
+//#define DEFAULT_SERIAL2_BAUD            (115200/1000)
 
 #define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS        //B  UART1: GPS1
 #define DEFAULT_SERIAL3_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
@@ -71,9 +73,11 @@
 
 //I2C Buses
 #define HAL_ESP32_I2C_BUSES {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_14, .speed=400*KHZ, .internal=true, .soft=true}
+//esp32buzz #define HAL_ESP32_I2C_BUSES {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_12, .speed=400*KHZ, .internal=true}
 
 //SPI Buses
 #define HAL_ESP32_SPI_BUSES {}
+//esp32buzz #define HAL_ESP32_SPI_BUSES {.host=VSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
 
 //SPI Devices
 #define HAL_ESP32_SPI_DEVICES {}
@@ -93,6 +97,10 @@
 
 //BAROMETER
 #define HAL_BARO_ALLOW_INIT_NO_BARO 1
+
+//IMU
+// #define AP_INERTIALSENSOR_ENABLED 1
+// #define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
 
 //IMU
 // #define AP_INERTIALSENSOR_ENABLED 1
