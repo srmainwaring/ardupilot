@@ -72,6 +72,19 @@ mavproxy.py --master=tcp:192.168.4.1:5760
 mavproxy.py --master=udp:192.168.4.1:14550
 ```
 
+Suppress MAVLink output to USB serial
+
+```bash
+MAV> param set SERIAL0_PROTOCOL 0
+```
+
+then reboot.
+
+Suppress MAVLink output to TCP MAVProxy console
+
+```bash
+MAV> set shownoise False
+
 Issues with `AP_InertialSensor_NONE`
 
 - The sensor is not initialising because the acceleration and gyro update methods are run as a timed callback. These callbacks are not run by the timer thread until the initialisation code run by the scheduler in `setup`. However, this does not complete because the `wait_for_sample` method is blocked waiting for a new sample, which never arrives because the timed update methods are not run.
