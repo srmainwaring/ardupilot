@@ -425,7 +425,7 @@ void AP_Vehicle::setup()
 
 void AP_Vehicle::loop()
 {
-    hal.console->printf("vehicle loop\n");
+    // hal.console->printf("vehicle loop\n");
     scheduler.loop();
     G_Dt = scheduler.get_loop_period_s();
 
