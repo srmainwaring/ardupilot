@@ -335,13 +335,13 @@ float AP_Scheduler::load_average()
 
 void AP_Scheduler::loop()
 {
-    hal.console->printf("scheduler loop\n");
+    // hal.console->printf("scheduler loop\n");
 
     // wait for an INS sample
     hal.util->persistent_data.scheduler_task = -3;
     _rsem.give();
     //! @todo(srmainwaring) - skip for esp32empty
-    hal.console->printf("wait for ins sample\n");
+    // hal.console->printf("wait for ins sample\n");
     AP::ins().wait_for_sample();
     _rsem.take_blocking();
     hal.util->persistent_data.scheduler_task = -1;
@@ -367,7 +367,7 @@ void AP_Scheduler::loop()
 #endif
 
     // tell the scheduler one tick has passed
-    hal.console->printf("tick scheduler\n");
+    // hal.console->printf("tick scheduler\n");
     tick();
 
     // run all the tasks that are due to run. Note that we only
@@ -388,7 +388,7 @@ void AP_Scheduler::loop()
     time_available += extra_loop_us;
 
     // run the tasks
-    hal.console->printf("run tasks\n");
+    // hal.console->printf("run tasks\n");
     run(time_available);
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
