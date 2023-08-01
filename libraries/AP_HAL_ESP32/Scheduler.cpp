@@ -67,11 +67,12 @@ void Scheduler::init()
     printf("%s:%d \n", __PRETTY_FUNCTION__, __LINE__);
 #endif
 
-    hal.console->printf("%s:%d running with CONFIG_FREERTOS_HZ=%d\n", __PRETTY_FUNCTION__, __LINE__,CONFIG_FREERTOS_HZ);
+    // hal.console->printf("%s:%d running with CONFIG_FREERTOS_HZ=%d\n", __PRETTY_FUNCTION__, __LINE__, CONFIG_FREERTOS_HZ);
+    hal.console->printf("%s running with CONFIG_FREERTOS_HZ = %d\n", "Scheduler::init", CONFIG_FREERTOS_HZ);
 
     // pin main thread to Core 0, and we'll also pin other heavy-tasks to core 1, like wifi-related.
     if (xTaskCreatePinnedToCore(_main_thread, "APM_MAIN", Scheduler::MAIN_SS, this, Scheduler::MAIN_PRIO, &_main_task_handle,1) != pdPASS) {
-    //if (xTaskCreate(_main_thread, "APM_MAIN", Scheduler::MAIN_SS, this, Scheduler::MAIN_PRIO, &_main_task_handle) != pdPASS) {
+    //if (xTaskCreate(_main_thread, "APM_MAIN", MAIN_SS, this, MAIN_PRIO, &_main_task_handle) != pdPASS) {
         hal.console->printf("FAILED to create task _main_thread\n");
     } else {
     	hal.console->printf("OK created task _main_thread\n");
@@ -290,6 +291,8 @@ bool Scheduler::is_system_initialized()
 
 void Scheduler::_timer_thread(void *arg)
 {
+    hal.console->printf("timer_thread: starting\n");
+
 #ifdef SCHEDDEBUG
     printf("%s:%d start\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
@@ -298,6 +301,7 @@ void Scheduler::_timer_thread(void *arg)
 #if HAL_INS_DEFAULT != HAL_INS_NONE
     // wait to ensure INS system inits unless using HAL_INS_NONE
     while (!_initialized) {
+        // hal.console->printf("scheduler: waiting for initialise\n");        
         sched->delay_microseconds(1000);
     }
 #endif
@@ -305,6 +309,7 @@ void Scheduler::_timer_thread(void *arg)
 #ifdef SCHEDDEBUG
     printf("%s:%d initialised\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
+    hal.console->printf("timer_thread: run timers\n");
     while (true) {
         sched->delay_microseconds(1000);
         sched->_run_timers();
@@ -349,6 +354,7 @@ void Scheduler::_run_timers()
     _timer_sem.give();
 
     // now call the timer based drivers
+    hal.console->printf("run_timers: run %d timer procs\n", num_procs);
     for (int i = 0; i < num_procs; i++) {
         if (_timer_proc[i]) {
             _timer_proc[i]();
@@ -529,23 +535,31 @@ void Scheduler::print_main_loop_rate(void)
 
 void IRAM_ATTR Scheduler::_main_thread(void *arg)
 {
+    hal.console->printf("main_thread: starting\n");
+
 #ifdef SCHEDDEBUG
     printf("%s:%d start\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
+    hal.console->printf("main_thread: initialise serial\n");
     Scheduler *sched = (Scheduler *)arg;
 
 #ifndef HAL_DISABLE_ADC_DRIVER
+    hal.console->printf("main_thread: initialise analogin\n");
     hal.analogin->init();
 #endif
+    hal.console->printf("main_thread: initialise rcout\n");
     hal.rcout->init();
 
+    hal.console->printf("main_thread: run callback setup\n");
     sched->callbacks->setup();
 
+    hal.console->printf("main_thread: set system initialised\n");
     sched->set_system_initialized();
 
 #ifdef SCHEDDEBUG
     printf("%s:%d initialised\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
+    hal.console->printf("main_thread: start main loop\n");
     while (true) {
         sched->callbacks->loop();
         sched->delay_microseconds(250);
