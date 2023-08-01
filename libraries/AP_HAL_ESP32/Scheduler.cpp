@@ -354,7 +354,7 @@ void Scheduler::_run_timers()
     _timer_sem.give();
 
     // now call the timer based drivers
-    hal.console->printf("run_timers: run %d timer procs\n", num_procs);
+    // hal.console->printf("run_timers: run %d timer procs\n", num_procs);
     for (int i = 0; i < num_procs; i++) {
         if (_timer_proc[i]) {
             _timer_proc[i]();
