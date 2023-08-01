@@ -25,6 +25,7 @@ AP_InertialSensor_NONE::AP_InertialSensor_NONE(AP_InertialSensor &imu, const uin
 /*
   detect the sensor
  */
+// Same as AP_InertialSensor_SITL::detect
 AP_InertialSensor_Backend *AP_InertialSensor_NONE::detect(AP_InertialSensor &_imu, const uint16_t sample_rates[])
 {
     AP_InertialSensor_NONE *sensor = new AP_InertialSensor_NONE(_imu, sample_rates);
@@ -57,6 +58,7 @@ void AP_InertialSensor_NONE::accumulate()
 
 
 // calculate a noisy noise component
+// Same as AP_InertialSensor_SITL::calculate_noise
 static float calculate_noise(float noise, float noise_variation) {
     return noise * (1.0f + noise_variation * rand_float());
 }
@@ -64,6 +66,7 @@ static float calculate_noise(float noise, float noise_variation) {
 /*
   generate an accelerometer sample
  */
+// Adapted from AP_InertialSensor_SITL::generate_accel
 void AP_InertialSensor_NONE::generate_accel()
 {
     Vector3f accel_accum;
@@ -175,6 +178,7 @@ void AP_InertialSensor_NONE::generate_accel()
 /*
   generate a gyro sample
  */
+// Adapted from AP_InertialSensor_SITL::generate_gyro
 void AP_InertialSensor_NONE::generate_gyro()
 {
     // hal.console->printf("imu_none: generate gyro\n");
@@ -257,6 +261,7 @@ void AP_InertialSensor_NONE::generate_gyro()
     _notify_new_gyro_raw_sample(gyro_instance, gyro_accum, AP_HAL::micros64());
 }
 
+// Adapted from AP_InertialSensor_SITL::timer_update
 void AP_InertialSensor_NONE::timer_update(void)
 {
     uint64_t now = AP_HAL::micros64();
@@ -287,6 +292,7 @@ void AP_InertialSensor_NONE::timer_update(void)
     }
 }
 
+// Adapted from AP_InertialSensor_SITL::update
 float AP_InertialSensor_NONE::gyro_drift(void)
 {
  
@@ -299,6 +305,7 @@ float AP_InertialSensor_NONE::gyro_drift(void)
 }
 
 
+// Same as AP_InertialSensor_SITL::update
 bool AP_InertialSensor_NONE::update(void) 
 {
     update_accel(accel_instance);
@@ -309,6 +316,7 @@ bool AP_InertialSensor_NONE::update(void)
 
 uint8_t AP_InertialSensor_NONE::bus_id = 0;
 
+// Same as AP_InertialSensor_SITL::start
 void AP_InertialSensor_NONE::start()
 {
     if (!_imu.register_gyro(gyro_instance, gyro_sample_hz,
