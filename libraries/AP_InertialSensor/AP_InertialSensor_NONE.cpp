@@ -276,7 +276,7 @@ void AP_InertialSensor_NONE::timer_update(void)
                     next_accel_sample += 1000000UL / accel_sample_hz;
                 }
             }
-        }
+        // }
     }
     if (now >= next_gyro_sample) {
         {
@@ -288,7 +288,7 @@ void AP_InertialSensor_NONE::timer_update(void)
                     next_gyro_sample += 1000000UL / gyro_sample_hz;
                 }
             }
-        }
+        // }
     }
 }
 
