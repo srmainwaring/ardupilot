@@ -99,19 +99,15 @@ HAL_ESP32::HAL_ESP32() :
         nullptr
     )
 {
-    printf("hal_esp32: constructor\n");
 }
 
 void HAL_ESP32::run(int argc, char * const argv[], Callbacks* callbacks) const
 {
-    printf("hal_esp32: set callbacks \n");
     ((ESP32::Scheduler *)hal.scheduler)->set_callbacks(callbacks);
-    printf("hal_esp32: initialise scheduler \n");
     hal.scheduler->init();
 }
 
 void AP_HAL::init()
 {
-    printf("hal: initialise \n");
 }
 
