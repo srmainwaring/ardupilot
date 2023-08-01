@@ -177,7 +177,7 @@ void AP_InertialSensor_NONE::generate_accel()
  */
 void AP_InertialSensor_NONE::generate_gyro()
 {
-    hal.console->printf("imu_none: generate gyro\n");
+    // hal.console->printf("imu_none: generate gyro\n");
 
     Vector3f gyro_accum;
     uint8_t nsamples = enable_fast_sampling(gyro_instance) ? 8 : 1;
@@ -303,7 +303,7 @@ bool AP_InertialSensor_NONE::update(void)
 {
     update_accel(accel_instance);
     update_gyro(gyro_instance);
-    hal.console->printf("imu_none: updated\n");
+    // hal.console->printf("imu_none: updated\n");
     return true;
 }
 

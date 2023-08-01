@@ -1771,7 +1771,7 @@ void AP_InertialSensor::update(void)
 {
     // during initialisation update() may be called without
     // wait_for_sample(), and a wait is implied
-    hal.console->printf("wait for imu sample\n");
+    // hal.console->printf("wait for imu sample\n");
     wait_for_sample();
 
         for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
@@ -1784,7 +1784,7 @@ void AP_InertialSensor::update(void)
             _delta_angle_valid[i] = false;
         }
         for (uint8_t i=0; i<_backend_count; i++) {
-            hal.console->printf("update imu backend[%d]\n", i);
+            // hal.console->printf("update imu backend[%d]\n", i);
             _backends[i]->update();
         }
 
@@ -1880,7 +1880,7 @@ void AP_InertialSensor::wait_for_sample(void)
     if (_have_sample) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
-        hal.console->printf("skip wait - have imu sample\n");
+        // hal.console->printf("skip wait - have imu sample\n");
         return;
     }
 
@@ -1921,7 +1921,7 @@ void AP_InertialSensor::wait_for_sample(void)
     }
 
 check_sample:
-        hal.console->printf("check imu sample\n");
+        // hal.console->printf("check imu sample\n");
 
         //! @todo(srmainwaring) - esp32empty - check params set properly
         // expect:
