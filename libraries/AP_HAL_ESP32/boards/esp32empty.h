@@ -31,36 +31,34 @@
 // default protocols:    ardupilot/libraries/AP_SerialManager/AP_SerialManager.cpp
 // ESP32 serials:    AP_HAL_ESP32/HAL_ESP32_Class.cpp
 
-//#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_MAVLink2   //A  UART0: Always: Console, MAVLink2
+//#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_MAVLink2 //A  UART0: Always: Console, MAVLink2
 //#define DEFAULT_SERIAL0_BAUD            AP_SERIALMANAGER_CONSOLE_BAUD/1000  //115200
 
-//#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2   //C  WiFi:  TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
+//#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2 //C  WiFi:  TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
 //#define DEFAULT_SERIAL1_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
 
-#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2   //D  UART2
-#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2 //D  UART2: Always: MAVLink2 on ESP32
+//#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
 
-#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS        //B  UART1: GPS1
-#define DEFAULT_SERIAL3_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
-//#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_None       //B
-//#define DEFAULT_SERIAL3_BAUD            (115200/1000)
+#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS      //B  UART1: GPS1
+//#define DEFAULT_SERIAL4_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
 
-#define DEFAULT_SERIAL4_PROTOCOL        SerialProtocol_None       //E
+#define DEFAULT_SERIAL4_PROTOCOL        SerialProtocol_None      //E
+//#define DEFAULT_SERIAL4_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
+
+#define DEFAULT_SERIAL5_PROTOCOL        SerialProtocol_None      //F
 #define DEFAULT_SERIAL5_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL5_PROTOCOL        SerialProtocol_None       //F
-#define DEFAULT_SERIAL5_BAUD            (115200/1000)
-
-#define DEFAULT_SERIAL6_PROTOCOL        SerialProtocol_None       //G
+#define DEFAULT_SERIAL6_PROTOCOL        SerialProtocol_None      //G
 #define DEFAULT_SERIAL6_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL7_PROTOCOL        SerialProtocol_None       //H
+#define DEFAULT_SERIAL7_PROTOCOL        SerialProtocol_None      //H
 #define DEFAULT_SERIAL7_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL8_PROTOCOL        SerialProtocol_None       //I
+#define DEFAULT_SERIAL8_PROTOCOL        SerialProtocol_None      //I
 #define DEFAULT_SERIAL8_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL9_PROTOCOL        SerialProtocol_None       //J
+#define DEFAULT_SERIAL9_PROTOCOL        SerialProtocol_None      //J
 #define DEFAULT_SERIAL9_BAUD            (115200/1000)
 
 //Inertial sensors
@@ -71,15 +69,18 @@
 
 //I2C Buses
 #define HAL_ESP32_I2C_BUSES {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_14, .speed=400*KHZ, .internal=true, .soft=true}
+//esp32buzz #define HAL_ESP32_I2C_BUSES {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_12, .speed=400*KHZ, .internal=true}
 
 //SPI Buses
 #define HAL_ESP32_SPI_BUSES {}
+//esp32buzz #define HAL_ESP32_SPI_BUSES {.host=VSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
 
 //SPI Devices
 #define HAL_ESP32_SPI_DEVICES {}
 
 //RCIN
 #define HAL_ESP32_RCIN GPIO_NUM_36
+//esp32buzz #define HAL_ESP32_RCIN GPIO_NUM_4
 
 //RCOUT
 #define HAL_ESP32_RCOUT {GPIO_NUM_25, GPIO_NUM_27, GPIO_NUM_33, GPIO_NUM_32, GPIO_NUM_22, GPIO_NUM_21}
@@ -96,30 +97,30 @@
 // #define AP_INERTIALSENSOR_ENABLED 1
 // #define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
 
-//IMU
-#define AP_INERTIALSENSOR_ENABLED   1
-#define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
-
 //COMPASS
 #define AP_COMPASS_ENABLE_DEFAULT 0
 #define ALLOW_ARM_NO_COMPASS
 
-//See boards.py
+//esp32buzz HEAP boards.py
 #ifndef ENABLE_HEAP
 #define ENABLE_HEAP 1
 #endif
 
 //WIFI
 #define HAL_ESP32_WIFI 1  //1-TCP, 2-UDP, comment this line = without wifi
-#define WIFI_SSID "ardupilot-esp32"
-#define WIFI_PWD "ardupilot-esp32"
+#define WIFI_SSID "ardupilot-empty"
+#define WIFI_PWD "ardupilot-empty"
 
 //UARTs
 // UART_NUM_0 and UART_NUM_2 are configured to use defaults
 #define HAL_ESP32_UART_DEVICES \
     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
     {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
-    {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
+    {.port=UART_NUM_2, .rx=GPIO_NUM_35, .tx=GPIO_NUM_19}
+//esp32buzz #define HAL_ESP32_UART_DEVICES
+    // {.port=UART_NUM_0, .rx=GPIO_NUM_3, .tx=GPIO_NUM_1},
+    // {.port=UART_NUM_1, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
+
 
 //ADC
 #define HAL_DISABLE_ADC_DRIVER 1
@@ -152,3 +153,11 @@
 
 #define HAL_LOGGING_BACKENDS_DEFAULT 1
 
+// uncommenting one or more of these will give more console debug in certain areas.. ... 
+// ...however all teh extra printf's use a lot of stack, so best to limit yourself to only uncommenting one at a time
+//#define STORAGEDEBUG 1
+//#define SCHEDDEBUG 1
+//#define FSDEBUG 1
+//#define BUSDEBUG 1 //ok
+//#define WIFIDEBUG 1 //uses a lot?
+//#define INS_TIMING_DEBUG 1 //define this to see all the imu-resets and temp resets and imu timing info on the console.
