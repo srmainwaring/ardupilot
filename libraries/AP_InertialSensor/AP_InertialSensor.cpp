@@ -1928,11 +1928,11 @@ check_sample:
         // _gyro_count = 1
         // _accel_count = 1
         // _use[0] = 1
-        hal.console->printf("_gyro_count:   %d\n", _gyro_count);
-        hal.console->printf("_accel_count:  %d\n", _accel_count);
-        for (uint8_t i=0; i<_gyro_count; i++) {
-            hal.console->printf("_use[%d]:      %d\n", i, (int)_use(i));
-        }
+        // hal.console->printf("_gyro_count:   %d\n", _gyro_count);
+        // hal.console->printf("_accel_count:  %d\n", _accel_count);
+        // for (uint8_t i=0; i<_gyro_count; i++) {
+        //     hal.console->printf("_use[%d]:      %d\n", i, (int)_use(i));
+        // }
 
         // now we wait until we have the gyro and accel samples we need
         uint8_t gyro_available_mask = 0;
