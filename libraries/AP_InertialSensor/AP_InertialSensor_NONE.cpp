@@ -295,7 +295,6 @@ void AP_InertialSensor_NONE::timer_update(void)
 // Adapted from AP_InertialSensor_SITL::update
 float AP_InertialSensor_NONE::gyro_drift(void)
 {
- 
     double period  = 0.01 * 2;
     double minutes = fmod(AP_HAL::micros64() / 60.0e6, period);
     if (minutes < period/2) {
@@ -303,7 +302,6 @@ float AP_InertialSensor_NONE::gyro_drift(void)
     }
     return (period - minutes) * ToRad(0.01);
 }
-
 
 // Same as AP_InertialSensor_SITL::update
 bool AP_InertialSensor_NONE::update(void) 
