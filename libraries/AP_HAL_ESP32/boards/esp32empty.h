@@ -108,8 +108,8 @@
 
 //WIFI
 #define HAL_ESP32_WIFI 1  //1-TCP, 2-UDP, comment this line = without wifi
-#define WIFI_SSID "ardupilot-empty"
-#define WIFI_PWD "ardupilot-empty"
+#define WIFI_SSID "ardupilot-esp32"
+#define WIFI_PWD "ardupilot-esp32"
 
 //UARTs
 // UART_NUM_0 and UART_NUM_2 are configured to use defaults
