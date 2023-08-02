@@ -20,7 +20,7 @@
 #include <sensor_msgs/msg/battery_state.h>
 #include <sensor_msgs/msg/joy.h>
 #include <sensor_msgs/msg/nav_sat_fix.h>
-#include <tf2_msgs/msg/tf_message.h>
+// #include <tf2_msgs/msg/tf_message.h>
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
@@ -32,7 +32,7 @@
 #include <AP_Param/AP_Param.h>
 
 // UDP only on SITL for now
-#define AP_UROS_UDP_ENABLED 1 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
+#define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
 
 #if AP_UROS_UDP_ENABLED
 #include <AP_HAL/utility/Socket.h>
