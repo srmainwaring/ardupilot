@@ -44,6 +44,7 @@ IF(${ARDUPILOT_CMD} STREQUAL "copter")
     message("Building for copter")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libarducopter.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduCopter_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/../../../libraries/AP_UROS/uros/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "rover")
