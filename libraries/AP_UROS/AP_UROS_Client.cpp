@@ -71,11 +71,11 @@ uint64_t last_nav_sat_fix_time_ms;
 // static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
 micro_ros_utilities_memory_conf_t nav_sat_fix_conf;
 
-rcl_publisher_t static_transform_publisher;
-tf2_msgs__msg__TFMessage static_transform_msg;
-uint64_t last_static_transform_time_ms;
-static constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
-micro_ros_utilities_memory_conf_t static_transform_conf;
+// rcl_publisher_t static_transform_publisher;
+// tf2_msgs__msg__TFMessage static_transform_msg;
+// uint64_t last_static_transform_time_ms;
+// static constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
+// micro_ros_utilities_memory_conf_t static_transform_conf;
 
 rcl_publisher_t time_publisher;
 builtin_interfaces__msg__Time time_msg;
@@ -93,7 +93,7 @@ void update_topic(sensor_msgs__msg__BatteryState& msg);
 void update_topic(rosgraph_msgs__msg__Clock& msg);
 void update_topic(geometry_msgs__msg__PoseStamped& msg);
 void update_topic(geometry_msgs__msg__TwistStamped& msg);
-void update_topic(tf2_msgs__msg__TFMessage& msg);
+// void update_topic(tf2_msgs__msg__TFMessage& msg);
 bool update_topic(sensor_msgs__msg__NavSatFix& msg);
 void update_topic(builtin_interfaces__msg__Time& msg);
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
@@ -269,43 +269,43 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
-void update_topic(tf2_msgs__msg__TFMessage& msg)
-{
-    msg.transforms.size = 0;
+// void update_topic(tf2_msgs__msg__TFMessage& msg)
+// {
+//     msg.transforms.size = 0;
 
-    auto &gps = AP::gps();
-    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-        const auto gps_type = gps.get_type(i);
-        if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
-            continue;
-        }
-        update_topic(msg.transforms.data[i].header.stamp);
-        char gps_frame_id[16];
-        //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
-        hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
-        strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
-        strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
-        // The body-frame offsets
-        // X - Forward
-        // Y - Right
-        // Z - Down
-        // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
+//     auto &gps = AP::gps();
+//     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+//         const auto gps_type = gps.get_type(i);
+//         if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
+//             continue;
+//         }
+//         update_topic(msg.transforms.data[i].header.stamp);
+//         char gps_frame_id[16];
+//         //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
+//         hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
+//         strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
+//         strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
+//         // The body-frame offsets
+//         // X - Forward
+//         // Y - Right
+//         // Z - Down
+//         // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
 
-        const auto offset = gps.get_antenna_offset(i);
+//         const auto offset = gps.get_antenna_offset(i);
 
-        // In ROS REP 103, it follows this convention
-        // X - Forward
-        // Y - Left
-        // Z - Up
-        // https://www.ros.org/reps/rep-0103.html#axis-orientation
+//         // In ROS REP 103, it follows this convention
+//         // X - Forward
+//         // Y - Left
+//         // Z - Up
+//         // https://www.ros.org/reps/rep-0103.html#axis-orientation
 
-        msg.transforms.data[i].transform.translation.x = offset[0];
-        msg.transforms.data[i].transform.translation.y = -1 * offset[1];
-        msg.transforms.data[i].transform.translation.z = -1 * offset[2];
+//         msg.transforms.data[i].transform.translation.x = offset[0];
+//         msg.transforms.data[i].transform.translation.y = -1 * offset[1];
+//         msg.transforms.data[i].transform.translation.z = -1 * offset[2];
 
-        msg.transforms.size++;
-    }
-}
+//         msg.transforms.size++;
+//     }
+// }
 
 // implementation copied from:
 // bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
@@ -459,11 +459,11 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             RCSOFTCHECK(rcl_publish(&nav_sat_fix_publisher, &nav_sat_fix_msg, NULL));
         }
 
-        if (cur_time_ms - last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
-            update_topic(static_transform_msg);
-            last_static_transform_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&static_transform_publisher, &static_transform_msg, NULL));
-        }
+        // if (cur_time_ms - last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
+        //     update_topic(static_transform_msg);
+        //     last_static_transform_time_ms = cur_time_ms;
+        //     RCSOFTCHECK(rcl_publish(&static_transform_publisher, &static_transform_msg, NULL));
+        // }
 
         if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
             update_topic(time_msg);
@@ -557,7 +557,7 @@ void AP_UROS_Client::main_loop(void)
     RCSOFTCHECK(rcl_publisher_fini(&local_pose_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&local_twist_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&nav_sat_fix_publisher, &node));
-    RCSOFTCHECK(rcl_publisher_fini(&static_transform_publisher, &node));
+    // RCSOFTCHECK(rcl_publisher_fini(&static_transform_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
 
     RCSOFTCHECK(rcl_node_fini(&node));
@@ -653,18 +653,18 @@ bool AP_UROS_Client::create()
             nav_sat_fix_conf
         );
     }
-    {
-        static_transform_conf.max_string_capacity = 32;
-        static_transform_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
-        static_transform_conf.max_basic_type_sequence_capacity = 2;
+    // {
+    //     static_transform_conf.max_string_capacity = 32;
+    //     static_transform_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
+    //     static_transform_conf.max_basic_type_sequence_capacity = 2;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
-            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-            &static_transform_msg,
-            static_transform_conf
-        );
-    }
+    //     // bool success =
+    //     micro_ros_utilities_create_message_memory(
+    //         ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+    //         &static_transform_msg,
+    //         static_transform_conf
+    //     );
+    // }
 
     {
         joy_conf.max_string_capacity = 32;
@@ -711,11 +711,11 @@ bool AP_UROS_Client::create()
         ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
         "ap/navsat/navsat0"));
 
-    RCCHECK(rclc_publisher_init_default(
-        &static_transform_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-        "ap/tf_static"));
+    // RCCHECK(rclc_publisher_init_default(
+    //     &static_transform_publisher,
+    //     &node,
+    //     ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+    //     "ap/tf_static"));
 
     RCCHECK(rclc_publisher_init_default(
         &time_publisher,
@@ -759,22 +759,22 @@ bool AP_UROS_Client::create()
 }
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_SITL
-extern "C" {
-    int clock_gettime(clockid_t clockid, struct timespec *ts);
-}
+// extern "C" {
+//     int clock_gettime(clockid_t clockid, struct timespec *ts);
+// }
 
-int clock_gettime(clockid_t clockid, struct timespec *ts)
-{
-    //! @todo the value of clockid is ignored here.
-    //! A fallback mechanism is employed against the caller's choice of clock.
-    uint64_t utc_usec;
-    if (!AP::rtc().get_utc_usec(utc_usec)) {
-        utc_usec = AP_HAL::micros64();
-    }
-    ts->tv_sec = utc_usec / 1000000ULL;
-    ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
-    return 0;
-}
+// int clock_gettime(clockid_t clockid, struct timespec *ts)
+// {
+//     //! @todo the value of clockid is ignored here.
+//     //! A fallback mechanism is employed against the caller's choice of clock.
+//     uint64_t utc_usec;
+//     if (!AP::rtc().get_utc_usec(utc_usec)) {
+//         utc_usec = AP_HAL::micros64();
+//     }
+//     ts->tv_sec = utc_usec / 1000000ULL;
+//     ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
+//     return 0;
+// }
 #endif // CONFIG_HAL_BOARD
 
 #endif // AP_UROS_ENABLED
