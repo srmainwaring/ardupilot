@@ -22,6 +22,8 @@
 #include <sensor_msgs/msg/nav_sat_fix.h>
 // #include <tf2_msgs/msg/tf_message.h>
 
+#include <micro_ros_utilities/type_utilities.h>
+
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
@@ -30,6 +32,10 @@
 #include "fcntl.h"
 
 #include <AP_Param/AP_Param.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/portmacro.h"
 
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
@@ -56,6 +62,76 @@ private:
     rcl_timer_t timer;
     const unsigned int timer_timeout_ms = 1;
 
+    // publishers
+    rcl_publisher_t battery_state_publisher;
+    sensor_msgs__msg__BatteryState battery_state_msg;
+    uint64_t last_battery_state_time_ms;
+    micro_ros_utilities_memory_conf_t battery_state_conf;
+    bool battery_state_mem_init = false;
+    bool battery_state_pub_init = false;
+
+    rcl_publisher_t clock_publisher;
+    rosgraph_msgs__msg__Clock clock_msg;
+    uint64_t last_clock_time_ms;
+    bool clock_pub_init = false;
+
+    rcl_publisher_t local_pose_publisher;
+    geometry_msgs__msg__PoseStamped local_pose_msg;
+    uint64_t last_local_pose_time_ms;
+    micro_ros_utilities_memory_conf_t local_pose_conf;
+    bool local_pose_mem_init = false;
+    bool local_pose_pub_init = false;
+
+    rcl_publisher_t local_twist_publisher;
+    geometry_msgs__msg__TwistStamped local_twist_msg;
+    uint64_t last_local_twist_time_ms;
+    micro_ros_utilities_memory_conf_t local_twist_conf;
+    bool local_twist_mem_init = false;
+    bool local_twist_pub_init = false;
+
+    rcl_publisher_t nav_sat_fix_publisher;
+    sensor_msgs__msg__NavSatFix nav_sat_fix_msg;
+    uint64_t last_nav_sat_fix_time_ms;
+    micro_ros_utilities_memory_conf_t nav_sat_fix_conf;
+    bool nav_sat_fix_mem_init = false;
+    bool nav_sat_fix_pub_init = false;
+
+    // rcl_publisher_t static_transform_publisher;
+    // tf2_msgs__msg__TFMessage static_transform_msg;
+    // uint64_t last_static_transform_time_ms;
+    // micro_ros_utilities_memory_conf_t static_transform_conf;
+
+    rcl_publisher_t time_publisher;
+    builtin_interfaces__msg__Time time_msg;
+    uint64_t last_time_time_ms;
+    bool time_pub_init = false;
+
+    // subscribers
+    rcl_subscription_t joy_subscriber;
+    sensor_msgs__msg__Joy joy_msg;
+    micro_ros_utilities_memory_conf_t joy_conf;
+    bool joy_mem_init = false;
+    bool joy_sub_init = false;
+
+    // thread handle and singleton
+    TaskHandle_t uros_task_handle;
+    static AP_UROS_Client *_singleton;
+
+    // publishers
+    void update_topic(sensor_msgs__msg__BatteryState& msg);
+    void update_topic(rosgraph_msgs__msg__Clock& msg);
+    void update_topic(geometry_msgs__msg__PoseStamped& msg);
+    void update_topic(geometry_msgs__msg__TwistStamped& msg);
+    // void update_topic(tf2_msgs__msg__TFMessage& msg)
+    bool update_topic(sensor_msgs__msg__NavSatFix& msg);
+    void update_topic(builtin_interfaces__msg__Time& msg);
+
+    // subscribers
+    static void on_joy_msg(const void * msgin, void *context);
+
+    static void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
+    static void uros_thread(void *arg);
+
 #if AP_UROS_UDP_ENABLED
     // functions for udp transport
     bool urosUdpInit();
@@ -77,6 +153,8 @@ private:
 #endif
 
 public:
+    AP_UROS_Client();
+
     bool start(void);
     void main_loop(void);
 
@@ -90,6 +168,8 @@ public:
 
     //! @brief Parameter storage.
     static const struct AP_Param::GroupInfo var_info[];
+
+    static AP_UROS_Client *get_singleton();
 };
 
 #endif // AP_UROS_ENABLED
