@@ -9,6 +9,8 @@
 
 #include <micro_ros_utilities/type_utilities.h>
 
+#include <rmw_microros/rmw_microros.h>
+
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RTC/AP_RTC.h>
@@ -42,68 +44,38 @@ static char WGS_84_FRAME_ID[] = "WGS-84";
 static char BASE_LINK_FRAME_ID[] = "base_link";
 
 // publishers
-rcl_publisher_t battery_state_publisher;
-sensor_msgs__msg__BatteryState battery_state_msg;
-uint64_t last_battery_state_time_ms;
-static constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
-micro_ros_utilities_memory_conf_t battery_state_conf;
+constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
+constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
+constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
+constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
+// constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
+constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
+constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
-rcl_publisher_t clock_publisher;
-rosgraph_msgs__msg__Clock clock_msg;
-uint64_t last_clock_time_ms;
-static constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
+// thread stack and priority
+constexpr uint32_t UROS_SS = 16384;
+constexpr int UROS_PRIO = 10;
 
-rcl_publisher_t local_pose_publisher;
-geometry_msgs__msg__PoseStamped local_pose_msg;
-uint64_t last_local_pose_time_ms;
-static constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
-micro_ros_utilities_memory_conf_t local_pose_conf;
+// constructor
+AP_UROS_Client::AP_UROS_Client() {
+    if (_singleton) {
+        hal.console->printf("PANIC: Too many AP_UROS_Client instances\n");
+    }
+    _singleton = this;
+}
 
-rcl_publisher_t local_twist_publisher;
-geometry_msgs__msg__TwistStamped local_twist_msg;
-uint64_t last_local_twist_time_ms;
-static constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
-micro_ros_utilities_memory_conf_t local_twist_conf;
+// singleton
+AP_UROS_Client *AP_UROS_Client::_singleton = nullptr;
 
-rcl_publisher_t nav_sat_fix_publisher;
-sensor_msgs__msg__NavSatFix nav_sat_fix_msg;
-uint64_t last_nav_sat_fix_time_ms;
-// static constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
-micro_ros_utilities_memory_conf_t nav_sat_fix_conf;
-
-// rcl_publisher_t static_transform_publisher;
-// tf2_msgs__msg__TFMessage static_transform_msg;
-// uint64_t last_static_transform_time_ms;
-// static constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
-// micro_ros_utilities_memory_conf_t static_transform_conf;
-
-rcl_publisher_t time_publisher;
-builtin_interfaces__msg__Time time_msg;
-uint64_t last_time_time_ms;
-static constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
-
-// subscribers
-rcl_subscription_t joy_subscriber;
-sensor_msgs__msg__Joy joy_msg;
-micro_ros_utilities_memory_conf_t joy_conf;
-
-// declarations
-void update_topic(builtin_interfaces__msg__Time& msg);
-void update_topic(sensor_msgs__msg__BatteryState& msg);
-void update_topic(rosgraph_msgs__msg__Clock& msg);
-void update_topic(geometry_msgs__msg__PoseStamped& msg);
-void update_topic(geometry_msgs__msg__TwistStamped& msg);
-// void update_topic(tf2_msgs__msg__TFMessage& msg);
-bool update_topic(sensor_msgs__msg__NavSatFix& msg);
-void update_topic(builtin_interfaces__msg__Time& msg);
-void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
-void on_joy_msg(const void * msgin);
+AP_UROS_Client *AP_UROS_Client::get_singleton() {
+    return AP_UROS_Client::_singleton;
+}
 
 // update published topics
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance) 
-void update_topic(sensor_msgs__msg__BatteryState& msg)
+void AP_UROS_Client::update_topic(sensor_msgs__msg__BatteryState& msg)
 {
     const uint8_t instance = 0;
 
@@ -169,14 +141,14 @@ void update_topic(sensor_msgs__msg__BatteryState& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock& msg)
-void update_topic(rosgraph_msgs__msg__Clock& msg)
+void AP_UROS_Client::update_topic(rosgraph_msgs__msg__Clock& msg)
 {
     update_topic(msg.clock);
 }
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
-void update_topic(geometry_msgs__msg__PoseStamped& msg)
+void AP_UROS_Client::update_topic(geometry_msgs__msg__PoseStamped& msg)
 {
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
@@ -225,7 +197,7 @@ void update_topic(geometry_msgs__msg__PoseStamped& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(geometry_msgs_msg_TwistStamped& msg)
-void update_topic(geometry_msgs__msg__TwistStamped& msg)
+void AP_UROS_Client::update_topic(geometry_msgs__msg__TwistStamped& msg)
 {
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
@@ -269,10 +241,10 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
-// void update_topic(tf2_msgs__msg__TFMessage& msg)
+// void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
 // {
 //     msg.transforms.size = 0;
-
+//
 //     auto &gps = AP::gps();
 //     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
 //         const auto gps_type = gps.get_type(i);
@@ -290,26 +262,26 @@ void update_topic(geometry_msgs__msg__TwistStamped& msg)
 //         // Y - Right
 //         // Z - Down
 //         // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
-
+//
 //         const auto offset = gps.get_antenna_offset(i);
-
+//
 //         // In ROS REP 103, it follows this convention
 //         // X - Forward
 //         // Y - Left
 //         // Z - Up
 //         // https://www.ros.org/reps/rep-0103.html#axis-orientation
-
+//
 //         msg.transforms.data[i].transform.translation.x = offset[0];
 //         msg.transforms.data[i].transform.translation.y = -1 * offset[1];
 //         msg.transforms.data[i].transform.translation.z = -1 * offset[2];
-
+//
 //         msg.transforms.size++;
 //     }
 // }
 
 // implementation copied from:
 // bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
-bool update_topic(sensor_msgs__msg__NavSatFix& msg)
+bool AP_UROS_Client::update_topic(sensor_msgs__msg__NavSatFix& msg)
 {
     const uint8_t instance = 0;
 
@@ -405,7 +377,7 @@ bool update_topic(sensor_msgs__msg__NavSatFix& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time& msg)
-void update_topic(builtin_interfaces__msg__Time& msg)
+void AP_UROS_Client::update_topic(builtin_interfaces__msg__Time& msg)
 {
     uint64_t utc_usec;
     if (!AP::rtc().get_utc_usec(utc_usec)) {
@@ -416,68 +388,78 @@ void update_topic(builtin_interfaces__msg__Time& msg)
 }
 
 // call publishers
-void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
+void AP_UROS_Client::timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
     (void) last_call_time;
 
-    // WITH_SEMAPHORE(csem);
+    AP_UROS_Client *uros = AP_UROS_Client::get_singleton();
+
+    WITH_SEMAPHORE(uros->csem);
 
     // get the timer clock
     rcl_clock_t * clock;
     RCSOFTCHECK(rcl_timer_clock(timer, &clock));
 
-    //! @todo(srmainwaring) - use the rcl_clock...
+    //! @todo(srmainwaring) - use the rcl_clock?
     const auto cur_time_ms = AP_HAL::millis64();
 
     if (timer != NULL) {
 
-        if (cur_time_ms - last_battery_state_time_ms > DELAY_BATTERY_STATE_TOPIC_MS) {
-            update_topic(battery_state_msg);
-            last_battery_state_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&battery_state_publisher, &battery_state_msg, NULL));
+        if (uros->battery_state_pub_init && 
+            cur_time_ms - uros->last_battery_state_time_ms > DELAY_BATTERY_STATE_TOPIC_MS) {
+            uros->update_topic(uros->battery_state_msg);
+            uros->last_battery_state_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->battery_state_publisher, &uros->battery_state_msg, NULL));
         }
 
-        if (cur_time_ms - last_clock_time_ms > DELAY_CLOCK_TOPIC_MS) {
-            update_topic(clock_msg);
-            last_clock_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&clock_publisher, &clock_msg, NULL));
+        if (uros->clock_pub_init &&
+            cur_time_ms - uros->last_clock_time_ms > DELAY_CLOCK_TOPIC_MS) {
+            uros->update_topic(uros->clock_msg);
+            uros->last_clock_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->clock_publisher, &uros->clock_msg, NULL));
         }
 
-        if (cur_time_ms - last_local_pose_time_ms > DELAY_LOCAL_POSE_TOPIC_MS) {
-            update_topic(local_pose_msg);
-            last_local_pose_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&local_pose_publisher, &local_pose_msg, NULL));
+        if (uros->local_pose_pub_init &&
+            cur_time_ms - uros->last_local_pose_time_ms > DELAY_LOCAL_POSE_TOPIC_MS) {
+            uros->update_topic(uros->local_pose_msg);
+            uros->last_local_pose_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->local_pose_publisher, &uros->local_pose_msg, NULL));
         }
 
-        if (cur_time_ms - last_local_twist_time_ms > DELAY_LOCAL_TWIST_TOPIC_MS) {
-            update_topic(local_twist_msg);
-            last_local_twist_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&local_twist_publisher, &local_twist_msg, NULL));
+        if (uros->local_twist_pub_init &&
+            cur_time_ms - uros->last_local_twist_time_ms > DELAY_LOCAL_TWIST_TOPIC_MS) {
+            uros->update_topic(uros->local_twist_msg);
+            uros->last_local_twist_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->local_twist_publisher, &uros->local_twist_msg, NULL));
         }
 
-        if (update_topic(nav_sat_fix_msg)) {
-            RCSOFTCHECK(rcl_publish(&nav_sat_fix_publisher, &nav_sat_fix_msg, NULL));
+        if (uros->nav_sat_fix_pub_init &&
+            uros->update_topic(uros->nav_sat_fix_msg)) {
+            RCSOFTCHECK(rcl_publish(&uros->nav_sat_fix_publisher, &uros->nav_sat_fix_msg, NULL));
         }
 
-        // if (cur_time_ms - last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
-        //     update_topic(static_transform_msg);
-        //     last_static_transform_time_ms = cur_time_ms;
-        //     RCSOFTCHECK(rcl_publish(&static_transform_publisher, &static_transform_msg, NULL));
+        // if (uros->static_transform_pub_init &&
+        //     cur_time_ms - uros->last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
+        //     uros->update_topic(uros->static_transform_msg);
+        //     uros->last_static_transform_time_ms = cur_time_ms;
+        //     RCSOFTCHECK(rcl_publish(&uros->static_transform_publisher, &uros->static_transform_msg, NULL));
         // }
 
-        if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
-            update_topic(time_msg);
-            last_time_time_ms = cur_time_ms;
-            RCSOFTCHECK(rcl_publish(&time_publisher, &time_msg, NULL));
-            // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,
-            //     "UROS: sent time: %d, %d", time_msg.sec, time_msg.nanosec);
+        if (uros->time_pub_init &&
+            cur_time_ms - uros->last_time_time_ms > DELAY_TIME_TOPIC_MS) {
+            uros->update_topic(uros->time_msg);
+            uros->last_time_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->time_publisher, &uros->time_msg, NULL));
+            // hal.console->printf("UROS: sent time: %d, %d\n", uros->time_msg.sec, uros->time_msg.nanosec);
         }
     }
 }
 
 // subscriber callbacks
-void on_joy_msg(const void * msgin)
+void AP_UROS_Client::on_joy_msg(const void * msgin, void* context)
 {
+    // AP_UROS_Client *uros = (AP_UROS_Client*)context;
+
     const sensor_msgs__msg__Joy * msg =
         (const sensor_msgs__msg__Joy *)msgin;
 
@@ -525,13 +507,48 @@ bool AP_UROS_Client::start(void)
         return true;
     }
 
-    if (!hal.scheduler->thread_create(
-            FUNCTOR_BIND_MEMBER(&AP_UROS_Client::main_loop, void),
-            "UROS", 8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"UROS: thread create failed");
+    hal.console->printf("UROS: creating uros_thread...\n");
+
+    // BaseType_t rc = xTaskCreate(
+    //     &AP_UROS_Client::uros_thread,
+    //     "APM_UROS",
+    //     UROS_SS,
+    //     this,
+    //     UROS_PRIO,
+    //     &uros_task_handle);
+
+    // Pin to Core 1
+    BaseType_t rc = xTaskCreatePinnedToCore(
+        &AP_UROS_Client::uros_thread,
+        "APM_UROS",
+        UROS_SS,
+        this,
+        UROS_PRIO,
+        &uros_task_handle, 0);
+
+    if (rc != pdPASS) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread... FAIL\n");
         return false;
+    } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread... OK\n");
+        return true;
     }
-    return true;
+  
+    // if (!hal.scheduler->thread_create(
+    //         FUNCTOR_BIND_MEMBER(&AP_UROS_Client::main_loop, void),
+    //         "UROS", 8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
+    //     GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"UROS: thread create failed");
+    //     return false;
+    // }
+    // return true;
+}
+
+/*
+  trampoline for main loop for UROS thread
+ */
+void AP_UROS_Client::uros_thread(void *arg) {
+    AP_UROS_Client* uros = (AP_UROS_Client*)arg;
+    uros->main_loop();
 }
 
 /*
@@ -565,8 +582,9 @@ void AP_UROS_Client::main_loop(void)
 
 bool AP_UROS_Client::init()
 {
+    //! @todo(srmainwaring) for esp32 we do not use custom transport
     // initialize transport
-    bool initTransportStatus = false;
+    bool initTransportStatus = true;
 
 #if AP_UROS_UDP_ENABLED
     // fallback to UDP if available
@@ -587,11 +605,26 @@ bool AP_UROS_Client::init()
     // create allocator
     allocator = rcl_get_default_allocator();
 
+    // either: custom initialisation
+    hal.console->printf("UROS: create init options\n");
+    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    RCSOFTCHECK(rcl_init_options_init(&init_options, allocator));
+
+    hal.console->printf("UROS: set rmw init options\n");
+    rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
+    RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
+
     // create init_options
-    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    hal.console->printf("UROS: initialise support\n");
+    RCSOFTCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
+
+    // or: default initialisation
+    // create init_options
+    // hal.console->printf("UROS: initialise support\n");
+    // RCSOFTCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
     // create node
-    RCCHECK(rclc_node_init_default(
+    RCSOFTCHECK(rclc_node_init_default(
         &node, "ardupilot_uros", "", &support));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init complete");
@@ -601,158 +634,246 @@ bool AP_UROS_Client::init()
 
 bool AP_UROS_Client::create()
 {
+    hal.console->printf("UROS: create...\n");
+
     WITH_SEMAPHORE(csem);
 
     // initialise strings and sequences
-    //! @todo(srmainwaring) - check return code
     {
+        hal.console->printf("UROS: configure battery state msg... ");
         battery_state_conf.max_string_capacity = 32;
-        battery_state_conf.max_ros2_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
-        battery_state_conf.max_basic_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
+        battery_state_conf.max_ros2_type_sequence_capacity = 8;//AP_BATT_MONITOR_CELLS_MAX;
+        battery_state_conf.max_basic_type_sequence_capacity = 8;//AP_BATT_MONITOR_CELLS_MAX;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
+        battery_state_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
             &battery_state_msg,
             battery_state_conf
         );
+        hal.console->printf("%s\n", (battery_state_mem_init ? "OK" : "FAIL"));
     }
     {
+        hal.console->printf("UROS: configure local pose msg... ");
         local_pose_conf.max_string_capacity = 32;
         local_pose_conf.max_ros2_type_sequence_capacity = 2;
         local_pose_conf.max_basic_type_sequence_capacity = 2;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
+        local_pose_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
             &local_pose_msg,
             local_pose_conf
         );
+        hal.console->printf("%s\n", (local_pose_mem_init ? "OK" : "FAIL"));
     }
     {
+        hal.console->printf("UROS: configure local twist msg... ");
         local_twist_conf.max_string_capacity = 32;
         local_twist_conf.max_ros2_type_sequence_capacity = 2;
         local_twist_conf.max_basic_type_sequence_capacity = 2;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
+        local_pose_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
             &local_twist_msg,
             local_twist_conf
         );
+        hal.console->printf("%s\n", (local_pose_mem_init ? "OK" : "FAIL"));
     }
     {
+        hal.console->printf("UROS: configure nav sat fix msg... ");
         nav_sat_fix_conf.max_string_capacity = 32;
         nav_sat_fix_conf.max_ros2_type_sequence_capacity = 2;
         nav_sat_fix_conf.max_basic_type_sequence_capacity = 2;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
+        nav_sat_fix_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
             &nav_sat_fix_msg,
             nav_sat_fix_conf
         );
+        hal.console->printf("%s\n", (nav_sat_fix_mem_init ? "OK" : "FAIL"));
     }
     // {
+    //     hal.console->printf("UROS: configure static transform msg... ");
     //     static_transform_conf.max_string_capacity = 32;
     //     static_transform_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
     //     static_transform_conf.max_basic_type_sequence_capacity = 2;
-
-    //     // bool success =
-    //     micro_ros_utilities_create_message_memory(
+    
+    //     static_transform_mem_init = micro_ros_utilities_create_message_memory(
     //         ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
     //         &static_transform_msg,
     //         static_transform_conf
     //     );
+    //     hal.console->printf("%s\n", (static_transform_mem_init ? "OK" : "FAIL"));
     // }
 
     {
+        hal.console->printf("UROS: configure joy msg... ");
         joy_conf.max_string_capacity = 32;
         joy_conf.max_ros2_type_sequence_capacity = 32;
         joy_conf.max_basic_type_sequence_capacity = 32;
 
-        // bool success =
-        micro_ros_utilities_create_message_memory(
+        joy_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
             &joy_msg,
             joy_conf
         );
+        hal.console->printf("%s\n", (joy_mem_init ? "OK" : "FAIL"));
     }
 
-
     // create publishers
-    RCCHECK(rclc_publisher_init_default(
-        &battery_state_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
-        "ap/battery/battery0"));
+    uint8_t number_of_publishers = 0;
 
-    RCCHECK(rclc_publisher_init_default(
-        &clock_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(rosgraph_msgs, msg, Clock),
-        "ap/clock"));
+    if (battery_state_mem_init) {
+      hal.console->printf("UROS: create battery state publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &battery_state_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
+          "ap/battery/battery0");
+      if ((battery_state_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
-    RCCHECK(rclc_publisher_init_default(
-        &local_pose_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
-        "ap/pose/filtered"));
+    {
+      hal.console->printf("UROS: create clock publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &clock_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(rosgraph_msgs, msg, Clock),
+          "ap/clock");
+      if ((clock_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
-    RCCHECK(rclc_publisher_init_default(
-        &local_twist_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
-        "ap/twist/filtered"));
+    if (local_pose_mem_init) {
+      printf("UROS: create local pose publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &local_pose_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
+          "ap/pose/filtered");
+      if ((local_pose_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
-    RCCHECK(rclc_publisher_init_default(
-        &nav_sat_fix_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
-        "ap/navsat/navsat0"));
+    if (local_twist_mem_init) {
+      hal.console->printf("UROS: create local twist publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &local_twist_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+          "ap/twist/filtered");
+      if ((local_twist_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
-    // RCCHECK(rclc_publisher_init_default(
-    //     &static_transform_publisher,
-    //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-    //     "ap/tf_static"));
+    if (nav_sat_fix_mem_init) {
+      hal.console->printf("UROS: create nav sat fix publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &nav_sat_fix_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
+          "ap/navsat/navsat0");
+      if ((nav_sat_fix_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
-    RCCHECK(rclc_publisher_init_default(
-        &time_publisher,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
-        "ap/time"));
+    // if (static_transform_mem_init) {
+    //   hal.console->printf("UROS: create static transform publisher... ");
+    //   rcl_ret_t rc = rclc_publisher_init_default(
+    //       &static_transform_publisher,
+    //       &node,
+    //       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+    //       "ap/tf_static");
+    //   if ((static_transform_pub_init = (rc == RCL_RET_OK))) {
+    //       number_of_publishers++;
+    //       hal.console->printf("OK\n");
+    //   } else {
+    //       hal.console->printf("FAIL: %d\n", rc);
+    //   }
+    // }
+
+    {
+      hal.console->printf("UROS: create time publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &time_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
+          "ap/time");
+      if ((time_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
     // create subscribers
-    RCCHECK(rclc_subscription_init_default(
-        &joy_subscriber,
-        &node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
-        "ap/joy"));
+    uint8_t number_of_subscribers = 0;
+
+    if (joy_mem_init) {
+        hal.console->printf("UROS: create joy subscriber... ");
+        rcl_ret_t rc = rclc_subscription_init_default(
+            &joy_subscriber,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
+            "ap/joy");
+      if ((joy_sub_init = (rc == RCL_RET_OK))) {
+          number_of_subscribers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
     // create timer
-    RCCHECK(rclc_timer_init_default(
+    hal.console->printf("UROS: create timer\n");
+    RCSOFTCHECK(rclc_timer_init_default(
         &timer,
         &support,
         RCL_MS_TO_NS(timer_timeout_ms),
         timer_callback));
 
     // number of entities
-    constexpr size_t number_of_publishers = 7;
-    constexpr size_t number_of_subscribers = 1;
-    constexpr size_t number_of_handles =
-        number_of_publishers + number_of_subscribers;
+    hal.console->printf("UROS: number of publishers: %d\n", number_of_publishers);
+    hal.console->printf("UROS: number of subscribers: %d\n", number_of_subscribers);
+    uint8_t number_of_handles = number_of_publishers + number_of_subscribers;
 
     // create executor
+    hal.console->printf("UROS: initialise executor\n");
     executor = rclc_executor_get_zero_initialized_executor();
-    RCCHECK(rclc_executor_init(&executor, &support.context,
+    RCSOFTCHECK(rclc_executor_init(&executor, &support.context,
         number_of_handles, &allocator));
 
-  	RCCHECK(rclc_executor_add_timer(&executor, &timer));
+    hal.console->printf("UROS: add timer to executor\n");
+  	RCSOFTCHECK(rclc_executor_add_timer(&executor, &timer));
 
-    RCCHECK(rclc_executor_add_subscription(&executor, &joy_subscriber,
-        &joy_msg, &on_joy_msg, ON_NEW_DATA));
+    hal.console->printf("UROS: add subscriptions to executor\n");
+    if (joy_sub_init) {
+        RCSOFTCHECK(rclc_executor_add_subscription_with_context(&executor, &joy_subscriber,
+            &joy_msg, &AP_UROS_Client::on_joy_msg, this, ON_NEW_DATA));
+    }
 
+    hal.console->printf("UROS: create complete\n");
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
 
     return true;
