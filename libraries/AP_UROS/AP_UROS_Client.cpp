@@ -54,7 +54,7 @@ constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
 // thread stack and priority
 constexpr uint32_t UROS_SS = 16384;
-constexpr int UROS_PRIO = 10;
+constexpr int UROS_PRIO = 5;
 
 // constructor
 AP_UROS_Client::AP_UROS_Client() {
@@ -527,10 +527,10 @@ bool AP_UROS_Client::start(void)
         &uros_task_handle, 0);
 
     if (rc != pdPASS) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread... FAIL\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread... FAIL");
         return false;
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread... OK\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread... OK");
         return true;
     }
   
@@ -671,12 +671,12 @@ bool AP_UROS_Client::create()
         local_twist_conf.max_ros2_type_sequence_capacity = 2;
         local_twist_conf.max_basic_type_sequence_capacity = 2;
 
-        local_pose_mem_init = micro_ros_utilities_create_message_memory(
+        local_twist_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
             &local_twist_msg,
             local_twist_conf
         );
-        hal.console->printf("%s\n", (local_pose_mem_init ? "OK" : "FAIL"));
+        hal.console->printf("%s\n", (local_twist_mem_init ? "OK" : "FAIL"));
     }
     {
         hal.console->printf("UROS: configure nav sat fix msg... ");
