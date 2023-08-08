@@ -46,6 +46,7 @@ static char BASE_LINK_FRAME_ID[] = "base_link";
 // publishers
 constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
+constexpr uint16_t DELAY_GEO_POSE_TOPIC_MS = 33;
 constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
 constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
 // constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
@@ -147,6 +148,43 @@ void AP_UROS_Client::update_topic(rosgraph_msgs__msg__Clock& msg)
 }
 
 // implementation copied from:
+// void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
+void AP_UROS_Client::update_topic(geographic_msgs__msg__GeoPoseStamped& msg)
+{
+    update_topic(msg.header.stamp);
+    strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
+
+    auto &ahrs = AP::ahrs();
+    WITH_SEMAPHORE(ahrs.get_semaphore());
+
+    Location loc;
+    if (ahrs.get_location(loc)) {
+        msg.pose.position.latitude = loc.lat * 1E-7;
+        msg.pose.position.longitude = loc.lng * 1E-7;
+        msg.pose.position.altitude = loc.alt * 0.01; // Transform from cm to m
+    }
+
+    // In ROS REP 103, axis orientation uses the following convention:
+    // X - Forward
+    // Y - Left
+    // Z - Up
+    // https://www.ros.org/reps/rep-0103.html#axis-orientation
+    // As a consequence, to follow ROS REP 103, it is necessary to switch X and Y,
+    // as well as invert Z (NED to ENU convertion) as well as a 90 degree rotation in the Z axis
+    // for x to point forward
+    Quaternion orientation;
+    if (ahrs.get_quaternion(orientation)) {
+        Quaternion aux(orientation[0], orientation[2], orientation[1], -orientation[3]); //NED to ENU transformation
+        Quaternion transformation(sqrtF(2) * 0.5, 0, 0, sqrtF(2) * 0.5); // Z axis 90 degree rotation
+        orientation = aux * transformation;
+        msg.pose.orientation.w = orientation[0];
+        msg.pose.orientation.x = orientation[1];
+        msg.pose.orientation.y = orientation[2];
+        msg.pose.orientation.z = orientation[3];
+    }
+}
+
+// implementation copied from:
 // void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
 void AP_UROS_Client::update_topic(geometry_msgs__msg__PoseStamped& msg)
 {
@@ -241,43 +279,43 @@ void AP_UROS_Client::update_topic(geometry_msgs__msg__TwistStamped& msg)
 
 // implementation copied from:
 // void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
-// void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
-// {
-//     msg.transforms.size = 0;
-//
-//     auto &gps = AP::gps();
-//     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-//         const auto gps_type = gps.get_type(i);
-//         if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
-//             continue;
-//         }
-//         update_topic(msg.transforms.data[i].header.stamp);
-//         char gps_frame_id[16];
-//         //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
-//         hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
-//         strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
-//         strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
-//         // The body-frame offsets
-//         // X - Forward
-//         // Y - Right
-//         // Z - Down
-//         // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
-//
-//         const auto offset = gps.get_antenna_offset(i);
-//
-//         // In ROS REP 103, it follows this convention
-//         // X - Forward
-//         // Y - Left
-//         // Z - Up
-//         // https://www.ros.org/reps/rep-0103.html#axis-orientation
-//
-//         msg.transforms.data[i].transform.translation.x = offset[0];
-//         msg.transforms.data[i].transform.translation.y = -1 * offset[1];
-//         msg.transforms.data[i].transform.translation.z = -1 * offset[2];
-//
-//         msg.transforms.size++;
-//     }
-// }
+void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
+{
+    msg.transforms.size = 0;
+
+    auto &gps = AP::gps();
+    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
+        const auto gps_type = gps.get_type(i);
+        if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
+            continue;
+        }
+        update_topic(msg.transforms.data[i].header.stamp);
+        char gps_frame_id[16];
+        //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
+        hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
+        strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
+        strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
+        // The body-frame offsets
+        // X - Forward
+        // Y - Right
+        // Z - Down
+        // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
+
+        const auto offset = gps.get_antenna_offset(i);
+
+        // In ROS REP 103, it follows this convention
+        // X - Forward
+        // Y - Left
+        // Z - Up
+        // https://www.ros.org/reps/rep-0103.html#axis-orientation
+
+        msg.transforms.data[i].transform.translation.x = offset[0];
+        msg.transforms.data[i].transform.translation.y = -1 * offset[1];
+        msg.transforms.data[i].transform.translation.z = -1 * offset[2];
+
+        msg.transforms.size++;
+    }
+}
 
 // implementation copied from:
 // bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
@@ -438,12 +476,19 @@ void AP_UROS_Client::timer_callback(rcl_timer_t * timer, int64_t last_call_time)
             RCSOFTCHECK(rcl_publish(&uros->nav_sat_fix_publisher, &uros->nav_sat_fix_msg, NULL));
         }
 
-        // if (uros->static_transform_pub_init &&
-        //     cur_time_ms - uros->last_static_transform_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
-        //     uros->update_topic(uros->static_transform_msg);
-        //     uros->last_static_transform_time_ms = cur_time_ms;
-        //     RCSOFTCHECK(rcl_publish(&uros->static_transform_publisher, &uros->static_transform_msg, NULL));
-        // }
+        if (uros->tx_static_transforms_pub_init &&
+            cur_time_ms - uros->last_tx_static_transforms_time_ms > DELAY_STATIC_TRANSFORM_TOPIC_MS) {
+            uros->update_topic(uros->tx_static_transforms_msg);
+            uros->last_tx_static_transforms_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->tx_static_transforms_publisher, &uros->tx_static_transforms_msg, NULL));
+        }
+
+        if (uros->geo_pose_pub_init &&
+            cur_time_ms - uros->last_geo_pose_time_ms > DELAY_GEO_POSE_TOPIC_MS) {
+            uros->update_topic(uros->geo_pose_msg);
+            uros->last_geo_pose_time_ms = cur_time_ms;
+            RCSOFTCHECK(rcl_publish(&uros->geo_pose_publisher, &uros->geo_pose_msg, NULL));
+        }
 
         if (uros->time_pub_init &&
             cur_time_ms - uros->last_time_time_ms > DELAY_TIME_TOPIC_MS) {
@@ -464,10 +509,25 @@ void AP_UROS_Client::on_joy_msg(const void * msgin, void* context)
         (const sensor_msgs__msg__Joy *)msgin;
 
     if (msg->axes.size >= 4) {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"UROS: sensor_msgs/Joy: %f, %f, %f, %f",
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: sensor_msgs/Joy: %f, %f, %f, %f",
             msg->axes.data[0], msg->axes.data[1], msg->axes.data[2], msg->axes.data[3]);
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,"UROS: sensor_msgs/Joy must have axes size >= 4");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: sensor_msgs/Joy must have axes size >= 4");
+    }
+}
+
+void AP_UROS_Client::on_tf_msg(const void * msgin, void* context)
+{
+    // AP_UROS_Client *uros = (AP_UROS_Client*)context;
+
+    const tf2_msgs__msg__TFMessage * msg =
+        (const tf2_msgs__msg__TFMessage *)msgin;
+
+    if (msg->transforms.size > 0) {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: tf2_msgs/TFMessage with size: %u",
+            msg->transforms.size);
+    } else {
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: tf2_msgs/TFMessage with no content");
     }
 }
 
@@ -567,14 +627,16 @@ void AP_UROS_Client::main_loop(void)
     // periodic actions
     rclc_executor_spin(&executor);
 
-    RCSOFTCHECK(rcl_subscription_fini(&joy_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&rx_joy_subscriber, &node));
+    RCSOFTCHECK(rcl_subscription_fini(&rx_dynamic_transforms_subscriber, &node));
 
     RCSOFTCHECK(rcl_publisher_fini(&battery_state_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&clock_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&geo_pose_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&local_pose_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&local_twist_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&nav_sat_fix_publisher, &node));
-    // RCSOFTCHECK(rcl_publisher_fini(&static_transform_publisher, &node));
+    RCSOFTCHECK(rcl_publisher_fini(&tx_static_transforms_publisher, &node));
     RCSOFTCHECK(rcl_publisher_fini(&time_publisher, &node));
 
     RCSOFTCHECK(rcl_node_fini(&node));
@@ -642,8 +704,8 @@ bool AP_UROS_Client::create()
     {
         hal.console->printf("UROS: configure battery state msg... ");
         battery_state_conf.max_string_capacity = 32;
-        battery_state_conf.max_ros2_type_sequence_capacity = 8;//AP_BATT_MONITOR_CELLS_MAX;
-        battery_state_conf.max_basic_type_sequence_capacity = 8;//AP_BATT_MONITOR_CELLS_MAX;
+        battery_state_conf.max_ros2_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
+        battery_state_conf.max_basic_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
 
         battery_state_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
@@ -651,6 +713,19 @@ bool AP_UROS_Client::create()
             battery_state_conf
         );
         hal.console->printf("%s\n", (battery_state_mem_init ? "OK" : "FAIL"));
+    }
+    {
+        hal.console->printf("UROS: configure geo pose msg... ");
+        geo_pose_conf.max_string_capacity = 32;
+        geo_pose_conf.max_ros2_type_sequence_capacity = 2;
+        geo_pose_conf.max_basic_type_sequence_capacity = 2;
+
+        geo_pose_mem_init = micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geographic_msgs, msg, GeoPoseStamped),
+            &geo_pose_msg,
+            geo_pose_conf
+        );
+        hal.console->printf("%s\n", (geo_pose_mem_init ? "OK" : "FAIL"));
     }
     {
         hal.console->printf("UROS: configure local pose msg... ");
@@ -691,32 +766,44 @@ bool AP_UROS_Client::create()
         );
         hal.console->printf("%s\n", (nav_sat_fix_mem_init ? "OK" : "FAIL"));
     }
-    // {
-    //     hal.console->printf("UROS: configure static transform msg... ");
-    //     static_transform_conf.max_string_capacity = 32;
-    //     static_transform_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
-    //     static_transform_conf.max_basic_type_sequence_capacity = 2;
-    
-    //     static_transform_mem_init = micro_ros_utilities_create_message_memory(
-    //         ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-    //         &static_transform_msg,
-    //         static_transform_conf
-    //     );
-    //     hal.console->printf("%s\n", (static_transform_mem_init ? "OK" : "FAIL"));
-    // }
+    {
+        hal.console->printf("UROS: configure static transform msg... ");
+        tx_static_transforms_conf.max_string_capacity = 32;
+        tx_static_transforms_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
+        tx_static_transforms_conf.max_basic_type_sequence_capacity = GPS_MAX_RECEIVERS;
 
+        tx_static_transforms_mem_init = micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+            &tx_static_transforms_msg,
+            tx_static_transforms_conf
+        );
+        hal.console->printf("%s\n", (tx_static_transforms_mem_init ? "OK" : "FAIL"));
+    }
     {
         hal.console->printf("UROS: configure joy msg... ");
-        joy_conf.max_string_capacity = 32;
-        joy_conf.max_ros2_type_sequence_capacity = 32;
-        joy_conf.max_basic_type_sequence_capacity = 32;
+        rx_joy_conf.max_string_capacity = 32;
+        rx_joy_conf.max_ros2_type_sequence_capacity = 32;
+        rx_joy_conf.max_basic_type_sequence_capacity = 32;
 
-        joy_mem_init = micro_ros_utilities_create_message_memory(
+        rx_joy_mem_init = micro_ros_utilities_create_message_memory(
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
-            &joy_msg,
-            joy_conf
+            &rx_joy_msg,
+            rx_joy_conf
         );
-        hal.console->printf("%s\n", (joy_mem_init ? "OK" : "FAIL"));
+        hal.console->printf("%s\n", (rx_joy_mem_init ? "OK" : "FAIL"));
+    }
+    {
+        hal.console->printf("UROS: configure tf msg... ");
+        rx_dynamic_transforms_conf.max_string_capacity = 32;
+        rx_dynamic_transforms_conf.max_ros2_type_sequence_capacity = 16;
+        rx_dynamic_transforms_conf.max_basic_type_sequence_capacity = 16;
+
+        rx_dynamic_transforms_mem_init = micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+            &rx_dynamic_transforms_msg,
+            rx_dynamic_transforms_conf
+        );
+        hal.console->printf("%s\n", (rx_dynamic_transforms_mem_init ? "OK" : "FAIL"));
     }
 
     // create publishers
@@ -752,8 +839,23 @@ bool AP_UROS_Client::create()
       }
     }
 
+    if (geo_pose_mem_init) {
+      hal.console->printf("UROS: create geo pose publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &geo_pose_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(geographic_msgs, msg, GeoPoseStamped),
+          "ap/geopose/filtered");
+      if ((geo_pose_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
+
     if (local_pose_mem_init) {
-      printf("UROS: create local pose publisher... ");
+      hal.console->printf("UROS: create local pose publisher... ");
       rcl_ret_t rc = rclc_publisher_init_default(
           &local_pose_publisher,
           &node,
@@ -797,20 +899,20 @@ bool AP_UROS_Client::create()
       }
     }
 
-    // if (static_transform_mem_init) {
-    //   hal.console->printf("UROS: create static transform publisher... ");
-    //   rcl_ret_t rc = rclc_publisher_init_default(
-    //       &static_transform_publisher,
-    //       &node,
-    //       ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-    //       "ap/tf_static");
-    //   if ((static_transform_pub_init = (rc == RCL_RET_OK))) {
-    //       number_of_publishers++;
-    //       hal.console->printf("OK\n");
-    //   } else {
-    //       hal.console->printf("FAIL: %d\n", rc);
-    //   }
-    // }
+    if (tx_static_transforms_mem_init) {
+      hal.console->printf("UROS: create static transform publisher... ");
+      rcl_ret_t rc = rclc_publisher_init_default(
+          &tx_static_transforms_publisher,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+          "ap/tf_static");
+      if ((tx_static_transforms_pub_init = (rc == RCL_RET_OK))) {
+          number_of_publishers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
 
     {
       hal.console->printf("UROS: create time publisher... ");
@@ -830,14 +932,29 @@ bool AP_UROS_Client::create()
     // create subscribers
     uint8_t number_of_subscribers = 0;
 
-    if (joy_mem_init) {
+    if (rx_joy_mem_init) {
         hal.console->printf("UROS: create joy subscriber... ");
         rcl_ret_t rc = rclc_subscription_init_default(
-            &joy_subscriber,
+            &rx_joy_subscriber,
             &node,
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
             "ap/joy");
-      if ((joy_sub_init = (rc == RCL_RET_OK))) {
+      if ((rx_joy_sub_init = (rc == RCL_RET_OK))) {
+          number_of_subscribers++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
+
+    if (rx_dynamic_transforms_mem_init) {
+        hal.console->printf("UROS: create tf subscriber... ");
+        rcl_ret_t rc = rclc_subscription_init_default(
+            &rx_dynamic_transforms_subscriber,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+            "ap/tf");
+      if ((rx_dynamic_transforms_sub_init = (rc == RCL_RET_OK))) {
           number_of_subscribers++;
           hal.console->printf("OK\n");
       } else {
@@ -868,9 +985,13 @@ bool AP_UROS_Client::create()
   	RCSOFTCHECK(rclc_executor_add_timer(&executor, &timer));
 
     hal.console->printf("UROS: add subscriptions to executor\n");
-    if (joy_sub_init) {
-        RCSOFTCHECK(rclc_executor_add_subscription_with_context(&executor, &joy_subscriber,
-            &joy_msg, &AP_UROS_Client::on_joy_msg, this, ON_NEW_DATA));
+    if (rx_joy_sub_init) {
+        RCCHECK(rclc_executor_add_subscription_with_context(&executor, &rx_joy_subscriber,
+            &rx_joy_msg, &AP_UROS_Client::on_joy_msg, this, ON_NEW_DATA));
+    }
+    if (rx_dynamic_transforms_sub_init) {
+        RCCHECK(rclc_executor_add_subscription_with_context(&executor, &rx_dynamic_transforms_subscriber,
+            &rx_dynamic_transforms_msg, &AP_UROS_Client::on_tf_msg, this, ON_NEW_DATA));
     }
 
     hal.console->printf("UROS: create complete\n");
