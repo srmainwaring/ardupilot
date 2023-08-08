@@ -146,11 +146,16 @@ private:
     void update_topic(tf2_msgs__msg__TFMessage& msg);
 
     // subscribers
-    static void on_joy_msg(const void * msgin, void *context);
-    static void on_tf_msg(const void * msgin, void *context);
+    static void on_joy_msg_trampoline(const void * msgin, void *context);
+    void on_joy_msg(const sensor_msgs__msg__Joy * msg);
 
-    static void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
-    static void uros_thread(void *arg);
+    static void on_tf_msg_trampoline(const void * msgin, void *context);
+    void on_tf_msg(const tf2_msgs__msg__TFMessage * msg);
+
+    static void timer_callback_trampoline(rcl_timer_t * timer, int64_t last_call_time);
+    void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
+
+    static void main_loop_trampoline(void *arg);
 
 #if AP_UROS_UDP_ENABLED
     // functions for udp transport
