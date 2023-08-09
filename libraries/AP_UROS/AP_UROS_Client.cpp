@@ -573,39 +573,45 @@ bool AP_UROS_Client::on_parameter_changed(
 {
     //! @note copied from rcl_examples/src/example_parameter_server.c
     if (old_param == NULL && new_param == NULL) {
-        hal.console->printf("UROS: error, both parameters are NULL\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: error updating parameters");
         return false;
     }
 
     if (old_param == NULL) {
-        hal.console->printf("UROS: creating new parameter %s\n", new_param->name.data);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: creating new parameter %s",
+            new_param->name.data);
     } else if (new_param == NULL) {
-        hal.console->printf("UROS: deleting parameter %s\n", old_param->name.data);
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: deleting parameter %s",
+            old_param->name.data);
     } else {
-        hal.console->printf("UROS: parameter %s modified.", old_param->name.data);
         switch (old_param->value.type) {
             case RCLC_PARAMETER_BOOL:
-                hal.console->printf(
-                    " old value: %d, new value: %d (bool)",
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+                    "UROS: parameter %s modified: "
+                    "old value: %d, new value: %d (bool)",
+                    old_param->name.data,
                     old_param->value.bool_value,
                     new_param->value.bool_value);
                 break;
             case RCLC_PARAMETER_INT:
-                hal.console->printf(
-                    " old value: %lld, new value: %lld (int)",
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+                    "UROS: parameter %s modified: "
+                    "old value: %lld, new value: %lld (int)",
+                    old_param->name.data,
                     old_param->value.integer_value,
                     new_param->value.integer_value);
                 break;
             case RCLC_PARAMETER_DOUBLE:
-                hal.console->printf(
-                    " old value: %f, new value: %f (double)",
+                GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+                    "UROS: parameter %s modified: "
+                    "old value: %f, new value: %f (double)",
+                    old_param->name.data,
                     old_param->value.double_value,
                     new_param->value.double_value);
                 break;
             default:
                 break;
-      }
-      hal.console->printf("\n");
+        }
     }
 
     return true;
