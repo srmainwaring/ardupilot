@@ -8,6 +8,7 @@ def configure(cfg):
         'libraries/AP_UROS/uros/include',
         'libraries/AP_UROS/uros/include/rcl',
         'libraries/AP_UROS/uros/include/rcl_action',
+        'libraries/AP_UROS/uros/include/rcl_interfaces',
         'libraries/AP_UROS/uros/include/rcutils',
         'libraries/AP_UROS/uros/include/rmw',
         'libraries/AP_UROS/uros/include/rosidl_runtime_c',
