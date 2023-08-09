@@ -12,6 +12,7 @@
 #include <rclc/executor.h>
 
 // ROS msgs
+#include <ardupilot_msgs/srv/arm_motors.h>
 #include <builtin_interfaces/msg/time.h>
 #include <geographic_msgs/msg/geo_pose_stamped.h>
 #include <geometry_msgs/msg/pose_stamped.h>
@@ -131,6 +132,12 @@ private:
     bool rx_dynamic_transforms_mem_init = false;
     bool rx_dynamic_transforms_sub_init = false;
 
+    // services
+    rcl_service_t arm_motors_service;
+    ardupilot_msgs__srv__ArmMotors_Request arm_motors_req;
+    ardupilot_msgs__srv__ArmMotors_Response arm_motors_res;
+    bool arm_motors_srv_init = false;
+
     // thread handle and singleton
     TaskHandle_t uros_task_handle;
     static AP_UROS_Client *_singleton;
@@ -152,6 +159,13 @@ private:
     static void on_tf_msg_trampoline(const void * msgin, void *context);
     void on_tf_msg(const tf2_msgs__msg__TFMessage * msg);
 
+    // service callbacks
+    static void arm_motors_callback_trampoline(const void *req, void *res, void *context);
+    void arm_motors_callback(
+        const ardupilot_msgs__srv__ArmMotors_Request *req,
+        ardupilot_msgs__srv__ArmMotors_Response *res);
+
+    // timer callbacks
     static void timer_callback_trampoline(rcl_timer_t * timer, int64_t last_call_time);
     void timer_callback(rcl_timer_t * timer, int64_t last_call_time);
 
@@ -194,6 +208,9 @@ public:
     //! @brief Parameter storage.
     static const struct AP_Param::GroupInfo var_info[];
 
+    //! @note A singleton is needed for the timer_callback_trampoline as
+    //! rcl and rlcl do not provide a function to initialise a timer with
+    //!  a context as is case for the subscriber callbacks.
     static AP_UROS_Client *get_singleton();
 };
 
