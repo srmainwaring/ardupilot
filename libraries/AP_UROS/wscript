@@ -12,6 +12,7 @@ def configure(cfg):
         f'{uros_include_dir}',
         f'{uros_include_dir}/rcl',
         f'{uros_include_dir}/rcl_action',
+        f'{uros_include_dir}/rcl_interfaces',
         f'{uros_include_dir}/rcutils',
         f'{uros_include_dir}/rmw',
         f'{uros_include_dir}/rosidl_runtime_c',
