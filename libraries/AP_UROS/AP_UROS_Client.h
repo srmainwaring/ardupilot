@@ -10,6 +10,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <rclc_parameter/rclc_parameter.h>
 
 // ROS msgs
 #include <ardupilot_msgs/srv/arm_motors.h>
@@ -138,6 +139,10 @@ private:
     ardupilot_msgs__srv__ArmMotors_Response arm_motors_res;
     bool arm_motors_srv_init = false;
 
+    // parameter server
+    rclc_parameter_server_t param_server;
+    bool param_srv_init = false;
+
     // thread handle and singleton
     TaskHandle_t uros_task_handle;
     static AP_UROS_Client *_singleton;
@@ -164,6 +169,12 @@ private:
     void arm_motors_callback(
         const ardupilot_msgs__srv__ArmMotors_Request *req,
         ardupilot_msgs__srv__ArmMotors_Response *res);
+
+    // parameter server callback
+    static bool on_parameter_changed_trampoline(
+        const Parameter * old_param, const Parameter * new_param, void * context);
+    bool on_parameter_changed(
+        const Parameter * old_param, const Parameter * new_param);
 
     // timer callbacks
     static void timer_callback_trampoline(rcl_timer_t * timer, int64_t last_call_time);

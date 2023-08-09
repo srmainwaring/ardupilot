@@ -541,7 +541,8 @@ void AP_UROS_Client::on_tf_msg(const tf2_msgs__msg__TFMessage * msg)
 
 // service callbacks
 void AP_UROS_Client::arm_motors_callback_trampoline(
-    const void *req, void *res, void *context) {
+    const void *req, void *res, void *context)
+{
     AP_UROS_Client *uros = (AP_UROS_Client*)context;
         ardupilot_msgs__srv__ArmMotors_Request *req_in =
         (ardupilot_msgs__srv__ArmMotors_Request *) req;
@@ -559,6 +560,58 @@ void AP_UROS_Client::arm_motors_callback(
     res->result = req->arm;
 }
 
+// parameter server callback
+bool AP_UROS_Client::on_parameter_changed_trampoline(
+    const Parameter * old_param, const Parameter * new_param, void * context)
+{
+    AP_UROS_Client *uros = (AP_UROS_Client*)context;
+    return uros->on_parameter_changed(old_param, new_param);
+}
+
+bool AP_UROS_Client::on_parameter_changed(
+    const Parameter * old_param, const Parameter * new_param)
+{
+    //! @note copied from rcl_examples/src/example_parameter_server.c
+    if (old_param == NULL && new_param == NULL) {
+        hal.console->printf("UROS: error, both parameters are NULL\n");
+        return false;
+    }
+
+    if (old_param == NULL) {
+        hal.console->printf("UROS: creating new parameter %s\n", new_param->name.data);
+    } else if (new_param == NULL) {
+        hal.console->printf("UROS: deleting parameter %s\n", old_param->name.data);
+    } else {
+        hal.console->printf("UROS: parameter %s modified.", old_param->name.data);
+        switch (old_param->value.type) {
+            case RCLC_PARAMETER_BOOL:
+                hal.console->printf(
+                    " old value: %d, new value: %d (bool)",
+                    old_param->value.bool_value,
+                    new_param->value.bool_value);
+                break;
+            case RCLC_PARAMETER_INT:
+                hal.console->printf(
+                    " old value: %lld, new value: %lld (int)",
+                    old_param->value.integer_value,
+                    new_param->value.integer_value);
+                break;
+            case RCLC_PARAMETER_DOUBLE:
+                hal.console->printf(
+                    " old value: %f, new value: %f (double)",
+                    old_param->value.double_value,
+                    new_param->value.double_value);
+                break;
+            default:
+                break;
+      }
+      hal.console->printf("\n");
+    }
+
+    return true;
+}
+
+// parameter group
 const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
 
     // @Param: _ENABLE
@@ -654,6 +707,8 @@ void AP_UROS_Client::main_loop(void)
 
     // periodic actions
     rclc_executor_spin(&executor);
+
+    RCSOFTCHECK(rclc_parameter_server_fini(&param_server, &node));
 
     RCSOFTCHECK(rcl_service_fini(&arm_motors_service, &node));
 
@@ -1010,6 +1065,36 @@ bool AP_UROS_Client::create()
       }
     }
 
+    // create parameter server
+    {
+        hal.console->printf("UROS: create parameter server... ");
+
+        // create parameter options
+        // defaults:
+        //    notify_changed_over_dds:      true
+        //    max_params:                   4
+        //    allow_undeclared_parameters:  false
+        //    low_mem_mode:                 false
+        const rclc_parameter_options_t options = {
+            .notify_changed_over_dds = true,
+            .max_params = 4,
+            .allow_undeclared_parameters = true,
+            .low_mem_mode = true
+        };
+
+        rcl_ret_t rc = rclc_parameter_server_init_with_option(
+            &param_server, &node, &options);
+        if ((param_srv_init = (rc == RCL_RET_OK))) {
+            //! @note the parameter server requires 5 services + 1 publisher
+            //  https://micro.ros.org/docs/tutorials/programming_rcl_rclc/parameters/ 
+            number_of_publishers++;
+            number_of_services += RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES;
+            hal.console->printf("OK\n");
+        } else {
+            hal.console->printf("FAIL: %d\n", rc);
+        }
+    }
+
     // create timer
     hal.console->printf("UROS: create timer\n");
     RCSOFTCHECK(rclc_timer_init_default(
@@ -1049,6 +1134,12 @@ bool AP_UROS_Client::create()
         RCCHECK(rclc_executor_add_service_with_context(&executor, &arm_motors_service,
             &arm_motors_req, &arm_motors_res,
             &AP_UROS_Client::arm_motors_callback_trampoline, this));
+    }
+
+    hal.console->printf("UROS: add parameter server to executor\n");
+    if (param_srv_init) {
+        RCCHECK(rclc_executor_add_parameter_server_with_context(&executor, &param_server,
+            &AP_UROS_Client::on_parameter_changed_trampoline, this));
     }
 
     hal.console->printf("UROS: create complete\n");
