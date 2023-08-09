@@ -539,6 +539,26 @@ void AP_UROS_Client::on_tf_msg(const tf2_msgs__msg__TFMessage * msg)
     }
 }
 
+// service callbacks
+void AP_UROS_Client::arm_motors_callback_trampoline(
+    const void *req, void *res, void *context) {
+    AP_UROS_Client *uros = (AP_UROS_Client*)context;
+        ardupilot_msgs__srv__ArmMotors_Request *req_in =
+        (ardupilot_msgs__srv__ArmMotors_Request *) req;
+    ardupilot_msgs__srv__ArmMotors_Response *res_in =
+        (ardupilot_msgs__srv__ArmMotors_Response *) res;
+    uros->arm_motors_callback(req_in, res_in);
+}
+
+void AP_UROS_Client::arm_motors_callback(
+    const ardupilot_msgs__srv__ArmMotors_Request *req,
+    ardupilot_msgs__srv__ArmMotors_Response *res)
+{
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+        "UROS: ardupilot_msgs/ArmMotors request: %d", (int)req->arm);
+    res->result = req->arm;
+}
+
 const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
 
     // @Param: _ENABLE
@@ -634,6 +654,8 @@ void AP_UROS_Client::main_loop(void)
 
     // periodic actions
     rclc_executor_spin(&executor);
+
+    RCSOFTCHECK(rcl_service_fini(&arm_motors_service, &node));
 
     RCSOFTCHECK(rcl_subscription_fini(&rx_joy_subscriber, &node));
     RCSOFTCHECK(rcl_subscription_fini(&rx_dynamic_transforms_subscriber, &node));
@@ -970,6 +992,24 @@ bool AP_UROS_Client::create()
       }
     }
 
+    // create services
+    uint8_t number_of_services = 0;
+
+    {
+        hal.console->printf("UROS: create arm_motors service... ");
+        rcl_ret_t rc = rclc_service_init_default(
+            &arm_motors_service,
+            &node,
+            ROSIDL_GET_SRV_TYPE_SUPPORT(ardupilot_msgs, srv, ArmMotors),
+            "/ap/arm_motors");
+      if ((arm_motors_srv_init = (rc == RCL_RET_OK))) {
+          number_of_services++;
+          hal.console->printf("OK\n");
+      } else {
+          hal.console->printf("FAIL: %d\n", rc);
+      }
+    }
+
     // create timer
     hal.console->printf("UROS: create timer\n");
     RCSOFTCHECK(rclc_timer_init_default(
@@ -979,9 +1019,11 @@ bool AP_UROS_Client::create()
         timer_callback_trampoline));
 
     // number of entities
-    hal.console->printf("UROS: number of publishers: %d\n", number_of_publishers);
+    hal.console->printf("UROS: number of publishers:  %d\n", number_of_publishers);
     hal.console->printf("UROS: number of subscribers: %d\n", number_of_subscribers);
-    uint8_t number_of_handles = number_of_publishers + number_of_subscribers;
+    hal.console->printf("UROS: number of services:    %d\n", number_of_services);
+    uint8_t number_of_handles =
+        number_of_publishers + number_of_subscribers + number_of_services;
 
     // create executor
     hal.console->printf("UROS: initialise executor\n");
@@ -1000,6 +1042,13 @@ bool AP_UROS_Client::create()
     if (rx_dynamic_transforms_sub_init) {
         RCCHECK(rclc_executor_add_subscription_with_context(&executor, &rx_dynamic_transforms_subscriber,
             &rx_dynamic_transforms_msg, &AP_UROS_Client::on_tf_msg_trampoline, this, ON_NEW_DATA));
+    }
+
+    hal.console->printf("UROS: add services to executor\n");
+    if (arm_motors_srv_init) {
+        RCCHECK(rclc_executor_add_service_with_context(&executor, &arm_motors_service,
+            &arm_motors_req, &arm_motors_res,
+            &AP_UROS_Client::arm_motors_callback_trampoline, this));
     }
 
     hal.console->printf("UROS: create complete\n");
