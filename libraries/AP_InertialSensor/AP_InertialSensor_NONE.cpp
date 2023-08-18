@@ -6,7 +6,6 @@
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
 
-
 float rand_float(void)
 {
     return ((((unsigned)random()) % 2000000) - 1.0e6) / 1.0e6;
@@ -19,13 +18,11 @@ AP_InertialSensor_NONE::AP_InertialSensor_NONE(AP_InertialSensor &imu, const uin
     gyro_sample_hz(sample_rates[0]),
     accel_sample_hz(sample_rates[1])
 {
-    hal.console->printf("imu_none: construct\n");
 }
 
 /*
   detect the sensor
  */
-// Same as AP_InertialSensor_SITL::detect
 AP_InertialSensor_Backend *AP_InertialSensor_NONE::detect(AP_InertialSensor &_imu, const uint16_t sample_rates[])
 {
     AP_InertialSensor_NONE *sensor = new AP_InertialSensor_NONE(_imu, sample_rates);
@@ -38,27 +35,20 @@ AP_InertialSensor_Backend *AP_InertialSensor_NONE::detect(AP_InertialSensor &_im
 
         return nullptr;
     }
-    hal.console->printf("imu_none: detected\n");
     return sensor;
 }
 
-
 bool AP_InertialSensor_NONE::init_sensor(void)
-{
-  
+{  
     return true;
 }
-
-
 
 void AP_InertialSensor_NONE::accumulate()
 {
     // nothing to do
 }
 
-
 // calculate a noisy noise component
-// Same as AP_InertialSensor_SITL::calculate_noise
 static float calculate_noise(float noise, float noise_variation) {
     return noise * (1.0f + noise_variation * rand_float());
 }
@@ -66,7 +56,6 @@ static float calculate_noise(float noise, float noise_variation) {
 /*
   generate an accelerometer sample
  */
-// Adapted from AP_InertialSensor_SITL::generate_accel
 void AP_InertialSensor_NONE::generate_accel()
 {
     Vector3f accel_accum;
@@ -178,11 +167,8 @@ void AP_InertialSensor_NONE::generate_accel()
 /*
   generate a gyro sample
  */
-// Adapted from AP_InertialSensor_SITL::generate_gyro
 void AP_InertialSensor_NONE::generate_gyro()
 {
-    // hal.console->printf("imu_none: generate gyro\n");
-
     Vector3f gyro_accum;
     uint8_t nsamples = enable_fast_sampling(gyro_instance) ? 8 : 1;
 
@@ -276,7 +262,7 @@ void AP_InertialSensor_NONE::timer_update(void)
                     next_accel_sample += 1000000UL / accel_sample_hz;
                 }
             }
-        // }
+        }
     }
     if (now >= next_gyro_sample) {
         {
@@ -288,11 +274,10 @@ void AP_InertialSensor_NONE::timer_update(void)
                     next_gyro_sample += 1000000UL / gyro_sample_hz;
                 }
             }
-        // }
+        }
     }
 }
 
-// Adapted from AP_InertialSensor_SITL::update
 float AP_InertialSensor_NONE::gyro_drift(void)
 {
     double period  = 0.01 * 2;
@@ -303,18 +288,15 @@ float AP_InertialSensor_NONE::gyro_drift(void)
     return (period - minutes) * ToRad(0.01);
 }
 
-// Same as AP_InertialSensor_SITL::update
 bool AP_InertialSensor_NONE::update(void) 
 {
     update_accel(accel_instance);
     update_gyro(gyro_instance);
-    // hal.console->printf("imu_none: updated\n");
     return true;
 }
 
 uint8_t AP_InertialSensor_NONE::bus_id = 0;
 
-// Same as AP_InertialSensor_SITL::start
 void AP_InertialSensor_NONE::start()
 {
     if (!_imu.register_gyro(gyro_instance, gyro_sample_hz,
@@ -324,9 +306,7 @@ void AP_InertialSensor_NONE::start()
         return;
     }
     bus_id++;
-    hal.console->printf("imu_none: register timer callback\n");
     hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_InertialSensor_NONE::timer_update, void));
-    hal.console->printf("imu_none: start\n");
 }
 
 #endif // HAL_BOARD_NONE
