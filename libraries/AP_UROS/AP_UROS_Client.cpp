@@ -922,6 +922,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -937,6 +938,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -952,6 +954,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -967,6 +970,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -982,6 +986,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -997,6 +1002,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1012,6 +1018,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1027,6 +1034,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1045,6 +1053,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1060,6 +1069,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1078,6 +1088,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
