@@ -183,7 +183,21 @@ private:
 
     static void main_loop_trampoline(void *arg);
 
-#if AP_UROS_UDP_ENABLED
+    // functions for serial transport
+    bool urosSerialInit();
+    static bool serial_transport_open(uxrCustomTransport* transport);
+    static bool serial_transport_close(uxrCustomTransport* transport);
+    static size_t serial_transport_write(uxrCustomTransport* transport,
+            const uint8_t* buf, size_t len, uint8_t* error);
+    static size_t serial_transport_read(uxrCustomTransport* transport,
+            uint8_t* buf, size_t len, int timeout, uint8_t* error);
+
+    struct {
+        AP_HAL::UARTDriver *port;
+        uxrCustomTransport transport;
+    } serial;
+
+    #if AP_UROS_UDP_ENABLED
     // functions for udp transport
     bool urosUdpInit();
     static bool udp_transport_open(uxrCustomTransport* transport);
@@ -203,24 +217,8 @@ private:
     } udp;
 #endif
 
-    // functions for serial transport
-    bool urosSerialInit();
-    static bool serial_transport_open(uxrCustomTransport* transport);
-    static bool serial_transport_close(uxrCustomTransport* transport);
-    static size_t serial_transport_write(uxrCustomTransport* transport,
-            const uint8_t* buf, size_t len, uint8_t* error);
-    static size_t serial_transport_read(uxrCustomTransport* transport,
-            uint8_t* buf, size_t len, int timeout, uint8_t* error);
-
-    size_t uart_port;
-    // struct {
-    //     AP_Int32 port;
-    //     // UDP endpoint
-    //     const char* ip = "127.0.0.1";
-    //     // UDP Allocation
-    //     uxrCustomTransport transport;
-    //     SocketAPM *socket;
-    // } serial;
+    // client key we present
+    static constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
 
 public:
     AP_UROS_Client();

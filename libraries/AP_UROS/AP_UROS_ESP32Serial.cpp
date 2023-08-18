@@ -1,4 +1,5 @@
 #include "AP_UROS_Client.h"
+#if 0
 
 #include <uxr/client/transport.h>
 #include <rmw_microros/custom_transport.h>
@@ -128,14 +129,7 @@ bool AP_UROS_Client::urosSerialInit()
         serial_transport_read
     );
 
-    // // setup a non-framed transport for UDP
-    // rmw_ret_t rcl_ret = rmw_uros_set_custom_transport(
-    //         false,
-    //         (void*)this,
-    //         udp_transport_open,
-    //         udp_transport_close,
-    //         udp_transport_write,
-    //         udp_transport_read);
-
     return (rcl_ret == RCL_RET_OK);
 }
+
+#endif

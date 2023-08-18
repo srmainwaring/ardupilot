@@ -37,10 +37,11 @@
 //#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2 //C  WiFi:  TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
 //#define DEFAULT_SERIAL1_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
 
-#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2 //D  UART2: Always: MAVLink2 on ESP32
-//#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+//#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2 //D  UART2: Always: MAVLink2 on ESP32
+#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_DDS_XRCE  //D  UART2
+#define DEFAULT_SERIAL2_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS      //B  UART1: GPS1
+#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS       //B  UART1: GPS1
 //#define DEFAULT_SERIAL4_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
 
 #define DEFAULT_SERIAL4_PROTOCOL        SerialProtocol_None      //E
@@ -117,14 +118,14 @@
 
 //UARTs
 // UART_NUM_0 and UART_NUM_2 are configured to use defaults
-#define HAL_ESP32_UART_DEVICES \
-    {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
-    {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18}
-
 // #define HAL_ESP32_UART_DEVICES
 //     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },
-//     {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},
-//     {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
+//     {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18}
+
+#define HAL_ESP32_UART_DEVICES \
+    {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
+    {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
+    {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
 
 //ADC
 #define HAL_DISABLE_ADC_DRIVER 1

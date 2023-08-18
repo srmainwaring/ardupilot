@@ -699,6 +699,11 @@ bool AP_UROS_Client::start(void)
 void AP_UROS_Client::main_loop_trampoline(void *arg) {
     AP_UROS_Client* uros = (AP_UROS_Client*)arg;
     uros->main_loop();
+
+    // if main_loop returns something has gone wrong
+    while (true) {
+        hal.scheduler->delay(1000);
+    }
 }
 
 /*
@@ -738,11 +743,11 @@ void AP_UROS_Client::main_loop(void)
 
 bool AP_UROS_Client::init()
 {
-    //! @todo(srmainwaring) for esp32 we do not use custom transport
     // initialize transport
     bool initTransportStatus = false;
 
 #if defined(RMW_UXRCE_TRANSPORT_CUSTOM)
+    // serial init will fail if the SERIALn_PROTOCOL is not setup
     if (!initTransportStatus) {
         initTransportStatus = urosSerialInit();
     }
