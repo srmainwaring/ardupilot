@@ -3,9 +3,11 @@
 #if AP_UROS_ENABLED
 
 // micro-xrce-dds
-#include "uxr/client/client.h"
+#include <uxr/client/client.h>
+#include <uxr/client/transport.h>
 
 // micro-ROS
+#include <micro_ros_utilities/type_utilities.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
@@ -25,8 +27,6 @@
 #include <sensor_msgs/msg/nav_sat_fix.h>
 #include <tf2_msgs/msg/tf_message.h>
 
-#include <micro_ros_utilities/type_utilities.h>
-
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/Scheduler.h>
 #include <AP_HAL/Semaphores.h>
@@ -36,9 +36,10 @@
 
 #include <AP_Param/AP_Param.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/portmacro.h"
+// esp32 - free-rtos
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/portmacro.h>
 
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
@@ -182,7 +183,21 @@ private:
 
     static void main_loop_trampoline(void *arg);
 
-#if AP_UROS_UDP_ENABLED
+    // functions for serial transport
+    bool urosSerialInit();
+    static bool serial_transport_open(uxrCustomTransport* transport);
+    static bool serial_transport_close(uxrCustomTransport* transport);
+    static size_t serial_transport_write(uxrCustomTransport* transport,
+            const uint8_t* buf, size_t len, uint8_t* error);
+    static size_t serial_transport_read(uxrCustomTransport* transport,
+            uint8_t* buf, size_t len, int timeout, uint8_t* error);
+
+    struct {
+        AP_HAL::UARTDriver *port;
+        uxrCustomTransport transport;
+    } serial;
+
+    #if AP_UROS_UDP_ENABLED
     // functions for udp transport
     bool urosUdpInit();
     static bool udp_transport_open(uxrCustomTransport* transport);
@@ -201,6 +216,9 @@ private:
         SocketAPM *socket;
     } udp;
 #endif
+
+    // client key we present
+    static constexpr uint32_t uniqueClientKey = 0xAAAABBBB;
 
 public:
     AP_UROS_Client();
