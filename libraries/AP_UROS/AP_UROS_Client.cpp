@@ -659,14 +659,6 @@ bool AP_UROS_Client::start(void)
 
     hal.console->printf("UROS: creating uros_thread...\n");
 
-    // BaseType_t rc = xTaskCreate(
-    //     &AP_UROS_Client::uros_thread,
-    //     "APM_UROS",
-    //     UROS_SS,
-    //     this,
-    //     UROS_PRIO,
-    //     &uros_task_handle);
-
     // Pin to Core 1
     BaseType_t rc = xTaskCreatePinnedToCore(
         &AP_UROS_Client::main_loop_trampoline,
@@ -677,10 +669,10 @@ bool AP_UROS_Client::start(void)
         &uros_task_handle, 0);
 
     if (rc != pdPASS) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread... FAIL");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread failed to start");
         return false;
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread... OK");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread started");
         return true;
     }
   
@@ -701,6 +693,7 @@ void AP_UROS_Client::main_loop_trampoline(void *arg) {
     uros->main_loop();
 
     // if main_loop returns something has gone wrong
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: main_thread failed");
     while (true) {
         hal.scheduler->delay(1000);
     }
@@ -712,10 +705,10 @@ void AP_UROS_Client::main_loop_trampoline(void *arg) {
 void AP_UROS_Client::main_loop(void)
 {
     if (!init() || !create()) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: creation failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: init or create failed");
         return;
     }
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: initialization passed");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init and create succeed");
 
     // one-time actions
 
