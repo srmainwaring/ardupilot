@@ -20,7 +20,7 @@ Notes for building the micro-ROS client library using the package
   - Added `geometry2` for `tf2_msgs`
   - Added `ardupilot` for  `ardupilot_msgs`
 
-### Build
+### Build (standalone example)
 
 This refers to a standalone example used to test the micro-ROS client build.
 
@@ -35,6 +35,8 @@ idf.py set-target esp32
 idf.py build
 idf.py -p /dev/cu.usbserial-0001 flash
 ```
+
+
 
 ### Run
 
@@ -202,3 +204,18 @@ Set parameter successful
 $ ros2 param get /ardupilot_uros GPS_TYPE
 Integer value is: 1
 ```
+
+### AP_UROS with custom transport
+
+A version of `AP_UROS` supporting serial via custom transport is available at:
+
+- https://github.com/srmainwaring/ardupilot/tree/wips/wip-esp32empty-debug-micro-ros-serial
+
+
+#### Notes
+
+- The implementation contains some customisation specifc to ESP32.
+- The `microros` library must be built using the cmake flag `RMW_UXRCE_TRANSPORT=custom`.
+- `UART_NUM_2` is configured to use the `IO_MUX` pins: `GPIO17(TXD2)`, `GPIO16(RXD2)`.
+
+

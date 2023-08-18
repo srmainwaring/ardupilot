@@ -7,9 +7,12 @@
 #include <algorithm>
 #include <string.h>
 
+// micro-ROS
 #include <micro_ros_utilities/type_utilities.h>
-
 #include <rmw_microros/rmw_microros.h>
+
+// esp32
+#include <driver/uart.h>
 
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
@@ -656,14 +659,6 @@ bool AP_UROS_Client::start(void)
 
     hal.console->printf("UROS: creating uros_thread...\n");
 
-    // BaseType_t rc = xTaskCreate(
-    //     &AP_UROS_Client::uros_thread,
-    //     "APM_UROS",
-    //     UROS_SS,
-    //     this,
-    //     UROS_PRIO,
-    //     &uros_task_handle);
-
     // Pin to Core 1
     BaseType_t rc = xTaskCreatePinnedToCore(
         &AP_UROS_Client::main_loop_trampoline,
@@ -674,10 +669,10 @@ bool AP_UROS_Client::start(void)
         &uros_task_handle, 0);
 
     if (rc != pdPASS) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread... FAIL");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread failed to start");
         return false;
     } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread... OK");
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread started");
         return true;
     }
   
@@ -696,6 +691,12 @@ bool AP_UROS_Client::start(void)
 void AP_UROS_Client::main_loop_trampoline(void *arg) {
     AP_UROS_Client* uros = (AP_UROS_Client*)arg;
     uros->main_loop();
+
+    // if main_loop returns something has gone wrong
+    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: main_thread failed");
+    while (true) {
+        hal.scheduler->delay(1000);
+    }
 }
 
 /*
@@ -704,10 +705,10 @@ void AP_UROS_Client::main_loop_trampoline(void *arg) {
 void AP_UROS_Client::main_loop(void)
 {
     if (!init() || !create()) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: creation failed");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: init or create failed");
         return;
     }
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: initialization passed");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init and create succeed");
 
     // one-time actions
 
@@ -735,9 +736,17 @@ void AP_UROS_Client::main_loop(void)
 
 bool AP_UROS_Client::init()
 {
-    //! @todo(srmainwaring) for esp32 we do not use custom transport
     // initialize transport
-    bool initTransportStatus = true;
+    bool initTransportStatus = false;
+
+#if defined(RMW_UXRCE_TRANSPORT_CUSTOM)
+    // serial init will fail if the SERIALn_PROTOCOL is not setup
+    if (!initTransportStatus) {
+        initTransportStatus = urosSerialInit();
+    }
+#else
+#error micro-ROS transports misconfigured
+#endif
 
 #if AP_UROS_UDP_ENABLED
     // fallback to UDP if available
@@ -763,9 +772,10 @@ bool AP_UROS_Client::init()
     rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
     RCSOFTCHECK(rcl_init_options_init(&init_options, allocator));
 
-    hal.console->printf("UROS: set rmw init options\n");
-    rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
-    RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
+    //! @todo add conditional check if using UDP
+    // hal.console->printf("UROS: set rmw init options\n");
+    // rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
+    // RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
 
     // create init_options
     hal.console->printf("UROS: initialise support\n");
@@ -912,6 +922,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -927,6 +938,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -942,6 +954,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -957,6 +970,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -972,6 +986,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -987,6 +1002,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1002,6 +1018,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1017,6 +1034,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1035,6 +1053,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1050,6 +1069,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 
@@ -1068,6 +1088,7 @@ bool AP_UROS_Client::create()
           hal.console->printf("OK\n");
       } else {
           hal.console->printf("FAIL: %d\n", rc);
+          return false;
       }
     }
 

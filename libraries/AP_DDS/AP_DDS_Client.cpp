@@ -1773,7 +1773,7 @@ void AP_DDS_Client::update()
     status_ok = uxr_run_session_time(&session, 1);
 }
 
-#if CONFIG_HAL_BOARD != HAL_BOARD_SITL
+#if CONFIG_HAL_BOARD != HAL_BOARD_SITL && CONFIG_HAL_BOARD != HAL_BOARD_ESP32
 extern "C" {
     int clock_gettime(clockid_t clockid, struct timespec *ts);
 }
