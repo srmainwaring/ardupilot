@@ -7,9 +7,12 @@
 #include <algorithm>
 #include <string.h>
 
+// micro-ROS
 #include <micro_ros_utilities/type_utilities.h>
-
 #include <rmw_microros/rmw_microros.h>
+
+// esp32
+#include <driver/uart.h>
 
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
@@ -737,7 +740,15 @@ bool AP_UROS_Client::init()
 {
     //! @todo(srmainwaring) for esp32 we do not use custom transport
     // initialize transport
-    bool initTransportStatus = true;
+    bool initTransportStatus = false;
+
+#if defined(RMW_UXRCE_TRANSPORT_CUSTOM)
+    if (!initTransportStatus) {
+        initTransportStatus = urosSerialInit();
+    }
+#else
+#error micro-ROS transports misconfigured
+#endif
 
 #if AP_UROS_UDP_ENABLED
     // fallback to UDP if available
@@ -763,9 +774,10 @@ bool AP_UROS_Client::init()
     rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
     RCSOFTCHECK(rcl_init_options_init(&init_options, allocator));
 
-    hal.console->printf("UROS: set rmw init options\n");
-    rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
-    RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
+    //! @todo add conditional check if using UDP
+    // hal.console->printf("UROS: set rmw init options\n");
+    // rmw_init_options_t* rmw_options = rcl_init_options_get_rmw_init_options(&init_options);
+    // RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
 
     // create init_options
     hal.console->printf("UROS: initialise support\n");
