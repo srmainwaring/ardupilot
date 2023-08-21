@@ -19,8 +19,7 @@ bool AP_UROS_Client::serial_transport_open(uxrCustomTransport *t)
         return false;
     }
 
-    //! @todo(srmainwaring) obtain baudrate from serial params
-    uint32_t baudrate = 115200;
+    uint32_t baudrate = serial_manager->find_baudrate(AP_SerialManager::SerialProtocol_DDS_XRCE, 0);
 
     // ensure we own the UART
     uros_port->begin(baudrate);
