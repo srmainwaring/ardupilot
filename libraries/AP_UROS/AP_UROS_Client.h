@@ -37,9 +37,9 @@
 #include <AP_Param/AP_Param.h>
 
 // esp32 - free-rtos
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/portmacro.h>
+// #include <freertos/FreeRTOS.h>
+// #include <freertos/task.h>
+// #include <freertos/portmacro.h>
 
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
@@ -63,7 +63,7 @@ private:
     rclc_support_t support;
     rcl_node_t node;
     rclc_executor_t executor;
-    rcl_timer_t timer;
+    rcl_timer_t timer_;
     const unsigned int timer_timeout_ms = 1;
 
     // publishers
@@ -141,11 +141,11 @@ private:
     bool arm_motors_srv_init = false;
 
     // parameter server
-    rclc_parameter_server_t param_server;
-    bool param_srv_init = false;
+    // rclc_parameter_server_t param_server;
+    // bool param_srv_init = false;
 
     // thread handle and singleton
-    TaskHandle_t uros_task_handle;
+    // TaskHandle_t uros_task_handle;
     static AP_UROS_Client *_singleton;
 
     // publishers
@@ -172,10 +172,10 @@ private:
         ardupilot_msgs__srv__ArmMotors_Response *res);
 
     // parameter server callback
-    static bool on_parameter_changed_trampoline(
-        const Parameter * old_param, const Parameter * new_param, void * context);
-    bool on_parameter_changed(
-        const Parameter * old_param, const Parameter * new_param);
+    // static bool on_parameter_changed_trampoline(
+    //     const Parameter * old_param, const Parameter * new_param, void * context);
+    // bool on_parameter_changed(
+    //     const Parameter * old_param, const Parameter * new_param);
 
     // timer callbacks
     static void timer_callback_trampoline(rcl_timer_t * timer, int64_t last_call_time);
