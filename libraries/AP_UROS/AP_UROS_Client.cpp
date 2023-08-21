@@ -12,7 +12,7 @@
 #include <rmw_microros/rmw_microros.h>
 
 // esp32
-#include <driver/uart.h>
+// #include <driver/uart.h>
 
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
@@ -56,14 +56,10 @@ constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
 constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
-// thread stack and priority
-constexpr uint32_t UROS_SS = 16384;
-constexpr int UROS_PRIO = 5;
-
 // constructor
 AP_UROS_Client::AP_UROS_Client() {
     if (_singleton) {
-        hal.console->printf("PANIC: Too many AP_UROS_Client instances\n");
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "PANIC: Too many AP_UROS_Client instances");
     }
     _singleton = this;
 }
@@ -564,6 +560,7 @@ void AP_UROS_Client::arm_motors_callback(
 }
 
 // parameter server callback
+#if 0
 bool AP_UROS_Client::on_parameter_changed_trampoline(
     const Parameter * old_param, const Parameter * new_param, void * context)
 {
@@ -619,6 +616,7 @@ bool AP_UROS_Client::on_parameter_changed(
 
     return true;
 }
+#endif
 
 // parameter group
 const AP_Param::GroupInfo AP_UROS_Client::var_info[] {
@@ -657,32 +655,35 @@ bool AP_UROS_Client::start(void)
         return true;
     }
 
-    hal.console->printf("UROS: creating uros_thread...\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: creating uros_thread...");
 
     // Pin to Core 1
-    BaseType_t rc = xTaskCreatePinnedToCore(
-        &AP_UROS_Client::main_loop_trampoline,
-        "APM_UROS",
-        UROS_SS,
-        this,
-        UROS_PRIO,
-        &uros_task_handle, 0);
+    // BaseType_t rc = xTaskCreatePinnedToCore(
+    //     &AP_UROS_Client::main_loop_trampoline,
+    //     "APM_UROS",
+    //     UROS_SS,
+    //     this,
+    //     UROS_PRIO,
+    //     &uros_task_handle, 0);
 
-    if (rc != pdPASS) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread failed to start");
-        return false;
-    } else {
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread started");
-        return true;
-    }
-  
-    // if (!hal.scheduler->thread_create(
-    //         FUNCTOR_BIND_MEMBER(&AP_UROS_Client::main_loop, void),
-    //         "UROS", 8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
-    //     GCS_SEND_TEXT(MAV_SEVERITY_ERROR,"UROS: thread create failed");
+    // if (rc != pdPASS) {
+    //     GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: uros_thread failed to start");
     //     return false;
+    // } else {
+    //     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: uros_thread started");
+    //     return true;
     // }
-    // return true;
+  
+    if (!hal.scheduler->thread_create(
+            FUNCTOR_BIND_MEMBER(&AP_UROS_Client::main_loop, void),
+            "UROS",
+            16384,
+            AP_HAL::Scheduler::PRIORITY_IO,
+            50)) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: thread create failed");
+        return false;
+    }
+    return true;
 }
 
 /*
@@ -704,6 +705,8 @@ void AP_UROS_Client::main_loop_trampoline(void *arg) {
  */
 void AP_UROS_Client::main_loop(void)
 {
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: started main loop");
+
     if (!init() || !create()) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: init or create failed");
         return;
@@ -715,7 +718,7 @@ void AP_UROS_Client::main_loop(void)
     // periodic actions
     rclc_executor_spin(&executor);
 
-    RCSOFTCHECK(rclc_parameter_server_fini(&param_server, &node));
+    // RCSOFTCHECK(rclc_parameter_server_fini(&param_server, &node));
 
     RCSOFTCHECK(rcl_service_fini(&arm_motors_service, &node));
 
@@ -736,17 +739,19 @@ void AP_UROS_Client::main_loop(void)
 
 bool AP_UROS_Client::init()
 {
+    WITH_SEMAPHORE(csem);
+
     // initialize transport
     bool initTransportStatus = false;
 
-#if defined(RMW_UXRCE_TRANSPORT_CUSTOM)
+// #if defined(RMW_UXRCE_TRANSPORT_CUSTOM)
     // serial init will fail if the SERIALn_PROTOCOL is not setup
     if (!initTransportStatus) {
         initTransportStatus = urosSerialInit();
     }
-#else
-#error micro-ROS transports misconfigured
-#endif
+// #else
+// #error micro-ROS transports misconfigured
+// #endif
 
 #if AP_UROS_UDP_ENABLED
     // fallback to UDP if available
@@ -768,9 +773,9 @@ bool AP_UROS_Client::init()
     allocator = rcl_get_default_allocator();
 
     // either: custom initialisation
-    hal.console->printf("UROS: create init options\n");
-    rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
-    RCSOFTCHECK(rcl_init_options_init(&init_options, allocator));
+    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create init options");
+    // rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+    // RCCHECK(rcl_init_options_init(&init_options, allocator));
 
     //! @todo add conditional check if using UDP
     // hal.console->printf("UROS: set rmw init options\n");
@@ -778,16 +783,17 @@ bool AP_UROS_Client::init()
     // RCSOFTCHECK(rmw_uros_options_set_udp_address("192.168.1.31", "2019", rmw_options));
 
     // create init_options
-    hal.console->printf("UROS: initialise support\n");
-    RCSOFTCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
+    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: initialise support");
+    // RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
 
     // or: default initialisation
     // create init_options
-    // hal.console->printf("UROS: initialise support\n");
-    // RCSOFTCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: initialise support");
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
     // create node
-    RCSOFTCHECK(rclc_node_init_default(
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: initialise node");
+    RCCHECK(rclc_node_init_default(
         &node, "ardupilot_uros", "", &support));
 
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: init complete");
@@ -797,13 +803,12 @@ bool AP_UROS_Client::init()
 
 bool AP_UROS_Client::create()
 {
-    hal.console->printf("UROS: create...\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create entities");
 
     WITH_SEMAPHORE(csem);
 
     // initialise strings and sequences
     {
-        hal.console->printf("UROS: configure battery state msg... ");
         battery_state_conf.max_string_capacity = 32;
         battery_state_conf.max_ros2_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
         battery_state_conf.max_basic_type_sequence_capacity = AP_BATT_MONITOR_CELLS_MAX;
@@ -813,10 +818,13 @@ bool AP_UROS_Client::create()
             &battery_state_msg,
             battery_state_conf
         );
-        hal.console->printf("%s\n", (battery_state_mem_init ? "OK" : "FAIL"));
+        if (!battery_state_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure battery state msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure battery state msg... OK");
     }
     {
-        hal.console->printf("UROS: configure geo pose msg... ");
         geo_pose_conf.max_string_capacity = 32;
         geo_pose_conf.max_ros2_type_sequence_capacity = 2;
         geo_pose_conf.max_basic_type_sequence_capacity = 2;
@@ -826,10 +834,13 @@ bool AP_UROS_Client::create()
             &geo_pose_msg,
             geo_pose_conf
         );
-        hal.console->printf("%s\n", (geo_pose_mem_init ? "OK" : "FAIL"));
+        if (!geo_pose_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure geo pose msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure geo pose msg... OK");
     }
     {
-        hal.console->printf("UROS: configure local pose msg... ");
         local_pose_conf.max_string_capacity = 32;
         local_pose_conf.max_ros2_type_sequence_capacity = 2;
         local_pose_conf.max_basic_type_sequence_capacity = 2;
@@ -839,10 +850,13 @@ bool AP_UROS_Client::create()
             &local_pose_msg,
             local_pose_conf
         );
-        hal.console->printf("%s\n", (local_pose_mem_init ? "OK" : "FAIL"));
+        if (!local_pose_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure local pose msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure local pose msg... OK");
     }
     {
-        hal.console->printf("UROS: configure local twist msg... ");
         local_twist_conf.max_string_capacity = 32;
         local_twist_conf.max_ros2_type_sequence_capacity = 2;
         local_twist_conf.max_basic_type_sequence_capacity = 2;
@@ -852,10 +866,13 @@ bool AP_UROS_Client::create()
             &local_twist_msg,
             local_twist_conf
         );
-        hal.console->printf("%s\n", (local_twist_mem_init ? "OK" : "FAIL"));
+        if (!local_twist_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure local twist msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure local twist msg... OK");
     }
     {
-        hal.console->printf("UROS: configure nav sat fix msg... ");
         nav_sat_fix_conf.max_string_capacity = 32;
         nav_sat_fix_conf.max_ros2_type_sequence_capacity = 2;
         nav_sat_fix_conf.max_basic_type_sequence_capacity = 2;
@@ -865,10 +882,13 @@ bool AP_UROS_Client::create()
             &nav_sat_fix_msg,
             nav_sat_fix_conf
         );
-        hal.console->printf("%s\n", (nav_sat_fix_mem_init ? "OK" : "FAIL"));
+        if (!nav_sat_fix_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure nav sat fix msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure nav sat fix msg... OK");
     }
     {
-        hal.console->printf("UROS: configure static transform msg... ");
         tx_static_transforms_conf.max_string_capacity = 32;
         tx_static_transforms_conf.max_ros2_type_sequence_capacity = GPS_MAX_RECEIVERS;
         tx_static_transforms_conf.max_basic_type_sequence_capacity = GPS_MAX_RECEIVERS;
@@ -878,10 +898,13 @@ bool AP_UROS_Client::create()
             &tx_static_transforms_msg,
             tx_static_transforms_conf
         );
-        hal.console->printf("%s\n", (tx_static_transforms_mem_init ? "OK" : "FAIL"));
+        if (!nav_sat_fix_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure static transform msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure static transform msg... OK");
     }
     {
-        hal.console->printf("UROS: configure joy msg... ");
         rx_joy_conf.max_string_capacity = 32;
         rx_joy_conf.max_ros2_type_sequence_capacity = 32;
         rx_joy_conf.max_basic_type_sequence_capacity = 32;
@@ -891,10 +914,13 @@ bool AP_UROS_Client::create()
             &rx_joy_msg,
             rx_joy_conf
         );
-        hal.console->printf("%s\n", (rx_joy_mem_init ? "OK" : "FAIL"));
+        if (!rx_joy_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure joy msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure joy msg... OK");
     }
     {
-        hal.console->printf("UROS: configure tf msg... ");
         rx_dynamic_transforms_conf.max_string_capacity = 32;
         rx_dynamic_transforms_conf.max_ros2_type_sequence_capacity = 16;
         rx_dynamic_transforms_conf.max_basic_type_sequence_capacity = 16;
@@ -904,249 +930,220 @@ bool AP_UROS_Client::create()
             &rx_dynamic_transforms_msg,
             rx_dynamic_transforms_conf
         );
-        hal.console->printf("%s\n", (rx_dynamic_transforms_mem_init ? "OK" : "FAIL"));
+        if (!rx_dynamic_transforms_mem_init) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: configure tf msg... FAILED");
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: configure tf msg... OK");
     }
 
     // create publishers
     uint8_t number_of_publishers = 0;
 
     if (battery_state_mem_init) {
-      hal.console->printf("UROS: create battery state publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &battery_state_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
-          "ap/battery/battery0");
-      if ((battery_state_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &battery_state_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, BatteryState),
+            "ap/battery/battery0");
+        if (!(battery_state_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create battery state publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create battery state publisher... OK");
     }
 
     {
-      hal.console->printf("UROS: create clock publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &clock_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(rosgraph_msgs, msg, Clock),
-          "ap/clock");
-      if ((clock_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &clock_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(rosgraph_msgs, msg, Clock),
+            "ap/clock");
+        if (!(clock_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create clock publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create clock publisher... OK");
     }
 
     if (geo_pose_mem_init) {
-      hal.console->printf("UROS: create geo pose publisher... ");
       rcl_ret_t rc = rclc_publisher_init_default(
           &geo_pose_publisher,
           &node,
           ROSIDL_GET_MSG_TYPE_SUPPORT(geographic_msgs, msg, GeoPoseStamped),
           "ap/geopose/filtered");
-      if ((geo_pose_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        if (!(geo_pose_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create geo pose publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create geo pose publisher... OK");
     }
 
     if (local_pose_mem_init) {
-      hal.console->printf("UROS: create local pose publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &local_pose_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
-          "ap/pose/filtered");
-      if ((local_pose_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &local_pose_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, PoseStamped),
+            "ap/pose/filtered");
+        if (!(local_pose_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create local pose publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create local pose publisher... OK");
     }
 
     if (local_twist_mem_init) {
-      hal.console->printf("UROS: create local twist publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &local_twist_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
-          "ap/twist/filtered");
-      if ((local_twist_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &local_twist_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+            "ap/twist/filtered");
+        if (!(local_twist_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create local twist publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create local twist publisher... OK");
     }
 
     if (nav_sat_fix_mem_init) {
-      hal.console->printf("UROS: create nav sat fix publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &nav_sat_fix_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
-          "ap/navsat/navsat0");
-      if ((nav_sat_fix_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &nav_sat_fix_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, NavSatFix),
+            "ap/navsat/navsat0");
+        if (!(nav_sat_fix_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create nav sat fix publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create nav sat fix publisher... OK");
     }
 
     if (tx_static_transforms_mem_init) {
-      hal.console->printf("UROS: create static transform publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &tx_static_transforms_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
-          "ap/tf_static");
-      if ((tx_static_transforms_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &tx_static_transforms_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
+            "ap/tf_static");
+        if (!(tx_static_transforms_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create static transform publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create static transform publisher... OK");
     }
 
     {
-      hal.console->printf("UROS: create time publisher... ");
-      rcl_ret_t rc = rclc_publisher_init_default(
-          &time_publisher,
-          &node,
-          ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
-          "ap/time");
-      if ((time_pub_init = (rc == RCL_RET_OK))) {
-          number_of_publishers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        rcl_ret_t rc = rclc_publisher_init_default(
+            &time_publisher,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(builtin_interfaces, msg, Time),
+            "ap/time");
+        if (!(time_pub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create time publisher... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create time publisher... OK");
     }
 
     // create subscribers
     uint8_t number_of_subscribers = 0;
 
     if (rx_joy_mem_init) {
-        hal.console->printf("UROS: create joy subscriber... ");
         rcl_ret_t rc = rclc_subscription_init_default(
             &rx_joy_subscriber,
             &node,
             ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Joy),
             "ap/joy");
-      if ((rx_joy_sub_init = (rc == RCL_RET_OK))) {
-          number_of_subscribers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        if (!(rx_joy_sub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create joy subscriber... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create joy subscriber... OK");
     }
 
     if (rx_dynamic_transforms_mem_init) {
-        hal.console->printf("UROS: create tf subscriber... ");
         rcl_ret_t rc = rclc_subscription_init_default(
             &rx_dynamic_transforms_subscriber,
             &node,
             ROSIDL_GET_MSG_TYPE_SUPPORT(tf2_msgs, msg, TFMessage),
             "ap/tf");
-      if ((rx_dynamic_transforms_sub_init = (rc == RCL_RET_OK))) {
-          number_of_subscribers++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        if (!(rx_dynamic_transforms_sub_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create tf subscriber... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create tf subscriber... OK");
     }
 
     // create services
     uint8_t number_of_services = 0;
 
     {
-        hal.console->printf("UROS: create arm_motors service... ");
         rcl_ret_t rc = rclc_service_init_default(
             &arm_motors_service,
             &node,
             ROSIDL_GET_SRV_TYPE_SUPPORT(ardupilot_msgs, srv, ArmMotors),
             "/ap/arm_motors");
-      if ((arm_motors_srv_init = (rc == RCL_RET_OK))) {
-          number_of_services++;
-          hal.console->printf("OK\n");
-      } else {
-          hal.console->printf("FAIL: %d\n", rc);
-          return false;
-      }
+        if (!(arm_motors_srv_init = (rc == RCL_RET_OK))) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: create arm_motors service... FAILED (%lu)", rc);
+            return false;
+        }
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create arm_motors service... OK");
     }
 
     // create parameter server
-    {
-        hal.console->printf("UROS: create parameter server... ");
+    // {
+    //     hal.console->printf("UROS: create parameter server... ");
 
-        // create parameter options
-        // defaults:
-        //    notify_changed_over_dds:      true
-        //    max_params:                   4
-        //    allow_undeclared_parameters:  false
-        //    low_mem_mode:                 false
-        const rclc_parameter_options_t options = {
-            .notify_changed_over_dds = true,
-            .max_params = 4,
-            .allow_undeclared_parameters = true,
-            .low_mem_mode = true
-        };
+    //     // create parameter options
+    //     // defaults:
+    //     //    notify_changed_over_dds:      true
+    //     //    max_params:                   4
+    //     //    allow_undeclared_parameters:  false
+    //     //    low_mem_mode:                 false
+    //     const rclc_parameter_options_t options = {
+    //         .notify_changed_over_dds = true,
+    //         .max_params = 4,
+    //         .allow_undeclared_parameters = true,
+    //         .low_mem_mode = true
+    //     };
 
-        rcl_ret_t rc = rclc_parameter_server_init_with_option(
-            &param_server, &node, &options);
-        if ((param_srv_init = (rc == RCL_RET_OK))) {
-            //! @note the parameter server requires 5 services + 1 publisher
-            //  https://micro.ros.org/docs/tutorials/programming_rcl_rclc/parameters/ 
-            number_of_publishers++;
-            number_of_services += RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES;
-            hal.console->printf("OK\n");
-        } else {
-            hal.console->printf("FAIL: %d\n", rc);
-        }
-    }
+    //     rcl_ret_t rc = rclc_parameter_server_init_with_option(
+    //         &param_server, &node, &options);
+    //     if ((param_srv_init = (rc == RCL_RET_OK))) {
+    //         //! @note the parameter server requires 5 services + 1 publisher
+    //         //  https://micro.ros.org/docs/tutorials/programming_rcl_rclc/parameters/ 
+    //         number_of_publishers++;
+    //         number_of_services += RCLC_EXECUTOR_PARAMETER_SERVER_HANDLES;
+    //         hal.console->printf("OK\n");
+    //     } else {
+    //         hal.console->printf("FAIL: %ld\n", rc);
+    //     }
+    // }
 
     // create timer
-    hal.console->printf("UROS: create timer\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create timer");
     RCSOFTCHECK(rclc_timer_init_default(
-        &timer,
+        &timer_,
         &support,
         RCL_MS_TO_NS(timer_timeout_ms),
         timer_callback_trampoline));
 
     // number of entities
-    hal.console->printf("UROS: number of publishers:  %d\n", number_of_publishers);
-    hal.console->printf("UROS: number of subscribers: %d\n", number_of_subscribers);
-    hal.console->printf("UROS: number of services:    %d\n", number_of_services);
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: number of publishers:  %d", number_of_publishers);
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: number of subscribers: %d", number_of_subscribers);
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: number of services:    %d", number_of_services);
     uint8_t number_of_handles =
         number_of_publishers + number_of_subscribers + number_of_services;
 
     // create executor
-    hal.console->printf("UROS: initialise executor\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: initialise executor");
     executor = rclc_executor_get_zero_initialized_executor();
     RCSOFTCHECK(rclc_executor_init(&executor, &support.context,
         number_of_handles, &allocator));
 
-    hal.console->printf("UROS: add timer to executor\n");
-  	RCSOFTCHECK(rclc_executor_add_timer(&executor, &timer));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: add timer to executor");
+  	RCSOFTCHECK(rclc_executor_add_timer(&executor, &timer_));
 
-    hal.console->printf("UROS: add subscriptions to executor\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: add subscriptions to executor");
     if (rx_joy_sub_init) {
         RCCHECK(rclc_executor_add_subscription_with_context(&executor, &rx_joy_subscriber,
             &rx_joy_msg, &AP_UROS_Client::on_joy_msg_trampoline, this, ON_NEW_DATA));
@@ -1156,42 +1153,64 @@ bool AP_UROS_Client::create()
             &rx_dynamic_transforms_msg, &AP_UROS_Client::on_tf_msg_trampoline, this, ON_NEW_DATA));
     }
 
-    hal.console->printf("UROS: add services to executor\n");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: add services to executor");
     if (arm_motors_srv_init) {
         RCCHECK(rclc_executor_add_service_with_context(&executor, &arm_motors_service,
             &arm_motors_req, &arm_motors_res,
             &AP_UROS_Client::arm_motors_callback_trampoline, this));
     }
 
-    hal.console->printf("UROS: add parameter server to executor\n");
-    if (param_srv_init) {
-        RCCHECK(rclc_executor_add_parameter_server_with_context(&executor, &param_server,
-            &AP_UROS_Client::on_parameter_changed_trampoline, this));
-    }
+    // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: add parameter server to executor");
+    // if (param_srv_init) {
+    //     RCCHECK(rclc_executor_add_parameter_server_with_context(&executor, &param_server,
+    //         &AP_UROS_Client::on_parameter_changed_trampoline, this));
+    // }
 
-    hal.console->printf("UROS: create complete\n");
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "UROS: create complete");
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create complete");
 
     return true;
 }
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_SITL
-// extern "C" {
-//     int clock_gettime(clockid_t clockid, struct timespec *ts);
-// }
+extern "C" {
+    int clock_gettime(clockid_t clockid, struct timespec *ts);
+}
 
-// int clock_gettime(clockid_t clockid, struct timespec *ts)
-// {
-//     //! @todo the value of clockid is ignored here.
-//     //! A fallback mechanism is employed against the caller's choice of clock.
-//     uint64_t utc_usec;
-//     if (!AP::rtc().get_utc_usec(utc_usec)) {
-//         utc_usec = AP_HAL::micros64();
-//     }
-//     ts->tv_sec = utc_usec / 1000000ULL;
-//     ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
-//     return 0;
-// }
+int clock_gettime(clockid_t clockid, struct timespec *ts)
+{
+    //! @todo the value of clockid is ignored here.
+    //! A fallback mechanism is employed against the caller's choice of clock.
+    uint64_t utc_usec;
+    if (!AP::rtc().get_utc_usec(utc_usec)) {
+        utc_usec = AP_HAL::micros64();
+    }
+    ts->tv_sec = utc_usec / 1000000ULL;
+    ts->tv_nsec = (utc_usec % 1000000ULL) * 1000UL;
+    return 0;
+}
+
+
+// Placeholder for fprintf() usage in:
+//
+// rosidl_runtime_c/src/string_functions.c 
+// rosidl_runtime_c__String__fini(rosidl_runtime_c__String * str)
+//
+// rosidl_runtime_c/src/u16string_functions.c 
+// rosidl_runtime_c__U16String__fini(rosidl_runtime_c__U16String * str)
+//
+#include <AP_Filesystem/posix_compat.h>
+
+extern "C" {
+    size_t __wrap_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+}
+
+size_t __wrap_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+  // return dll_fwrite(ptr, size, nmemb, stream);
+  return 0;
+}
+
+
 #endif // CONFIG_HAL_BOARD
 
 #endif // AP_UROS_ENABLED
