@@ -439,6 +439,9 @@ void AP_SerialManager::init()
     for (uint8_t i=1; i<SERIALMANAGER_NUM_PORTS; i++) {
         auto *uart = hal.serial(i);
 
+        hal.console->printf("serial manager: init serial: %d, protocol: %d\n",
+            i, state[i].protocol.get());
+
         if (uart != nullptr) {
             set_options(i);
             switch (state[i].protocol) {
@@ -554,10 +557,12 @@ void AP_SerialManager::init()
 
                 case SerialProtocol_Generator:
                     break;
-#if HAL_MSP_ENABLED                    
+#if HAL_MSP_ENABLED
                 case SerialProtocol_MSP:
                 case SerialProtocol_DJI_FPV:
                 case SerialProtocol_MSP_DisplayPort:
+                    hal.console->printf("serial manager: msp baudrate : %d\n",
+                        state[i].baudrate());
                     // baudrate defaults to 115200
                     state[i].baud.set_default(AP_SERIALMANAGER_MSP_BAUD/1000);
                     uart->begin(state[i].baudrate(),
