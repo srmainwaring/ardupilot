@@ -519,6 +519,8 @@ bool AP_Baro::_have_i2c_driver(uint8_t bus, uint8_t address) const
  */
 void AP_Baro::init(void)
 {
+    hal.console->printf("baro: init\n");
+
     init_done = true;
 
     // always set field elevation to zero on reboot in the case user
@@ -705,13 +707,18 @@ void AP_Baro::init(void)
 #endif
 
 #if AP_BARO_MSP_ENABLED
+    hal.console->printf("baro: msp enabled, baro_probe: %d, instance_mask: %d\n",
+        _baro_probe_ext.get(), msp_instance_mask);
     if ((_baro_probe_ext.get() & PROBE_MSP) && msp_instance_mask == 0) {
         // allow for late addition of MSP sensor
         msp_instance_mask |= 1;
+        hal.console->printf("baro: msp instance mask: %d\n", msp_instance_mask);
     }
     for (uint8_t i=0; i<8; i++) {
         if (msp_instance_mask & (1U<<i)) {
-            ADD_BACKEND(NEW_NOTHROW AP_Baro_MSP(*this, i));
+            hal.console->printf("baro: add msp baro, instance_mask: %d, instance: %d\n",
+                msp_instance_mask, i);
+            ADD_BACKEND(new AP_Baro_MSP(*this, i));
         }
     }
 #endif
@@ -1027,6 +1034,7 @@ void AP_Baro::set_pressure_correction(uint8_t instance, float p_correction)
  */
 void AP_Baro::handle_msp(const MSP::msp_baro_data_message_t &pkt)
 {
+    // hal.console->printf("baro: handle msp, instance: %d\n", pkt.instance);
     if (pkt.instance > 7) {
         return;
     }
