@@ -21,6 +21,10 @@
 
 #if HAL_MSP_GPS_ENABLED
 
+#include <AP_HAL/AP_HAL.h>
+
+extern const AP_HAL::HAL &hal;
+
 // Reading does nothing in this class; we simply return whether or not
 // the latest reading has been consumed.  By calling this function we assume
 // the caller is consuming the new data;
@@ -80,6 +84,21 @@ void AP_GPS_MSP::handle_msp(const MSP::msp_gps_data_message_t &pkt)
     }
 
     new_data = pkt.fix_type>0;
+
+    // debug
+    // hal.console->printf("gps msp: instance:       %u\n", pkt.instance);
+    // hal.console->printf("gps msp: gps_week:       %u\n", pkt.gps_week);
+    // hal.console->printf("gps msp: ms_tow:         %u\n", pkt.ms_tow);
+    // hal.console->printf("gps msp: fix_type:       %u\n", pkt.fix_type);
+    // hal.console->printf("gps msp: sat_in_view:    %u\n", pkt.satellites_in_view);
+    // hal.console->printf("gps msp: hdop:           %u\n", pkt.hdop);
+    // hal.console->printf("gps msp: latitude:       %u\n", pkt.latitude);
+    // hal.console->printf("gps msp: longitude:      %u\n", pkt.longitude);
+    // hal.console->printf("gps msp: msl_altitude:   %u\n", pkt.msl_altitude);
+    // hal.console->printf("gps msp: ned_vel_north:  %u\n", pkt.ned_vel_north);
+    // hal.console->printf("gps msp: ned_vel_east:   %u\n", pkt.ned_vel_east);
+    // hal.console->printf("gps msp: ned_vel_down:   %u\n", pkt.ned_vel_down);
+    // hal.console->printf("gps msp: true_yaw:       %u\n", pkt.true_yaw);
 }
 
 /*

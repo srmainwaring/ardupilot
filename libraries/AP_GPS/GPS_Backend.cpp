@@ -41,6 +41,7 @@ AP_GPS_Backend::AP_GPS_Backend(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::
     gps(_gps),
     state(_state)
 {
+    hal.console->printf("gps: construct backend\n");
     state.have_speed_accuracy = false;
     state.have_horizontal_accuracy = false;
     state.have_vertical_accuracy = false;
