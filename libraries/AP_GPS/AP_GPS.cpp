@@ -624,6 +624,9 @@ void AP_GPS::detect_instance(uint8_t instance)
     timing[instance].last_message_time_ms = now;
     timing[instance].delta_time_ms = GPS_TIMEOUT_MS;
 
+    hal.console->printf("gps: %d detected: last_message_time: %d, delta_time_ms: %d\n",
+        instance, now, GPS_TIMEOUT_MS);
+
     new_gps->broadcast_gps_type();
 }
 
@@ -633,6 +636,13 @@ void AP_GPS::detect_instance(uint8_t instance)
  */
 AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
 {
+    hal.console->printf("gps: detect instance: %u, type: %u\n",
+        instance, _type[instance].get());
+
+#if !HAL_MSP_GPS_ENABLED
+    hal.console->printf("gps: HAL_MSP_GPS_ENABLED not defined?!\n"),
+#endif
+
     struct detect_state *dstate = &detect_state[instance];
 
     const auto type = params[instance].type;
@@ -657,6 +667,7 @@ AP_GPS_Backend *AP_GPS::_detect_instance(uint8_t instance)
         return nullptr; // We don't do anything here if UAVCAN is not supported
 #if HAL_MSP_GPS_ENABLED
     case GPS_TYPE_MSP:
+        hal.console->printf("gps: create gps msp\n");
         dstate->auto_detected_baud = false; // specified, not detected
         return NEW_NOTHROW AP_GPS_MSP(*this, params[instance], state[instance], nullptr);
 #endif
@@ -862,6 +873,7 @@ void AP_GPS::update_instance(uint8_t instance)
     }
     if (locked_ports & (1U<<instance)) {
         // the port is locked by another driver
+        hal.console->printf("gps: %d port locked\n", instance);
         return;
     }
 
@@ -877,6 +889,7 @@ void AP_GPS::update_instance(uint8_t instance)
     }
 
     // we have an active driver for this instance
+    // hal.console->printf("gps: %d read\n", instance);
     bool result = drivers[instance]->read();
     uint32_t tnow = AP_HAL::millis();
 
@@ -885,6 +898,7 @@ void AP_GPS::update_instance(uint8_t instance)
     // detection to run again
     bool data_should_be_logged = false;
     if (!result) {
+        // hal.console->printf("gps: %d has no data\n", instance);
         if (tnow - timing[instance].last_message_time_ms > GPS_TIMEOUT_MS) {
             memset((void *)&state[instance], 0, sizeof(state[instance]));
             state[instance].instance = instance;
@@ -1273,6 +1287,7 @@ void AP_GPS::handle_msg(mavlink_channel_t chan, const mavlink_message_t &msg)
 #if HAL_MSP_GPS_ENABLED
 void AP_GPS::handle_msp(const MSP::msp_gps_data_message_t &pkt)
 {
+    // hal.console->printf("gps: handle msp\n");
     for (uint8_t i=0; i<num_instances; i++) {
         if (drivers[i] != nullptr && params[i].type == GPS_TYPE_MSP) {
             drivers[i]->handle_msp(pkt);
