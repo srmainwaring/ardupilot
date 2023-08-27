@@ -2,6 +2,10 @@
 
 #if AP_BARO_MSP_ENABLED
 
+#include <AP_HAL/AP_HAL.h>
+
+extern const AP_HAL::HAL &hal;
+
 AP_Baro_MSP::AP_Baro_MSP(AP_Baro &baro, uint8_t _msp_instance) :
     AP_Baro_Backend(baro)
 {
@@ -31,6 +35,10 @@ void AP_Baro_MSP::handle_msp(const MSP::msp_baro_data_message_t &pkt)
     sum_pressure += pkt.pressure_pa;
     sum_temp += pkt.temp*0.01;
     count++;
+
+    // debug
+    hal.console->printf("baro msp: instance:      %u\n", pkt.instance);
+    hal.console->printf("baro msp: temp:          %u\n", pkt.temp);
 }
 
 #endif // AP_BARO_MSP_ENABLED
