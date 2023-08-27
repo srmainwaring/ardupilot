@@ -1351,6 +1351,8 @@ void Compass::_probe_external_i2c_compasses(void)
  */
 void Compass::_detect_backends(void)
 {
+    hal.console->printf("compass: detect backends\n");
+
 #if AP_COMPASS_EXTERNALAHRS_ENABLED
     const int8_t serial_port = AP::externalAHRS().get_port(AP_ExternalAHRS::AvailableSensor::COMPASS);
     if (serial_port >= 0) {
@@ -1385,13 +1387,19 @@ void Compass::_detect_backends(void)
 #endif
 
 #if AP_COMPASS_MSP_ENABLED
+    hal.console->printf("compass: msp enabled, instance_mask: %d\n",
+        msp_instance_mask);
+
     //! @note see AP_Baro #if AP_BARO_MSP_ENABLED
     if (msp_instance_mask == 0) {
         // allow for late addition of MSP sensor
         msp_instance_mask |= 1;
+        hal.console->printf("compass: msp instance mask: %d\n", msp_instance_mask);
     }
     for (uint8_t i=0; i<8; i++) {
         if (msp_instance_mask & (1U<<i)) {
+            hal.console->printf("compass: add msp compass, instance_mask: %d, instance: %d\n",
+                msp_instance_mask, i);
             ADD_BACKEND(DRIVER_MSP, NEW_NOTHROW AP_Compass_MSP(i));
         }
     }
