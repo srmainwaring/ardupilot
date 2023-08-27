@@ -19,6 +19,8 @@
 
 #include <AP_HAL/AP_HAL.h>
 
+extern const AP_HAL::HAL &hal;
+
 AP_Compass_MSP::AP_Compass_MSP(uint8_t _msp_instance)
 {
     msp_instance = _msp_instance;
@@ -37,6 +39,12 @@ void AP_Compass_MSP::handle_msp(const MSP::msp_compass_data_message_t &pkt)
     }
     Vector3f field(pkt.magX, pkt.magY, pkt.magZ);
     accumulate_sample(field, instance);
+
+    // debug
+    // hal.console->printf("compass msp: instance:   %u\n", pkt.instance);
+    // hal.console->printf("compass msp: magX:       %u\n", pkt.magX);
+    // hal.console->printf("compass msp: magY:       %u\n", pkt.magY);
+    // hal.console->printf("compass msp: magZ:       %u\n", pkt.magZ);
 }
 
 void AP_Compass_MSP::read(void)
