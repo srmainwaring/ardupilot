@@ -115,7 +115,7 @@ void AP_MSP::init()
         // we've found at least 1 msp backend, start protocol handler
         if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_MSP::loop, void),
                                           "MSP",
-                                          1024, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
+                                          2048, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
             return;
         }
     }
