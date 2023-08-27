@@ -87,7 +87,8 @@ bool AP_MSP_Telem_Backend::init_uart()
 {
     if (_msp_port.uart != nullptr)  {
         // re-init port here for use in this thread
-        _msp_port.uart->begin(0);
+        //! @todo(srmainwaring) begin(0) fails for AP_HAL_ESP32
+        _msp_port.uart->begin(115200);
         return true;
     }
     return false;
