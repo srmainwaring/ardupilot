@@ -391,6 +391,7 @@ void AP_Vehicle::setup()
 
 #if HAL_MSP_ENABLED
     // call MSP init before init_ardupilot to allow for MSP sensors
+    hal.console->printf("initialise msp sensors\n");
     msp.init();
 #endif
 
