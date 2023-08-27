@@ -1385,6 +1385,11 @@ void Compass::_detect_backends(void)
 #endif
 
 #if AP_COMPASS_MSP_ENABLED
+    //! @note see AP_Baro #if AP_BARO_MSP_ENABLED
+    if (msp_instance_mask == 0) {
+        // allow for late addition of MSP sensor
+        msp_instance_mask |= 1;
+    }
     for (uint8_t i=0; i<8; i++) {
         if (msp_instance_mask & (1U<<i)) {
             ADD_BACKEND(DRIVER_MSP, NEW_NOTHROW AP_Compass_MSP(i));
