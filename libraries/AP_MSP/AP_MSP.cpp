@@ -56,13 +56,18 @@ AP_MSP *AP_MSP::_singleton;
 
 AP_MSP::AP_MSP()
 {
+    hal.console->printf("msp: constuctor\n");
+
     _singleton = this;
     AP_Param::setup_object_defaults(this, var_info);
 }
 
 bool AP_MSP::init_backend(uint8_t backend_idx, AP_HAL::UARTDriver *uart, AP_SerialManager::SerialProtocol protocol)
 {
+    hal.console->printf("msp: init backend\n");
+
     if (protocol == AP_SerialManager::SerialProtocol_MSP) {
+        hal.console->printf("msp: create telem generic backend[%d]\n", backend_idx);
         _backends[backend_idx] = NEW_NOTHROW AP_MSP_Telem_Generic(uart);
     } else if (protocol == AP_SerialManager::SerialProtocol_DJI_FPV) {
         _backends[backend_idx] = NEW_NOTHROW AP_MSP_Telem_DJI(uart);
@@ -85,6 +90,8 @@ bool AP_MSP::init_backend(uint8_t backend_idx, AP_HAL::UARTDriver *uart, AP_Seri
  */
 void AP_MSP::init()
 {
+    hal.console->printf("msp: init\n");
+
     const AP_SerialManager &serial_manager = AP::serialmanager();
     AP_HAL::UARTDriver *uart = nullptr;
     uint8_t backends_using_msp_thread = 0;
@@ -100,6 +107,8 @@ void AP_MSP::init()
         for (uint8_t protocol_instance=0; protocol_instance<MSP_MAX_INSTANCES-_msp_status.backend_count; protocol_instance++) {
             uart = serial_manager.find_serial(msp_protocol, protocol_instance);
             if (uart != nullptr) {
+                hal.console->printf("msp: found uart for protocol: %d, instance: %d\n",
+                    msp_protocol, protocol_instance);
                 if (!init_backend(_msp_status.backend_count, uart, msp_protocol)) {
                     break;
                 }
@@ -107,6 +116,9 @@ void AP_MSP::init()
                     backends_using_msp_thread++;
                 }
                 _msp_status.backend_count++;
+            } else {
+                hal.console->printf("msp: no uart for protocol: %d, instance: %d\n",
+                    msp_protocol, protocol_instance);
             }
         }
     }
@@ -206,6 +218,8 @@ void AP_MSP::loop(void)
 #endif  // OSD_ENABLED
 
         for (uint8_t i=0; i< _msp_status.backend_count; i++) {
+            // hal.console->printf("msp: process backend[%d], is_null: %d\n",
+            //     i, _backends[i] == nullptr);
             // note: we do not access a uart for a backend handled by another thread
             if (_backends[i] != nullptr && _backends[i]->use_msp_thread()) {
                 // dynamically hide/unhide

@@ -44,6 +44,7 @@ using namespace MSP;
 
 AP_MSP_Telem_Backend::AP_MSP_Telem_Backend(AP_HAL::UARTDriver *uart) : AP_RCTelemetry(MSP_TIME_SLOT_MAX)
 {
+    hal.console->printf("msp telem backend: construct\n");
     _msp_port.uart = uart;
 }
 
@@ -79,12 +80,14 @@ void AP_MSP_Telem_Backend::setup_wfq_scheduler(void)
  */
 bool AP_MSP_Telem_Backend::init()
 {
+    hal.console->printf("msp telem backend: init\n");
     enable_warnings();
     return AP_RCTelemetry::init();
 }
 
 bool AP_MSP_Telem_Backend::init_uart()
 {
+    hal.console->printf("msp telem backend: init_uart\n");
     if (_msp_port.uart != nullptr)  {
         // re-init port here for use in this thread
         //! @todo(srmainwaring) begin(0) fails for AP_HAL_ESP32
@@ -351,6 +354,8 @@ void AP_MSP_Telem_Backend::enable_warnings()
 
 void AP_MSP_Telem_Backend::process_incoming_data()
 {
+    // hal.console->printf("msp telem backend: process incoming data\n");
+
     if (_msp_port.uart == nullptr) {
         return;
     }
@@ -358,8 +363,10 @@ void AP_MSP_Telem_Backend::process_incoming_data()
     uint32_t numc = MIN(_msp_port.uart->available(), 1024U);
 
     if (numc > 0) {
+        // hal.console->printf("msp telem backend: process %d bytes of incoming data\n", numc);
         // Process incoming bytes
         while (numc-- > 0) {
+            // hal.console->printf("msp telem backend: %d bytes available\n", numc);
             const uint8_t c = _msp_port.uart->read();
             msp_parse_received_data(&_msp_port, c);
 
@@ -394,6 +401,8 @@ void AP_MSP_Telem_Backend::msp_send_packet(uint16_t cmd, MSP::msp_version_e msp_
  */
 void AP_MSP_Telem_Backend::msp_process_received_command()
 {
+    // hal.console->printf("msp telem backend: process received command\n");
+    
     uint8_t out_buf[MSP_PORT_OUTBUF_SIZE];
 
     msp_packet_t reply = {
@@ -426,6 +435,8 @@ void AP_MSP_Telem_Backend::msp_process_received_command()
  */
 MSPCommandResult AP_MSP_Telem_Backend::msp_process_command(msp_packet_t *cmd, msp_packet_t *reply)
 {
+    // hal.console->printf("msp telem backend: process command\n");
+
     MSPCommandResult ret = MSP_RESULT_ACK;
     sbuf_t *dst = &reply->buf;
     sbuf_t *src = &cmd->buf;
@@ -500,6 +511,8 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_out_command(uint16_t cmd_msp,
 
 MSPCommandResult AP_MSP_Telem_Backend::msp_process_sensor_command(uint16_t cmd_msp, sbuf_t *src)
 {
+    // hal.console->printf("msp telem backend: process sensor command %d\n", cmd_msp);
+
     MSP_UNUSED(src);
 
     switch (cmd_msp) {
@@ -519,6 +532,7 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_sensor_command(uint16_t cmd_m
 #endif
 #if HAL_MSP_GPS_ENABLED
     case MSP2_SENSOR_GPS: {
+        // hal.console->printf("msp telem backend: process gps sensor command %d\n", cmd_msp);
         const MSP::msp_gps_data_message_t *pkt = (const MSP::msp_gps_data_message_t *)src->ptr;
         msp_handle_gps(*pkt);
     }
@@ -526,6 +540,7 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_sensor_command(uint16_t cmd_m
 #endif
 #if AP_COMPASS_MSP_ENABLED
     case MSP2_SENSOR_COMPASS: {
+        // hal.console->printf("msp telem backend: process compass sensor command %d\n", cmd_msp);
         const MSP::msp_compass_data_message_t *pkt = (const MSP::msp_compass_data_message_t *)src->ptr;
         msp_handle_compass(*pkt);
     }
@@ -533,6 +548,7 @@ MSPCommandResult AP_MSP_Telem_Backend::msp_process_sensor_command(uint16_t cmd_m
 #endif
 #if AP_BARO_MSP_ENABLED
     case MSP2_SENSOR_BAROMETER: {
+        // hal.console->printf("msp telem backend: process baro sensor command %d\n", cmd_msp);
         const MSP::msp_baro_data_message_t *pkt = (const MSP::msp_baro_data_message_t *)src->ptr;
         msp_handle_baro(*pkt);
     }

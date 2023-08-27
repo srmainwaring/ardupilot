@@ -7,6 +7,10 @@
 
 #if HAL_MSP_ENABLED
 
+#include <AP_HAL/AP_HAL.h>
+
+extern const AP_HAL::HAL& hal;
+
 /*
  ported from betaflight/src/main/msp/msp_serial.c
  */
@@ -151,6 +155,7 @@ uint32_t MSP::msp_serial_encode(msp_port_t *msp, msp_packet_t *packet, msp_versi
  */
 bool MSP::msp_parse_received_data(msp_port_t *msp, uint8_t c)
 {
+    // hal.console->printf("msp: parse received data\n");
     switch (msp->c_state) {
     default:
     case MSP_IDLE:      // Waiting for '$' character
