@@ -179,3 +179,19 @@
 // Avoid and fences. Enable to resolve fench breach message
 #define AC_AVOID_ENABLED 1
 #define AP_FENCE_ENABLED 1
+
+//MSP sensors for Mateksys M8Q-CAN
+#define HAL_MSP_ENABLED 1
+#define HAL_MSP_SENSORS_ENABLED 1
+
+//MSP GPS
+#define HAL_MSP_GPS_ENABLED 1
+#define HAL_GPS_TYPE_DEFAULT 19
+
+//MSP Compass
+#define AP_COMPASS_MSP_ENABLED 1
+#define AP_COMPASS_ENABLE_DEFAULT 1
+
+//MSP Baro
+// #define HAL_BARO_PROBE_EXT_DEFAULT 4096
+// #define AP_BARO_MSP_ENABLED 1
