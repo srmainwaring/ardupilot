@@ -96,7 +96,7 @@
 //I2C Buses
 //#define HAL_ESP32_I2C_BUSES {}
 #define HAL_ESP32_I2C_BUSES \
-    {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_12, .speed=400*KHZ, .internal=true, .soft=true}
+    {.port=I2C_NUM_0, .sda=GPIO_NUM_22, .scl=GPIO_NUM_21, .speed=400*KHZ, .internal=true, .soft=true}
 
 //SPI Buses
 // SPI BUS setup, including gpio, dma, etc
