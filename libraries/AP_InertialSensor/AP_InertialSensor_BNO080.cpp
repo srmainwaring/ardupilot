@@ -75,7 +75,7 @@ AP_InertialSensor_BNO080::AP_InertialSensor_BNO080(AP_InertialSensor &imu,
     , dev_gyro(std::move(_dev_gyro))
     , rotation(_rotation)
 {
-    hal.console->printf("bno080: construct");
+    hal.console->printf("bno080: construct\n");
 }
 
 AP_InertialSensor_Backend *
@@ -84,7 +84,7 @@ AP_InertialSensor_BNO080::probe(AP_InertialSensor &imu,
                                 AP_HAL::OwnPtr<AP_HAL::Device> dev_gyro,
                                 enum Rotation rotation)
 {
-    hal.console->printf("bno080: probe");
+    hal.console->printf("bno080: probe\n");
 
     if (!dev_accel || !dev_gyro) {
         return nullptr;
@@ -105,6 +105,8 @@ AP_InertialSensor_BNO080::probe(AP_InertialSensor &imu,
 
 void AP_InertialSensor_BNO080::start()
 {
+    hal.console->printf("bno080: start\n");
+
     if (!_imu.register_accel(accel_instance, ACCEL_BACKEND_SAMPLE_RATE, dev_accel->get_bus_id_devtype(_accel_devtype)) ||
         !_imu.register_gyro(gyro_instance, GYRO_BACKEND_SAMPLE_RATE,   dev_gyro->get_bus_id_devtype(DEVTYPE_INS_BNO080))) {
         return;
@@ -176,6 +178,8 @@ static const struct {
 
 bool AP_InertialSensor_BNO080::setup_accel_config(void)
 {
+    hal.console->printf("bno080: setup accel config\n");
+
     if (done_accel_config) {
         return true;
     }
@@ -202,6 +206,8 @@ bool AP_InertialSensor_BNO080::setup_accel_config(void)
  */
 bool AP_InertialSensor_BNO080::accel_init()
 {
+    hal.console->printf("bno080: accel init\n");
+
     WITH_SEMAPHORE(dev_accel->get_semaphore());
 
     uint8_t v;
@@ -242,6 +248,8 @@ bool AP_InertialSensor_BNO080::accel_init()
  */
 bool AP_InertialSensor_BNO080::gyro_init()
 {
+    hal.console->printf("bno080: gyro init\n");
+
     WITH_SEMAPHORE(dev_gyro->get_semaphore());
 
     uint8_t v;
@@ -283,13 +291,15 @@ bool AP_InertialSensor_BNO080::gyro_init()
         return false;
     }
 
-    DEV_PRINTF("BNO080: found gyro\n");    
+    DEV_PRINTF("BNO080: found gyro\n");
 
     return true;
 }
 
 bool AP_InertialSensor_BNO080::init()
 {
+    hal.console->printf("bno080: init\n");
+
     dev_accel->set_read_flag(0x80);
     dev_gyro->set_read_flag(0x80);
 
@@ -301,6 +311,8 @@ bool AP_InertialSensor_BNO080::init()
  */
 void AP_InertialSensor_BNO080::read_fifo_accel(void)
 {
+    hal.console->printf("bno080: read fifo accel\n");
+
     if (!setup_accel_config()) {
         return;
     }
@@ -398,6 +410,8 @@ void AP_InertialSensor_BNO080::read_fifo_accel(void)
  */
 void AP_InertialSensor_BNO080::read_fifo_gyro(void)
 {
+    hal.console->printf("bno080: read fifo gyro\n");
+
     uint8_t num_frames;
     if (!dev_gyro->read_registers(REGG_FIFO_STATUS, &num_frames, 1)) {
         _inc_gyro_error_count(gyro_instance);
@@ -453,6 +467,8 @@ check_next:
 
 bool AP_InertialSensor_BNO080::update()
 {
+    hal.console->printf("bno080: update\n");
+
     update_accel(accel_instance);
     update_gyro(gyro_instance);
     return true;
