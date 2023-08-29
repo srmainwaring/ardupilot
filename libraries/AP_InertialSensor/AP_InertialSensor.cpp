@@ -24,6 +24,7 @@
 
 #include "AP_InertialSensor_BMI160.h"
 #include "AP_InertialSensor_BMI270.h"
+#include "AP_InertialSensor_BNO080.h"
 #include "AP_InertialSensor_Backend.h"
 #include "AP_InertialSensor_L3G4200D.h"
 #include "AP_InertialSensor_LSM9DS0.h"
@@ -1312,6 +1313,11 @@ AP_InertialSensor::detect_backends(void)
     default:
         break;
     }
+#elif HAL_INS_DEFAULT == HAL_INS_BNO080_I2C
+    ADD_BACKEND(AP_InertialSensor_BNO080::probe(*this, 
+        GET_I2C_DEVICE(HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS),
+        GET_I2C_DEVICE(HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS),
+        ROTATION_NONE));
 #elif HAL_INS_DEFAULT == HAL_INS_NONE
     // no INS device
 #else
