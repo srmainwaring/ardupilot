@@ -849,6 +849,7 @@ bool AP_InertialSensor::register_accel(uint8_t &instance, uint16_t raw_sample_ra
 void AP_InertialSensor::_start_backends()
 
 {
+    hal.console->printf("inertial sensor: start backends\n");
     detect_backends();
 
     for (uint8_t i = 0; i < _backend_count; i++) {
@@ -931,6 +932,8 @@ bool AP_InertialSensor::has_fft_notch() const
 void
 AP_InertialSensor::init(uint16_t loop_rate)
 {
+    hal.console->printf("inertial sensor: init\n");
+
     // remember the sample rate
     _loop_rate = loop_rate;
     _loop_delta_t = 1.0f / loop_rate;
@@ -948,11 +951,13 @@ AP_InertialSensor::init(uint16_t loop_rate)
 #endif
 
     if (_gyro_count == 0 && _accel_count == 0) {
+        hal.console->printf("inertial sensor: start backends\n");
         _start_backends();
     }
 
     // calibrate gyros unless gyro calibration has been disabled
     if (gyro_calibration_timing() != GYRO_CAL_NEVER && _gyro_count > 0) {
+        hal.console->printf("inertial sensor: init gyro\n");
         init_gyro();
     }
 
@@ -966,6 +971,7 @@ AP_InertialSensor::init(uint16_t loop_rate)
 
 #if AP_INERTIALSENSOR_BATCHSAMPLER_ENABLED
     // initialise IMU batch logging
+    hal.console->printf("inertial sensor: init batch sampler\n");
     batchsampler.init();
 #endif
 
@@ -1194,6 +1200,7 @@ AP_InertialSensor::detect_backends(void)
     ADD_BACKEND(AP_InertialSensor_Invensensev3::probe(*this, hal.i2c_mgr->get_device(1, 1), ROTATION_NONE));
 #endif
 #elif AP_FEATURE_BOARD_DETECT
+    hal.config->printf("inertial sensor: detected board type: %d\n", AP_BoardConfig::get_board_type());
     switch (AP_BoardConfig::get_board_type()) {
     case AP_BoardConfig::PX4_BOARD_PX4V1:
         ADD_BACKEND(AP_InertialSensor_Invensense::probe(*this, hal.spi->get_device(HAL_INS_MPU60x0_NAME), ROTATION_NONE));
@@ -1314,6 +1321,7 @@ AP_InertialSensor::detect_backends(void)
         break;
     }
 #elif HAL_INS_DEFAULT == HAL_INS_BNO080_I2C
+    hal.config->printf("inertial sensor: detected ins bno080\n");
     ADD_BACKEND(AP_InertialSensor_BNO080::probe(*this, 
         GET_I2C_DEVICE(HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS),
         GET_I2C_DEVICE(HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS),
@@ -1415,9 +1423,11 @@ bool AP_InertialSensor::_calculate_trim(const Vector3f &accel_sample, Vector3f &
 void
 AP_InertialSensor::init_gyro()
 {
+    hal.console->printf("inertial sensor: init gyro (internal)\n");
     _init_gyro();
 
     // save calibration
+    hal.console->printf("inertial sensor: save gyro calibration\n");
     _save_gyro_calibration();
 }
 
@@ -1726,6 +1736,7 @@ AP_InertialSensor::_init_gyro()
         converged[k] = false;
     }
 
+    hal.console->printf("inertial sensor: update 5x\n");
     for(int8_t c = 0; c < 5; c++) {
         hal.scheduler->delay(5);
         update();
@@ -1736,6 +1747,7 @@ AP_InertialSensor::_init_gyro()
     // has just been powered on, so the temperature may be changing
     // rapidly. We use the average between start and end temperature
     // as the calibration temperature to minimise errors
+    hal.console->printf("inertial sensor: get temperature\n");
     for (uint8_t k=0; k<num_gyros; k++) {
         start_temperature[k] = get_temperature(k);
     }
@@ -1749,6 +1761,7 @@ AP_InertialSensor::_init_gyro()
 
     // we try to get a good calibration estimate for up to 30 seconds
     // if the gyros are stable, we should get it in 1 second
+    hal.console->printf("inertial sensor: start gyro calibration\n");
     for (int16_t j = 0; j <= 30*4 && num_converged < num_gyros; j++) {
         Vector3f gyro_sum[INS_MAX_INSTANCES], gyro_avg[INS_MAX_INSTANCES], gyro_diff[INS_MAX_INSTANCES];
         Vector3f accel_start;
@@ -1810,6 +1823,7 @@ AP_InertialSensor::_init_gyro()
         }
     }
 
+    hal.console->printf("inertial sensor: done gyro calibration\n");
     // we've kept the user waiting long enough - use the best pair we
     // found so far
     DEV_PRINTF("\n");
@@ -1895,6 +1909,7 @@ void AP_InertialSensor::update(void)
 {
     // during initialisation update() may be called without
     // wait_for_sample(), and a wait is implied
+    // hal.console->printf("inertial sensor: wait for imu sample\n");
     wait_for_sample();
 
         for (uint8_t i=0; i<INS_MAX_INSTANCES; i++) {
@@ -1907,6 +1922,7 @@ void AP_InertialSensor::update(void)
             _delta_angle_valid[i] = false;
         }
         for (uint8_t i=0; i<_backend_count; i++) {
+            // hal.console->printf("inertial sensor: update imu backend[%d]\n", i);
             _backends[i]->update();
         }
 
@@ -2014,6 +2030,7 @@ void AP_InertialSensor::wait_for_sample(void)
     if (_have_sample) {
         // the user has called wait_for_sample() again without
         // consuming the sample with update()
+        // hal.console->printf("inertial sensor: skip wait - have imu sample\n");
         return;
     }
 
@@ -2054,6 +2071,19 @@ void AP_InertialSensor::wait_for_sample(void)
     }
 
 check_sample:
+        // hal.console->printf("inertial sensor: check imu sample\n");
+
+        //! @todo(srmainwaring) - esp32empty - check params set properly
+        // expect:
+        // _gyro_count = 1
+        // _accel_count = 1
+        // _use[0] = 1
+        // hal.console->printf("inertial sensor: _gyro_count:   %d\n", _gyro_count);
+        // hal.console->printf("inertial sensor: _accel_count:  %d\n", _accel_count);
+        // for (uint8_t i=0; i<_gyro_count; i++) {
+        //     hal.console->printf("inertial sensor: _use[%d]:      %d\n", i, (int)_use(i));
+        // }
+
         // now we wait until we have the gyro and accel samples we need
         uint8_t gyro_available_mask = 0;
         uint8_t accel_available_mask = 0;
@@ -2064,13 +2094,17 @@ check_sample:
         const uint8_t wait_counter_limit = uint32_t(_loop_delta_t * 1.0e6) / (3*wait_per_loop);
 
         while (true) {
+            // hal.console->printf("inertial sensor: wait counter %d/%d\n", wait_counter, wait_counter_limit);
+
             for (uint8_t i=0; i<_backend_count; i++) {
                 // this is normally a nop, but can be used by backends
                 // that don't accumulate samples on a timer
+                // hal.console->printf("inertial sensor: imu[%d]: accumulate\n", i);
                 _backends[i]->accumulate();
             }
 
             for (uint8_t i=0; i<_gyro_count; i++) {
+                // hal.console->printf("inertial sensor: _new_gyro_data[%d]:  %d\n", i, _new_gyro_data[i]);
                 if (_new_gyro_data[i]) {
                     const uint8_t imask = (1U<<i);
                     gyro_available_mask |= imask;
@@ -2082,6 +2116,7 @@ check_sample:
                 }
             }
             for (uint8_t i=0; i<_accel_count; i++) {
+                // hal.console->printf("inertial sensor: _new_accel_data[%d]: %d\n", i, _new_accel_data[i]);
                 if (_new_accel_data[i]) {
                     const uint8_t imask = (1U<<i);
                     accel_available_mask |= imask;
@@ -2132,7 +2167,7 @@ check_sample:
         delta_time_sum += _delta_time * 1.0e6f;
         if (counter++ == 400) {
             counter = 0;
-            hal.console->printf("now=%lu _delta_time_sum=%lu diff=%ld\n",
+            hal.console->printf("inertial sensor: now=%lu _delta_time_sum=%lu diff=%ld\n",
                                 (unsigned long)now,
                                 (unsigned long)delta_time_sum,
                                 (long)(now - delta_time_sum));
