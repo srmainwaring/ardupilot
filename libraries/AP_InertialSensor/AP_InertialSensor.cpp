@@ -950,7 +950,6 @@ AP_InertialSensor::init(uint16_t loop_rate)
 #endif
 
     if (_gyro_count == 0 && _accel_count == 0) {
-        hal.console->printf("inertial sensor: start backends\n");
         _start_backends();
     }
 
@@ -1099,6 +1098,7 @@ bool AP_InertialSensor::_add_backend(AP_InertialSensor_Backend *backend)
         AP_HAL::panic("Too many INS backends");
     }
     _backends[_backend_count++] = backend;
+    hal.console->printf("inertial sensor: add backend, count: %d\n", _backend_count);
     return true;
 }
 
@@ -1193,13 +1193,15 @@ AP_InertialSensor::detect_backends(void)
 #endif
 
 #if defined(HAL_INS_PROBE_LIST)
+    hal.console->printf("inertial sensor: have ins probe list\n");
     // IMUs defined by IMU lines in hwdef.dat
     HAL_INS_PROBE_LIST;
 #if defined(HAL_SITL_INVENSENSEV3)
+    hal.console->printf("inertial sensor: have in sitl invensensev3\n");
     ADD_BACKEND(AP_InertialSensor_Invensensev3::probe(*this, hal.i2c_mgr->get_device(1, 1), ROTATION_NONE));
 #endif
 #elif AP_FEATURE_BOARD_DETECT
-    hal.config->printf("inertial sensor: detected board type: %d\n", AP_BoardConfig::get_board_type());
+    hal.config->printf("inertial sensor: detect board type: %d\n", AP_BoardConfig::get_board_type());
     switch (AP_BoardConfig::get_board_type()) {
     case AP_BoardConfig::PX4_BOARD_PX4V1:
         ADD_BACKEND(AP_InertialSensor_Invensense::probe(*this, hal.spi->get_device(HAL_INS_MPU60x0_NAME), ROTATION_NONE));
@@ -1320,6 +1322,7 @@ AP_InertialSensor::detect_backends(void)
         break;
     }
 #elif HAL_INS_DEFAULT == HAL_INS_NONE
+    hal.console->printf("inertial sensor: have ins none\n");
     // no INS device
 #else
     #error Unrecognised HAL_INS_TYPE setting
