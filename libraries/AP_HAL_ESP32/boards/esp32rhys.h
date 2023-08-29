@@ -37,10 +37,10 @@
 //#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2   //C  WiFi:  TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
 //#define DEFAULT_SERIAL1_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
 
-#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2   //D  UART2
-#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
-//#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_DDS_XRCE   //D  UART2
-//#define DEFAULT_SERIAL2_BAUD            (115200/1000)
+//#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2   //D  UART2
+//#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_DDS_XRCE   //D  UART2
+#define DEFAULT_SERIAL2_BAUD            (115200/1000)
 //#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MSP        //D  UART2
 //#define DEFAULT_SERIAL2_BAUD            (115200/1000)
 //#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_None       //D  UART2
@@ -74,24 +74,49 @@
 #define DEFAULT_SERIAL9_BAUD            (115200/1000)
 
 //Probe for sensors
-#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this, GET_I2C_DEVICE(bus, addr), ##args))
+// BMI055, BMI088, BNO080 expect two devices: one for accel and one for gyro 
+#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this, GET_I2C_DEVICE(bus, addr), GET_I2C_DEVICE(bus, addr), ##args))
+#define PROBE_IMU_SPI(driver, devname, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,hal.spi->get_device(devname),##args))
 
-//INS choices:
-#define HAL_INS_DEFAULT HAL_INS_NONE
+//INS
+// 1. No INS
+//#define HAL_INS_DEFAULT HAL_INS_NONE
+//#define HAL_INS_DEFAULT AP_FEATURE_BOARD_DETECT
+// 2. BNO080
 //#define HAL_INS_DEFAULT HAL_INS_BNO080_I2C
+//#define HAL_INS_BNO080_NAME "bno080"
+//#define HAL_INS_BNO080_BUS 0
+//#define HAL_INS_BNO080_ADDRESS 0x4B
+//#define HAL_INS_PROBE_LIST PROBE_IMU_I2C(BNO080, HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS, ROTATION_NONE)
+// 3. MPU9250
+#define HAL_INS_DEFAULT HAL_INS_MPU9250_SPI
+#define HAL_INS_MPU9250_NAME "mpu9250"
+#define HAL_INS_PROBE_LIST PROBE_IMU_SPI(Invensense, HAL_INS_MPU9250_NAME, ROTATION_NONE)
 
 //I2C Buses
+//#define HAL_ESP32_I2C_BUSES {}
 #define HAL_ESP32_I2C_BUSES \
-  {.port=I2C_NUM_0, .sda=GPIO_NUM_21, .scl=GPIO_NUM_22, .speed=400*KHZ, .internal=true, .soft=true}
+    {.port=I2C_NUM_0, .sda=GPIO_NUM_13, .scl=GPIO_NUM_12, .speed=400*KHZ, .internal=true, .soft=true}
 
 //SPI Buses
-#define HAL_ESP32_SPI_BUSES {}
+// SPI BUS setup, including gpio, dma, etc
+// note... we use 'vspi' for the bmp280 and mpu9250
+// tip:  VSPI_HOST  is an alternative name for esp's SPI3
+//#define HAL_ESP32_SPI_BUSES {}
+#define HAL_ESP32_SPI_BUSES \
+    {.host=VSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
 
 //SPI Devices
-#define HAL_ESP32_SPI_DEVICES {}
+// SPI per-device setup, including speeds, etc.
+//#define HAL_ESP32_SPI_DEVICES {}
+//#define HAL_ESP32_SPI_DEVICES
+//     {.name= "bmp280", .bus=0, .device=0, .cs=GPIO_NUM_26, .mode = 3, .lspeed=1*MHZ, .hspeed=1*MHZ},
+//     {.name="mpu9250", .bus=0, .device=1, .cs=GPIO_NUM_5,  .mode = 0, .lspeed=2*MHZ, .hspeed=8*MHZ}
+#define HAL_ESP32_SPI_DEVICES \
+    {.name="mpu9250", .bus=0, .device=1, .cs=GPIO_NUM_5,  .mode = 0, .lspeed=2*MHZ, .hspeed=8*MHZ}
 
 //RCIN
-#define HAL_ESP32_RCIN GPIO_NUM_36
+#define HAL_ESP32_RCIN GPIO_NUM_4
 
 //RCOUT
 #define HAL_ESP32_RCOUT {GPIO_NUM_25, GPIO_NUM_27, GPIO_NUM_33, GPIO_NUM_32, GPIO_NUM_22, GPIO_NUM_21}
@@ -105,8 +130,8 @@
 #define HAL_BARO_ALLOW_INIT_NO_BARO 1
 
 //IMU
-// #define AP_INERTIALSENSOR_ENABLED 1
-// #define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
+//#define AP_INERTIALSENSOR_ENABLED 1
+//#define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
 
 //COMPASS
 #define AP_COMPASS_ENABLE_DEFAULT 1
@@ -133,7 +158,7 @@
 // UART_NUM_2 => SERIAL2
 #define HAL_ESP32_UART_DEVICES \
     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
-    {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
+    {.port=UART_NUM_1, .rx=GPIO_NUM_14, .tx=GPIO_NUM_15},\
     {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
 
 //ADC
