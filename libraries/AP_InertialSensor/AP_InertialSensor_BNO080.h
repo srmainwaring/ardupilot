@@ -13,80 +13,92 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
-  the BMI088 is unusual as it has separate chip-select for accel and
-  gyro, which means it needs two Device pointers
- */
 #pragma once
 
 #include <AP_HAL/AP_HAL.h>
 
 #include "AP_InertialSensor.h"
 #include "AP_InertialSensor_Backend.h"
+#include "AP_InertialSensor_BNO080_Driver.h"
 
 class AP_InertialSensor_BNO080 : public AP_InertialSensor_Backend {
 public:
     static AP_InertialSensor_Backend *probe(AP_InertialSensor &imu,
-                                            AP_HAL::OwnPtr<AP_HAL::Device> dev_accel,
-                                            AP_HAL::OwnPtr<AP_HAL::Device> dev_gyro,
+                                            AP_HAL::OwnPtr<AP_HAL::Device> dev,
                                             enum Rotation rotation);
 
     /**
      * Configure the sensors and start reading routine.
      */
     void start() override;
+
     bool update() override;
 
 private:
     AP_InertialSensor_BNO080(AP_InertialSensor &imu,
-                             AP_HAL::OwnPtr<AP_HAL::Device> dev_accel,
-                             AP_HAL::OwnPtr<AP_HAL::Device> dev_gyro,
+                             AP_HAL::OwnPtr<AP_HAL::Device> dev,
                              enum Rotation rotation);
 
-    /*
-     initialise hardware layer
+    /**
+     * Try to perform initialization of the BNO080 device.
+     *
+     * The device semaphore must be taken and released by the caller.
+     *
+     * @return true on success, false otherwise.
      */
-    bool accel_init();
-    bool gyro_init();
+    bool _hardware_init();
 
-    /*
-      initialise driver
+    /**
+     * Try to initialize this driver.
+     *
+     * Do sensor and other required initializations.
+     *
+     * @return true on success, false otherwise.
      */
-    bool init();
+    bool _init();
 
-    /*
-      read data from the FIFOs
+    /**
+     * Configure accelerometer sensor. The device semaphore must already be
+     * taken before calling this function.
+     *
+     * @return true on success, false otherwise.
      */
-    void read_fifo_accel();
-    void read_fifo_gyro();
+    bool _configure_accel();
 
-    /*
-      read from accelerometer registers, special SPI handling needed
+    /**
+     * Configure gyroscope sensor. The device semaphore must already be
+     * taken before calling this function.
+     *
+     * @return true on success, false otherwise.
      */
-    bool read_accel_registers(uint8_t reg, uint8_t *data, uint8_t len);
+    bool _configure_gyro();
 
-    /*
-      write to an accelerometer register with retries
+    /**
+     * Configure FIFO.
+     *
+     * @return true on success, false otherwise.
      */
-    bool write_accel_register(uint8_t reg, uint8_t v);
+    bool _configure_fifo();
 
-    /*
-      configure accel registers
+    /**
+     * Device periodic callback to read data from the sensors.
      */
-    bool setup_accel_config(void);
+    void _poll_data();
 
-    AP_HAL::OwnPtr<AP_HAL::Device> dev_accel;
-    AP_HAL::Device::PeriodicHandle accel_periodic_handle;
-    AP_HAL::OwnPtr<AP_HAL::Device> dev_gyro;
-    AP_HAL::Device::PeriodicHandle gyro_periodic_handle;
+    /**
+     * Read samples from fifo
+     */
+    void _read_fifo();
 
-    uint8_t accel_instance;
-    uint8_t gyro_instance;
-    enum Rotation rotation;
-    uint8_t temperature_counter;
-    enum DevTypes _accel_devtype;
-    float accel_range;
+    AP_HAL::OwnPtr<AP_HAL::Device> _dev;
+    enum Rotation _rotation;
+    AP_HAL::Device::PeriodicHandle _periodic_handle;
 
-    bool done_accel_config;
-    uint32_t accel_config_count;
+    BNO080 _bno080;
+
+    uint8_t _accel_instance;
+    float _accel_scale;
+
+    uint8_t _gyro_instance;
+    float _gyro_scale;
 };
