@@ -43,6 +43,13 @@
 #include <freertos/portmacro.h>
 #endif
 
+// Only enable parameter server on SITL or EPS32
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#define AP_UROS_PARAM_SRV_ENABLED 1
+#else
+#define AP_UROS_PARAM_SRV_ENABLED 0
+#endif
+
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
 
@@ -142,11 +149,13 @@ private:
     ardupilot_msgs__srv__ArmMotors_Response arm_motors_res;
     bool arm_motors_srv_init = false;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
     // parameter server
     rclc_parameter_server_t param_server;
     bool param_srv_init = false;
+#endif
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
     // thread handle
     TaskHandle_t uros_task_handle;
 #endif
@@ -177,7 +186,7 @@ private:
         const ardupilot_msgs__srv__ArmMotors_Request *req,
         ardupilot_msgs__srv__ArmMotors_Response *res);
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
     // parameter server callback
     static bool on_parameter_changed_trampoline(
         const Parameter * old_param, const Parameter * new_param, void * context);
@@ -205,7 +214,7 @@ private:
         uxrCustomTransport transport;
     } serial;
 
-    #if AP_UROS_UDP_ENABLED
+#if AP_UROS_UDP_ENABLED
     // functions for udp transport
     bool urosUdpInit();
     static bool udp_transport_open(uxrCustomTransport* transport);
