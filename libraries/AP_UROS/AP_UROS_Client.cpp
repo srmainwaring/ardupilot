@@ -57,12 +57,6 @@ constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
 constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
-// thread stack and priority
-constexpr uint32_t UROS_SS = 16384;
-constexpr int UROS_PRIO = 5;
-#endif
-
 // constructor
 AP_UROS_Client::AP_UROS_Client() {
     if (_singleton) {
@@ -566,7 +560,7 @@ void AP_UROS_Client::arm_motors_callback(
     res->result = req->arm;
 }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
 // parameter server callback
 bool AP_UROS_Client::on_parameter_changed_trampoline(
     const Parameter * old_param, const Parameter * new_param, void * context)
@@ -664,14 +658,13 @@ bool AP_UROS_Client::start(void)
 
     GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: creating uros_thread...");
 
-    // Pin to Core 1
 #if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
     BaseType_t rc = xTaskCreatePinnedToCore(
         &AP_UROS_Client::main_loop_trampoline,
         "APM_UROS",
-        UROS_SS,
+        16384,
         this,
-        UROS_PRIO,
+        5, //UROS_PRIO,
         &uros_task_handle, 0);
 
     if (rc != pdPASS) {
@@ -684,10 +677,10 @@ bool AP_UROS_Client::start(void)
 #else
     if (!hal.scheduler->thread_create(
             FUNCTOR_BIND_MEMBER(&AP_UROS_Client::main_loop, void),
-            "UROS",
+            "APM_UROS",
             16384,
             AP_HAL::Scheduler::PRIORITY_IO,
-            50)) {
+            1)) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "UROS: thread create failed");
         return false;
     }
@@ -727,7 +720,7 @@ void AP_UROS_Client::main_loop(void)
     // periodic actions
     rclc_executor_spin(&executor);
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
     RCSOFTCHECK(rclc_parameter_server_fini(&param_server, &node));
 #endif
 
@@ -1100,7 +1093,7 @@ bool AP_UROS_Client::create()
         GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: create arm_motors service... OK");
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
     // create parameter server
     {
         hal.console->printf("UROS: create parameter server... ");
@@ -1173,7 +1166,7 @@ bool AP_UROS_Client::create()
             &AP_UROS_Client::arm_motors_callback_trampoline, this));
     }
 
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#if AP_UROS_PARAM_SRV_ENABLED
     GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "UROS: add parameter server to executor");
     if (param_srv_init) {
         RCCHECK(rclc_executor_add_parameter_server_with_context(&executor, &param_server,
