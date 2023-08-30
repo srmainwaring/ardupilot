@@ -31,6 +31,7 @@
 // default protocols:    ardupilot/libraries/AP_SerialManager/AP_SerialManager.cpp
 // ESP32 serials:    AP_HAL_ESP32/HAL_ESP32_Class.cpp
 
+#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_Console   //A  UART0
 //#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_MAVLink2   //A  UART0: Always: Console, MAVLink2
 //#define DEFAULT_SERIAL0_BAUD            AP_SERIALMANAGER_CONSOLE_BAUD/1000  //115200
 
@@ -85,7 +86,7 @@
 //#define HAL_INS_DEFAULT HAL_INS_BNO080_I2C
 //#define HAL_INS_BNO080_NAME "bno080"
 //#define HAL_INS_BNO080_BUS 0
-//#define HAL_INS_BNO080_ADDRESS 0x4B
+//#define HAL_INS_BNO080_ADDRESS (0x4B)
 //#define HAL_INS_PROBE_LIST PROBE_IMU_I2C(BNO080, HAL_INS_BNO080_BUS, HAL_INS_BNO080_ADDRESS, ROTATION_NONE)
 // 3. MPU9250
 #define HAL_INS_DEFAULT HAL_INS_MPU9250_SPI
