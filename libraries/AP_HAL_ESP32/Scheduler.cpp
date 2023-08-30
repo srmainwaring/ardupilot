@@ -82,7 +82,7 @@ void Scheduler::init()
 
     if (xTaskCreatePinnedToCore(_timer_thread, "APM_TIMER",
         Scheduler::TIMER_SS, this, Scheduler::TIMER_PRIO,
-        &_timer_task_handle, 0) != pdPASS) {
+        &_timer_task_handle, 1) != pdPASS) {
         hal.console->printf("FAILED to create task _timer_thread\n");
     } else {
     	hal.console->printf("OK created task _timer_thread\n");

@@ -67,11 +67,11 @@ public:
     static const int WIFI_PRIO2   = 12; // cpu0: affinity set
 
     // set in Scheduler
-    static const int MAIN_PRIO    = 22; // cpu1: we want scheduler running at full tilt.
-    static const int TIMER_PRIO   = 20; // cpu0: a low priority mere might cause wifi thruput to suffer
+    static const int MAIN_PRIO    = 20; // cpu1: we want scheduler running at full tilt.
+    static const int TIMER_PRIO   = 18; // cpu1: a low priority mere might cause wifi thruput to suffer
     static const int RCIN_PRIO    = 15; // cpu0:
-    static const int RCOUT_PRIO   = 15; // cpu0: 
-    static const int UART_PRIO    = 22; // cpu0: a low priority mere might cause wifi thruput to suffer, as wifi gets passed its data frim the uart subsustem in _writebuf/_readbuf
+    static const int RCOUT_PRIO   = 10; // cpu0: 
+    static const int UART_PRIO    = 20; // cpu0: a low priority mere might cause wifi thruput to suffer, as wifi gets passed its data frim the uart subsustem in _writebuf/_readbuf
     static const int IO_PRIO      = 5;  // not pinned
     static const int STORAGE_PRIO = 4;  // not pinned
 
