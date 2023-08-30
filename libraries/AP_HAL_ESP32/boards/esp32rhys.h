@@ -74,8 +74,7 @@
 #define DEFAULT_SERIAL9_BAUD            (115200/1000)
 
 //Probe for sensors
-// BMI055, BMI088, BNO080 expect two devices: one for accel and one for gyro 
-#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this, GET_I2C_DEVICE(bus, addr), GET_I2C_DEVICE(bus, addr), ##args))
+#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this, GET_I2C_DEVICE(bus, addr), ##args))
 #define PROBE_IMU_SPI(driver, devname, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,hal.spi->get_device(devname),##args))
 
 //INS
