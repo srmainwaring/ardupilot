@@ -38,6 +38,7 @@ IF(${ARDUPILOT_CMD} STREQUAL "plane")
     message("Building for plane")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libarduplane.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduPlane_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/../../../libraries/AP_UROS/uros/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "copter")
@@ -51,12 +52,14 @@ IF(${ARDUPILOT_CMD} STREQUAL "rover")
     message("Building for rover")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libardurover.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libRover_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/../../../libraries/AP_UROS/uros/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "sub")
     message("Building for submarine")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libardusub.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduSub_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/../../../libraries/AP_UROS/uros/libmicroros.a")
 ENDIF()
 
 add_custom_target(showinc ALL
