@@ -578,7 +578,7 @@ void IRAM_ATTR Scheduler::_main_thread(void *arg)
         sched->callbacks->loop();
 
         // retain small delay - simliar to chibios
-        sched->delay_microseconds(50);
+        sched->delay_microseconds(250);
 
         // run stats periodically
         sched->print_stats();
