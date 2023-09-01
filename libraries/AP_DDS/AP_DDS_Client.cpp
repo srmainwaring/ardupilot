@@ -34,7 +34,7 @@ static constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
 // If these are created on the stack in the subscriber,
 // the AP_DDS_Client::on_topic frame size is exceeded.
 sensor_msgs_msg_Joy AP_DDS_Client::rx_joy_topic {};
-tf2_msgs_msg_TFMessage AP_DDS_Client::rx_dynamic_transforms_topic {};
+// tf2_msgs_msg_TFMessage AP_DDS_Client::rx_dynamic_transforms_topic {};
 geometry_msgs_msg_TwistStamped AP_DDS_Client::rx_velocity_control_topic {};
 
 
@@ -400,13 +400,30 @@ void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock& msg)
  */
 bool AP_DDS_Client::start(void)
 {
+    hal.console->printf("DDS: size of message types\n");
+    hal.console->printf("DDS: builtin_interfaces_msg_Time:        %u\n", sizeof(builtin_interfaces_msg_Time));
+    hal.console->printf("DDS: geographic_msgs_msg_GeoPoseStamped: %u\n", sizeof(geographic_msgs_msg_GeoPoseStamped));
+    hal.console->printf("DDS: geometry_msgs_msg_PoseStamped:      %u\n", sizeof(geometry_msgs_msg_PoseStamped));
+    hal.console->printf("DDS: geometry_msgs_msg_TwistStamped:     %u\n", sizeof(geometry_msgs_msg_TwistStamped));
+    hal.console->printf("DDS: sensor_msgs_msg_BatteryState:       %u\n", sizeof(sensor_msgs_msg_BatteryState));
+    hal.console->printf("DDS: sensor_msgs_msg_NavSatFix:          %u\n", sizeof(sensor_msgs_msg_NavSatFix));
+    hal.console->printf("DDS: rosgraph_msgs_msg_Clock:            %u\n", sizeof(rosgraph_msgs_msg_Clock));
+    hal.console->printf("DDS: sensor_msgs_msg_Joy:                %u\n", sizeof(sensor_msgs_msg_Joy));
+    hal.console->printf("DDS: geometry_msgs_msg_TwistStamped:     %u\n", sizeof(geometry_msgs_msg_TwistStamped));
+    hal.console->printf("DDS: tf2_msgs_msg_TFMessage:             %u\n", sizeof(tf2_msgs_msg_TFMessage));
+
+    hal.console->printf("DDS: setup obj defaults\n");
     AP_Param::setup_object_defaults(this, var_info);
+
+    hal.console->printf("DDS: load params\n");
     AP_Param::load_object_from_eeprom(this, var_info);
 
     if (enabled == 0) {
+        hal.console->printf("DDS: not enabled\n");
         return true;
     }
 
+    hal.console->printf("DDS: create thread\n");
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_DDS_Client::main_loop, void),
                                       "DDS",
                                       8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
@@ -453,28 +470,34 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         }
         break;
     }
-    case topics[to_underlying(TopicIndex::DYNAMIC_TRANSFORMS_SUB)].dr_id.id: {
-        const bool success = tf2_msgs_msg_TFMessage_deserialize_topic(ub, &rx_dynamic_transforms_topic);
-        if (success == false) {
-            break;
-        }
+//     case topics[to_underlying(TopicIndex::DYNAMIC_TRANSFORMS_SUB)].dr_id.id: {
+//         const bool success = tf2_msgs_msg_TFMessage_deserialize_topic(ub, &rx_dynamic_transforms_topic);
+//         if (success == false) {
+//             break;
+//         }
 
-        subscribe_sample_count++;
-        if (rx_dynamic_transforms_topic.transforms_size > 0) {
-#if AP_DDS_VISUALODOM_ENABLED
-            AP_DDS_External_Odom::handle_external_odom(rx_dynamic_transforms_topic);
-#endif // AP_DDS_VISUALODOM_ENABLED
+//         subscribe_sample_count++;
+//         if (rx_dynamic_transforms_topic.transforms_size > 0) {
+// #if AP_DDS_VISUALODOM_ENABLED
+//             AP_DDS_External_Odom::handle_external_odom(rx_dynamic_transforms_topic);
+// #endif // AP_DDS_VISUALODOM_ENABLED
 
-        } else {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received tf2_msgs/TFMessage: Insufficient size ");
-        }
-        break;
-    }
+//         } else {
+//             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received tf2_msgs/TFMessage: Insufficient size ");
+//         }
+//         break;
+//     }
     case topics[to_underlying(TopicIndex::VELOCITY_CONTROL_SUB)].dr_id.id: {
         const bool success = geometry_msgs_msg_TwistStamped_deserialize_topic(ub, &rx_velocity_control_topic);
         if (success == false) {
             break;
         }
+
+        hal.console->printf("DDS: lin_vel: {x: %f, y: %f}, ang_vel: {z: %f}\n",
+            rx_velocity_control_topic.twist.linear.x,
+            rx_velocity_control_topic.twist.linear.y,
+            rx_velocity_control_topic.twist.angular.z
+        );
 
         subscribe_sample_count++;
 #if AP_EXTERNAL_CONTROL_ENABLED
@@ -568,6 +591,8 @@ void AP_DDS_Client::main_loop(void)
 
 bool AP_DDS_Client::init()
 {
+    hal.console->printf("DDS: init\n");
+
     // serial init will fail if the SERIALn_PROTOCOL is not setup
     bool initTransportStatus = ddsSerialInit();
     is_using_serial = initTransportStatus;
@@ -617,6 +642,8 @@ bool AP_DDS_Client::init()
 
 bool AP_DDS_Client::create()
 {
+    hal.console->printf("DDS: create\n");
+
     WITH_SEMAPHORE(csem);
 
     // Participant
