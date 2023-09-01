@@ -720,13 +720,30 @@ bool AP_DDS_Client::update_topic(ardupilot_msgs_msg_Status& msg)
  */
 bool AP_DDS_Client::start(void)
 {
+    hal.console->printf("DDS: size of message types\n");
+    hal.console->printf("DDS: builtin_interfaces_msg_Time:        %u\n", sizeof(builtin_interfaces_msg_Time));
+    hal.console->printf("DDS: geographic_msgs_msg_GeoPoseStamped: %u\n", sizeof(geographic_msgs_msg_GeoPoseStamped));
+    hal.console->printf("DDS: geometry_msgs_msg_PoseStamped:      %u\n", sizeof(geometry_msgs_msg_PoseStamped));
+    hal.console->printf("DDS: geometry_msgs_msg_TwistStamped:     %u\n", sizeof(geometry_msgs_msg_TwistStamped));
+    hal.console->printf("DDS: sensor_msgs_msg_BatteryState:       %u\n", sizeof(sensor_msgs_msg_BatteryState));
+    hal.console->printf("DDS: sensor_msgs_msg_NavSatFix:          %u\n", sizeof(sensor_msgs_msg_NavSatFix));
+    hal.console->printf("DDS: rosgraph_msgs_msg_Clock:            %u\n", sizeof(rosgraph_msgs_msg_Clock));
+    hal.console->printf("DDS: sensor_msgs_msg_Joy:                %u\n", sizeof(sensor_msgs_msg_Joy));
+    hal.console->printf("DDS: geometry_msgs_msg_TwistStamped:     %u\n", sizeof(geometry_msgs_msg_TwistStamped));
+    hal.console->printf("DDS: tf2_msgs_msg_TFMessage:             %u\n", sizeof(tf2_msgs_msg_TFMessage));
+
+    hal.console->printf("DDS: setup obj defaults\n");
     AP_Param::setup_object_defaults(this, var_info);
+
+    hal.console->printf("DDS: load params\n");
     AP_Param::load_object_from_eeprom(this, var_info);
 
     if (enabled == 0) {
+        hal.console->printf("DDS: not enabled\n");
         return true;
     }
 
+    hal.console->printf("DDS: create thread\n");
     if (!hal.scheduler->thread_create(FUNCTOR_BIND_MEMBER(&AP_DDS_Client::main_loop, void),
                                       "DDS",
                                       8192, AP_HAL::Scheduler::PRIORITY_IO, 1)) {
