@@ -534,6 +534,7 @@ void AP_Vehicle::setup()
     GCS_SEND_TEXT(MAV_SEVERITY_INFO, "ArduPilot Ready");
 
 #if AP_DDS_ENABLED
+    hal.console->printf("DDS: init client\n");
     if (!init_dds_client()) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Failed to Initialize", AP_DDS_Client::msg_prefix);
     }
@@ -1137,10 +1138,15 @@ void AP_Vehicle::check_motor_noise()
 #if AP_DDS_ENABLED
 bool AP_Vehicle::init_dds_client()
 {
+    hal.console->printf("DDS: client size: %u\n", sizeof(AP_DDS_Client));
+    hal.console->printf("DDS: create client\n");
     dds_client = NEW_NOTHROW AP_DDS_Client();
     if (dds_client == nullptr) {
+        hal.console->printf("DDS: failed to create client\n");
         return false;
     }
+
+    hal.console->printf("DDS: start client\n");
     return dds_client->start();
 }
 #endif // AP_DDS_ENABLED
