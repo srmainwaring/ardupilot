@@ -94,7 +94,6 @@
 #define HAL_INS_PROBE_LIST PROBE_IMU_SPI(Invensense, HAL_INS_MPU9250_NAME, ROTATION_NONE)
 
 //I2C Buses
-//#define HAL_ESP32_I2C_BUSES {}
 #define HAL_ESP32_I2C_BUSES \
     {.port=I2C_NUM_0, .sda=GPIO_NUM_22, .scl=GPIO_NUM_21, .speed=400*KHZ, .internal=true, .soft=true}
 
@@ -102,16 +101,11 @@
 // SPI BUS setup, including gpio, dma, etc
 // note... we use 'vspi' for the bmp280 and mpu9250
 // tip:  VSPI_HOST  is an alternative name for esp's SPI3
-//#define HAL_ESP32_SPI_BUSES {}
 #define HAL_ESP32_SPI_BUSES \
     {.host=VSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
 
 //SPI Devices
 // SPI per-device setup, including speeds, etc.
-//#define HAL_ESP32_SPI_DEVICES {}
-//#define HAL_ESP32_SPI_DEVICES
-//     {.name= "bmp280", .bus=0, .device=0, .cs=GPIO_NUM_26, .mode = 3, .lspeed=1*MHZ, .hspeed=1*MHZ},
-//     {.name="mpu9250", .bus=0, .device=1, .cs=GPIO_NUM_5,  .mode = 0, .lspeed=2*MHZ, .hspeed=8*MHZ}
 #define HAL_ESP32_SPI_DEVICES \
     {.name="mpu9250", .bus=0, .device=1, .cs=GPIO_NUM_5,  .mode = 0, .lspeed=2*MHZ, .hspeed=8*MHZ}
 
