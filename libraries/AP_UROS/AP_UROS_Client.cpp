@@ -59,6 +59,10 @@
     if ((temp_rc != RCL_RET_OK)) {\
         uros_error("UROS: " msg "... FAILED, line %d: code: %d",\
             __LINE__, (int)temp_rc);\
+        /* will be empty when RCUTILS_AVOID_DYNAMIC_ALLOCATION is defined */\
+        const rcutils_error_state_t *err = rcutils_get_error_state();\
+        uros_error("UROS: error: %s, file: %s, line: %llu, ",\
+            err->message, err->file, err->line_number);\
         return false;\
     } else {\
         uros_debug("UROS: " msg"... OK");\
@@ -987,6 +991,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create battery state publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create battery state publisher... OK");
     }
 
@@ -1000,6 +1005,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create clock publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create clock publisher... OK");
     }
 
@@ -1013,6 +1019,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create geo pose publisher... FAILED (%d)",(int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create geo pose publisher... OK");
     }
 
@@ -1026,6 +1033,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create local pose publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create local pose publisher... OK");
     }
 
@@ -1039,6 +1047,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create local twist publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create local twist publisher... OK");
     }
 
@@ -1052,6 +1061,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create nav sat fix publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create nav sat fix publisher... OK");
     }
 
@@ -1065,6 +1075,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create static transform publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create static transform publisher... OK");
     }
 
@@ -1078,6 +1089,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create time publisher... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_publishers++;
         uros_debug("UROS: create time publisher... OK");
     }
 
@@ -1094,6 +1106,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create joy subscriber... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_subscribers++;
         uros_debug("UROS: create joy subscriber... OK");
     }
 
@@ -1107,6 +1120,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create tf subscriber... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_subscribers++;
         uros_debug("UROS: create tf subscriber... OK");
     }
 
@@ -1123,6 +1137,7 @@ bool AP_UROS_Client::create()
             uros_error("UROS: create arm_motors service... FAILED (%d)", (int16_t)rc);
             return false;
         }
+        number_of_services++;
         uros_debug("UROS: create arm_motors service... OK");
     }
 
