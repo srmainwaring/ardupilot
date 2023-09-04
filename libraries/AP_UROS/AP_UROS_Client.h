@@ -36,10 +36,19 @@
 
 #include <AP_Param/AP_Param.h>
 
+#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
 // esp32 - free-rtos
-// #include <freertos/FreeRTOS.h>
-// #include <freertos/task.h>
-// #include <freertos/portmacro.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/portmacro.h>
+#endif
+
+// Only enable parameter server on SITL or EPS32
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+#define AP_UROS_PARAM_SRV_ENABLED 1
+#else
+#define AP_UROS_PARAM_SRV_ENABLED 0
+#endif
 
 // UDP only on SITL for now
 #define AP_UROS_UDP_ENABLED 0 //(CONFIG_HAL_BOARD == HAL_BOARD_SITL)
@@ -63,7 +72,7 @@ private:
     rclc_support_t support;
     rcl_node_t node;
     rclc_executor_t executor;
-    rcl_timer_t timer_;
+    rcl_timer_t _timer;
     const unsigned int timer_timeout_ms = 1;
 
     // publishers
@@ -140,12 +149,18 @@ private:
     ardupilot_msgs__srv__ArmMotors_Response arm_motors_res;
     bool arm_motors_srv_init = false;
 
+#if AP_UROS_PARAM_SRV_ENABLED
     // parameter server
-    // rclc_parameter_server_t param_server;
-    // bool param_srv_init = false;
+    rclc_parameter_server_t param_server;
+    bool param_srv_init = false;
+#endif
 
-    // thread handle and singleton
-    // TaskHandle_t uros_task_handle;
+#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
+    // thread handle
+    TaskHandle_t uros_task_handle;
+#endif
+
+    // singleton
     static AP_UROS_Client *_singleton;
 
     // publishers
@@ -171,11 +186,13 @@ private:
         const ardupilot_msgs__srv__ArmMotors_Request *req,
         ardupilot_msgs__srv__ArmMotors_Response *res);
 
+#if AP_UROS_PARAM_SRV_ENABLED
     // parameter server callback
-    // static bool on_parameter_changed_trampoline(
-    //     const Parameter * old_param, const Parameter * new_param, void * context);
-    // bool on_parameter_changed(
-    //     const Parameter * old_param, const Parameter * new_param);
+    static bool on_parameter_changed_trampoline(
+        const Parameter * old_param, const Parameter * new_param, void * context);
+    bool on_parameter_changed(
+        const Parameter * old_param, const Parameter * new_param);
+#endif
 
     // timer callbacks
     static void timer_callback_trampoline(rcl_timer_t * timer, int64_t last_call_time);
@@ -197,7 +214,7 @@ private:
         uxrCustomTransport transport;
     } serial;
 
-    #if AP_UROS_UDP_ENABLED
+#if AP_UROS_UDP_ENABLED
     // functions for udp transport
     bool urosUdpInit();
     static bool udp_transport_open(uxrCustomTransport* transport);
