@@ -82,8 +82,8 @@ private:
     HAL_Semaphore csem;
 
     // connection parametrics
-    bool status_ok{false};
-    bool connected{false};
+    bool connected = false;
+    bool initialised = false;
 
     static void update_topic(builtin_interfaces_msg_Time& msg);
     bool update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance) WARN_IF_UNUSED;
