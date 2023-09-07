@@ -82,24 +82,39 @@ private:
     HAL_Semaphore csem;
 
     // connection parametrics
+<<<<<<< HEAD
     bool connected = false;
+=======
+>>>>>>> 2752cfd58b (AP_DDS: gather status stats for uxr_run_session)
     bool initialised = false;
-
-    // stats
-    uint64_t update_count = 0;
-    uint64_t update_fail_count = 0;
-    uint64_t last_update_count = 0;
-    uint64_t last_update_fail_count = 0;
-    uint64_t last_stats_time_ms;
 
     // store request ids from `uxr_buffer_reply` and `uxr_prepare_output_stream`
     uint16_t request_list[32];
     uint8_t status_list[32];
     uint8_t request_list_size;
+
+    // stats
+    uint64_t last_stats_time_ms;
+    uint64_t update_count = 0;
+    uint64_t update_no_ack_count = 0;
+    uint64_t last_update_count = 0;
+    uint64_t last_update_no_ack_count = 0;
     uint8_t request_list_size_max = 0;
     uint64_t request_list_size_sum = 0;
-    uint64_t status_pass_count = 0;
-    uint64_t status_fail_count = 0;
+
+    struct StatusCount {
+        uint64_t ok;
+        uint64_t ok_matched;
+        uint64_t err_dds_error;
+        uint64_t err_mismatch;
+        uint64_t err_already_exists;
+        uint64_t err_denied;
+        uint64_t err_unknown_reference;
+        uint64_t err_invalid_data;
+        uint64_t err_incompatible;
+        uint64_t err_resources;
+        uint64_t none;
+    } status_count;
 
     static void update_topic(builtin_interfaces_msg_Time& msg);
     bool update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance) WARN_IF_UNUSED;
