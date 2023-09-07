@@ -37,6 +37,7 @@ static constexpr uint16_t DELAY_LOCAL_VELOCITY_TOPIC_MS = 33;
 static constexpr uint16_t DELAY_GEO_POSE_TOPIC_MS = 33;
 static constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
 static constexpr uint16_t DELAY_PING_MS = 500;
+static constexpr uint16_t DELAY_STATS_MS = 10000;
 
 // Define the subscriber data members, which are static class scope.
 // If these are created on the stack in the subscriber,
@@ -564,8 +565,12 @@ void AP_DDS_Client::on_request(uxrSession* uxr_session, uxrObjectId object_id, u
             break;
         }
 
-        uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id, reply_buffer, ucdr_buffer_length(&reply_ub));
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Request for Arming/Disarming : %s", msg_prefix, arm_motors_response.result ? "SUCCESS" : "FAIL");
+        request_list[request_list_size++] = uxr_buffer_reply(uxr_session, reliable_out, replier_id, sample_id, reply_buffer, ucdr_buffer_length(&reply_ub));
+        if (arm_motors_response.result) {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Request for Arming/Disarming : SUCCESS");
+        } else {
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"DDS Client: Request for Arming/Disarming : FAIL");
+        }
         break;
     }
     case services[to_underlying(ServiceIndex::MODE_SWITCH)].rep_id: {
@@ -874,7 +879,7 @@ void AP_DDS_Client::write_time_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = builtin_interfaces_msg_Time_size_of_topic(&time_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::TIME_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::TIME_PUB)].dw_id, &ub, topic_size);
         const bool success = builtin_interfaces_msg_Time_serialize_topic(&ub, &time_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -889,7 +894,7 @@ void AP_DDS_Client::write_nav_sat_fix_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = sensor_msgs_msg_NavSatFix_size_of_topic(&nav_sat_fix_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::NAV_SAT_FIX_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::NAV_SAT_FIX_PUB)].dw_id, &ub, topic_size);
         const bool success = sensor_msgs_msg_NavSatFix_serialize_topic(&ub, &nav_sat_fix_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -904,7 +909,7 @@ void AP_DDS_Client::write_static_transforms()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = tf2_msgs_msg_TFMessage_size_of_topic(&tx_static_transforms_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::STATIC_TRANSFORMS_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::STATIC_TRANSFORMS_PUB)].dw_id, &ub, topic_size);
         const bool success = tf2_msgs_msg_TFMessage_serialize_topic(&ub, &tx_static_transforms_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -919,7 +924,7 @@ void AP_DDS_Client::write_battery_state_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = sensor_msgs_msg_BatteryState_size_of_topic(&battery_state_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::BATTERY_STATE_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::BATTERY_STATE_PUB)].dw_id, &ub, topic_size);
         const bool success = sensor_msgs_msg_BatteryState_serialize_topic(&ub, &battery_state_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -934,7 +939,7 @@ void AP_DDS_Client::write_local_pose_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geometry_msgs_msg_PoseStamped_size_of_topic(&local_pose_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_POSE_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_POSE_PUB)].dw_id, &ub, topic_size);
         const bool success = geometry_msgs_msg_PoseStamped_serialize_topic(&ub, &local_pose_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -949,7 +954,7 @@ void AP_DDS_Client::write_tx_local_velocity_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geometry_msgs_msg_TwistStamped_size_of_topic(&tx_local_velocity_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_VELOCITY_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_VELOCITY_PUB)].dw_id, &ub, topic_size);
         const bool success = geometry_msgs_msg_TwistStamped_serialize_topic(&ub, &tx_local_velocity_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -964,7 +969,7 @@ void AP_DDS_Client::write_geo_pose_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geographic_msgs_msg_GeoPoseStamped_size_of_topic(&geo_pose_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::GEOPOSE_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::GEOPOSE_PUB)].dw_id, &ub, topic_size);
         const bool success = geographic_msgs_msg_GeoPoseStamped_serialize_topic(&ub, &geo_pose_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -979,7 +984,7 @@ void AP_DDS_Client::write_clock_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = rosgraph_msgs_msg_Clock_size_of_topic(&clock_topic, 0);
-        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::CLOCK_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::CLOCK_PUB)].dw_id, &ub, topic_size);
         const bool success = rosgraph_msgs_msg_Clock_serialize_topic(&ub, &clock_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -992,6 +997,10 @@ void AP_DDS_Client::update()
 {
     WITH_SEMAPHORE(csem);
     const auto cur_time_ms = AP_HAL::millis64();
+
+    // reset topic requests
+    memset(request_list, UXR_STATUS_OK, sizeof(request_list));
+    request_list_size = 0;
 
     if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
         update_topic(time_topic);
@@ -1036,6 +1045,89 @@ void AP_DDS_Client::update()
     }
 
     status_ok = uxr_run_session_time(&session, 1);
+  
+    if (cur_time_ms - last_stats_time_ms > DELAY_STATS_MS) {
+        uint64_t delta_update_count = update_count - last_update_count;
+        uint64_t delta_update_fail_count = update_fail_count - last_update_fail_count;
+        // uint64_t delta_time_ms = cur_time_ms - last_stats_time_ms;
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: updates: %llu / %llu, fail: %llu / %llu",
+            delta_update_count, update_count, delta_update_fail_count, update_fail_count);
+
+#if 0
+        // display last status
+        for (uint8_t i = 0; i < request_list_size; ++i) {
+            if (status_list[i] != UXR_STATUS_OK) {
+                switch (status_list[i]) {
+                    case UXR_STATUS_ERR_DDS_ERROR:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: DDS_ERROR", i);
+                        break;
+                    case UXR_STATUS_ERR_MISMATCH:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: MISMATCH", i);
+                        break;
+                    case UXR_STATUS_ERR_ALREADY_EXISTS:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: ALREADY_EXISTS", i);
+                        break;
+                    case UXR_STATUS_ERR_DENIED:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: DENIED", i);
+                        break;
+                    case UXR_STATUS_ERR_UNKNOWN_REFERENCE:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: UNKNOWN_REFERENCE", i);
+                        break;
+                    case UXR_STATUS_ERR_INVALID_DATA:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: INVALID_DATA", i);
+                        break;
+                    case UXR_STATUS_ERR_INCOMPATIBLE:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: INCOMPATIBLE", i);
+                        break;
+                    case UXR_STATUS_ERR_RESOURCES:
+                        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "DDS Client: status[%d]: RESOURCES", i);
+                        break;
+                    case UXR_STATUS_NONE:
+                        GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "DDS Client: status[%d]: NONE", i);
+                        break;
+                      default:
+                        break;
+                }
+            }
+        }
+#endif
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: requests: av: %.1f, max: %u, sum: %llu",
+            (float)request_list_size_sum/(float)update_count, request_list_size_max, request_list_size_sum);
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: status: pass: %llu, fail: %llu",
+            status_pass_count, status_fail_count);
+
+        last_stats_time_ms = cur_time_ms;
+        last_update_count = update_count;
+        last_update_fail_count = update_fail_count;
+    }
+
+    //! @note May be better to have short timeout with many misses than longer
+    //! timeout with lower miss rate, but cumulatively lower updates per min?
+    constexpr int timeout_ms = 10;
+    // recv_agent_ack = uxr_run_session_time(&session, timeout_ms);
+
+    // alternative with status (see: uxr/client/core/session/session_info.h)
+    recv_agent_ack = uxr_run_session_until_all_status(&session, timeout_ms,
+        request_list, status_list, request_list_size);
+
+    update_count++;
+    if (!recv_agent_ack) {
+        update_fail_count++;
+    }
+
+    // stats
+    request_list_size_sum += request_list_size;
+    request_list_size_max = MAX(request_list_size_max, request_list_size);
+    for (uint8_t i = 0; i < request_list_size; ++i) {
+        if (status_list[i] == UXR_STATUS_OK) {
+            status_pass_count++;
+        } else {
+            status_fail_count++;
+        }
+    }
 }
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_SITL

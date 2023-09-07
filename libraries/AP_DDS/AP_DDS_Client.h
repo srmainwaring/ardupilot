@@ -80,6 +80,22 @@ private:
     bool status_ok{false};
     bool connected{false};
 
+    // stats
+    uint64_t update_count = 0;
+    uint64_t update_fail_count = 0;
+    uint64_t last_update_count = 0;
+    uint64_t last_update_fail_count = 0;
+    uint64_t last_stats_time_ms;
+
+    // store request ids from `uxr_buffer_reply` and `uxr_prepare_output_stream`
+    uint16_t request_list[32];
+    uint8_t status_list[32];
+    uint8_t request_list_size;
+    uint8_t request_list_size_max = 0;
+    uint64_t request_list_size_sum = 0;
+    uint64_t status_pass_count = 0;
+    uint64_t status_fail_count = 0;
+
     static void update_topic(builtin_interfaces_msg_Time& msg);
     bool update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance) WARN_IF_UNUSED;
     static void populate_static_transforms(tf2_msgs_msg_TFMessage& msg);
