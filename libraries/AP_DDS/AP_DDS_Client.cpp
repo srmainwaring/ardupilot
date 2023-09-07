@@ -999,7 +999,8 @@ void AP_DDS_Client::update()
     const auto cur_time_ms = AP_HAL::millis64();
 
     // reset topic requests
-    memset(request_list, UXR_STATUS_OK, sizeof(request_list));
+    memset(request_list, 0, sizeof(request_list));
+    memset(status_list, 0, sizeof(status_list));
     request_list_size = 0;
 
     if (cur_time_ms - last_time_time_ms > DELAY_TIME_TOPIC_MS) {
@@ -1106,27 +1107,96 @@ void AP_DDS_Client::update()
 
     //! @note May be better to have short timeout with many misses than longer
     //! timeout with lower miss rate, but cumulatively lower updates per min?
-    constexpr int timeout_ms = 10;
-    // recv_agent_ack = uxr_run_session_time(&session, timeout_ms);
+    constexpr int timeout_ms = 5;
 
-    // alternative with status (see: uxr/client/core/session/session_info.h)
-    recv_agent_ack = uxr_run_session_until_all_status(&session, timeout_ms,
-        request_list, status_list, request_list_size);
-
+    // stats
     update_count++;
+    request_list_size_sum += request_list_size;
+    request_list_size_max = MAX(request_list_size_max, request_list_size);
+
+#if 1
+    bool recv_agent_ack = uxr_run_session_time(&session, timeout_ms);
+    // bool recv_agent_ack = uxr_run_session_until_confirm_delivery(&session, timeout_ms);
     if (!recv_agent_ack) {
-        update_fail_count++;
+        update_no_ack_count++;
+    }
+#else
+    // alternative with status (see: uxr/client/core/session/session_info.h)
+    bool recv_all_status = uxr_run_session_until_all_status(&session, timeout_ms,
+        request_list, status_list, request_list_size);
+    if (!recv_all_status) {
+        update_no_ack_count++;
     }
 
     // stats
-    request_list_size_sum += request_list_size;
-    request_list_size_max = MAX(request_list_size_max, request_list_size);
     for (uint8_t i = 0; i < request_list_size; ++i) {
-        if (status_list[i] == UXR_STATUS_OK) {
-            status_pass_count++;
-        } else {
-            status_fail_count++;
+        switch (status_list[i])
+        {
+        case UXR_STATUS_OK:
+            status_count.ok++;
+            break;
+        case UXR_STATUS_OK_MATCHED:
+            status_count.ok_matched++;
+            break;
+        case UXR_STATUS_ERR_DDS_ERROR:
+            status_count.err_dds_error++;
+            break;
+        case UXR_STATUS_ERR_MISMATCH:
+            status_count.err_mismatch++;
+            break;
+        case UXR_STATUS_ERR_ALREADY_EXISTS:
+            status_count.err_already_exists++;
+            break;
+        case UXR_STATUS_ERR_DENIED:
+            status_count.err_denied++;
+            break;
+        case UXR_STATUS_ERR_UNKNOWN_REFERENCE:
+            status_count.err_unknown_reference++;
+            break;
+        case UXR_STATUS_ERR_INVALID_DATA:
+            status_count.err_invalid_data++;
+            break;
+        case UXR_STATUS_ERR_INCOMPATIBLE:
+            status_count.err_incompatible++;
+            break;
+        case UXR_STATUS_ERR_RESOURCES:
+            status_count.err_resources++;
+            break;
+        case UXR_STATUS_NONE:
+        default:
+            status_count.none++;
+            break;
         }
+    }
+
+#endif
+
+    if (cur_time_ms - last_stats_time_ms > DELAY_STATS_MS) {
+        uint64_t delta_update_count = update_count - last_update_count;
+        uint64_t delta_update_no_ack_count = update_no_ack_count - last_update_no_ack_count;
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: updates: %llu / %llu, no ack: %llu / %llu",
+            delta_update_count, update_count, delta_update_no_ack_count, update_no_ack_count);
+
+        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: requests: all: %llu, av: %.1f, max: %u",
+            request_list_size_sum, (float)request_list_size_sum/(float)update_count, request_list_size_max);
+
+        // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: status: none: %llu, ok: %llu, err: %llu",
+        //     status_count.none,
+        //     status_count.ok +
+        //     status_count.ok_matched,
+        //     status_count.err_dds_error +
+        //     status_count.err_mismatch +
+        //     status_count.err_already_exists +
+        //     status_count.err_denied +
+        //     status_count.err_unknown_reference +
+        //     status_count.err_invalid_data +
+        //     status_count.err_incompatible +
+        //     status_count.err_resources);
+
+        last_stats_time_ms = cur_time_ms;
+        last_update_count = update_count;
+        last_update_no_ack_count = update_no_ack_count;
     }
 }
 
