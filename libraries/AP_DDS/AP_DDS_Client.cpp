@@ -725,16 +725,30 @@ bool AP_DDS_Client::init_session()
 
     // setup reliable stream buffers
     input_reliable_stream = new uint8_t[DDS_BUFFER_SIZE];
+    if (input_reliable_stream == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s input reliable stream allocation failed", msg_prefix);
+        return false;
+    }
     output_reliable_stream = new uint8_t[DDS_BUFFER_SIZE];
-    if (input_reliable_stream == nullptr || output_reliable_stream == nullptr) {
-        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Allocation failed", msg_prefix);
+    if (output_reliable_stream == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s output reliable stream allocation failed", msg_prefix);
         return false;
     }
 
     reliable_in = uxr_create_input_reliable_stream(&session, input_reliable_stream, DDS_BUFFER_SIZE, DDS_STREAM_HISTORY);
     reliable_out = uxr_create_output_reliable_stream(&session, output_reliable_stream, DDS_BUFFER_SIZE, DDS_STREAM_HISTORY);
 
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Init complete", msg_prefix);
+    // setup best effort stream buffers
+    output_besteffort_stream = new uint8_t[DDS_BUFFER_SIZE];
+    if (output_besteffort_stream == nullptr) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s output best effort stream allocation failed", msg_prefix);
+        return false;
+    }
+
+    besteffort_in = uxr_create_input_best_effort_stream(&session);
+    besteffort_out = uxr_create_output_best_effort_stream(&session, output_besteffort_stream, DDS_BUFFER_SIZE);
+
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s init complete", msg_prefix);
 
     return true;
 }
@@ -742,6 +756,19 @@ bool AP_DDS_Client::init_session()
 bool AP_DDS_Client::create()
 {
     WITH_SEMAPHORE(csem);
+
+    //! @note debug information for message sizes
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Request:   %u", sizeof(ardupilot_msgs_srv_ArmMotors_Request));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Response:  %u", sizeof(ardupilot_msgs_srv_ArmMotors_Response));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: builtin_interfaces_msg_Time:            %u", sizeof(builtin_interfaces_msg_Time));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geographic_msgs_msg_GeoPoseStamped:     %u", sizeof(geographic_msgs_msg_GeoPoseStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_PoseStamped:          %u", sizeof(geometry_msgs_msg_PoseStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_TwistStamped:         %u", sizeof(geometry_msgs_msg_TwistStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_BatteryState:           %u", sizeof(sensor_msgs_msg_BatteryState));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_Joy:                    %u", sizeof(sensor_msgs_msg_Joy));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_NavSatFix:              %u", sizeof(sensor_msgs_msg_NavSatFix));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: rosgraph_msgs_msg_Clock:                %u", sizeof(rosgraph_msgs_msg_Clock));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: tf2_msgs_msg_TFMessage:                 %u", sizeof(tf2_msgs_msg_TFMessage));
 
     // Participant
     const uxrObjectId participant_id = {
@@ -833,8 +860,18 @@ bool AP_DDS_Client::create()
                 // TODO add a failure log message sharing the status results
                 return false;
             } else {
+                switch (topics[i].dr_stream_type) {
+                case uxrStreamType::UXR_RELIABLE_STREAM:
+                    uxr_buffer_request_data(&session, reliable_out, topics[i].dr_id, reliable_in, &delivery_control);
+                    break;
+                case uxrStreamType::UXR_BEST_EFFORT_STREAM:
+                    uxr_buffer_request_data(&session, reliable_out, topics[i].dr_id, besteffort_in, &delivery_control);
+                    break;
+                default:
+                    GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Topic/Sub/Reader invalid stream type for index '%u'", msg_prefix, i);
+                    return false;
+                }
                 GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Topic/Sub/Reader session pass for index '%u'", msg_prefix, i);
-                uxr_buffer_request_data(&session, reliable_out, topics[i].dr_id, reliable_in, &delivery_control);
             }
         }
     }
@@ -859,11 +896,20 @@ bool AP_DDS_Client::create()
             if (!uxr_run_session_until_all_status(&session, requestTimeoutMs, &request, &status, 1)) {
                 GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Service/Replier session request failure for index '%u'", msg_prefix, i);
                 GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Status result '%u'", msg_prefix, status);
-                // TODO add a failure log message sharing the status results
                 return false;
             } else {
+                switch (services[i].rq_stream_type) {
+                case uxrStreamType::UXR_RELIABLE_STREAM:
+                    uxr_buffer_request_data(&session, reliable_out, rep_id, reliable_in, &delivery_control);
+                    break;
+                case uxrStreamType::UXR_BEST_EFFORT_STREAM:
+                    uxr_buffer_request_data(&session, reliable_out, rep_id, besteffort_in, &delivery_control);
+                    break;
+                default:
+                    GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Service/Replier invalid stream type for index '%u'", msg_prefix, i);
+                    return false;
+                }
                 GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Service/Replier session pass for index '%u'", msg_prefix, i);
-                uxr_buffer_request_data(&session, reliable_out, rep_id, reliable_in, &delivery_control);
             }
 
         } else if (strlen(services[i].req_profile_label) > 0) {
@@ -895,7 +941,7 @@ void AP_DDS_Client::write_nav_sat_fix_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = sensor_msgs_msg_NavSatFix_size_of_topic(&nav_sat_fix_topic, 0);
-        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::NAV_SAT_FIX_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, besteffort_out, topics[to_underlying(TopicIndex::NAV_SAT_FIX_PUB)].dw_id, &ub, topic_size);
         const bool success = sensor_msgs_msg_NavSatFix_serialize_topic(&ub, &nav_sat_fix_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -940,7 +986,7 @@ void AP_DDS_Client::write_local_pose_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geometry_msgs_msg_PoseStamped_size_of_topic(&local_pose_topic, 0);
-        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_POSE_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, besteffort_out, topics[to_underlying(TopicIndex::LOCAL_POSE_PUB)].dw_id, &ub, topic_size);
         const bool success = geometry_msgs_msg_PoseStamped_serialize_topic(&ub, &local_pose_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -955,7 +1001,7 @@ void AP_DDS_Client::write_tx_local_velocity_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geometry_msgs_msg_TwistStamped_size_of_topic(&tx_local_velocity_topic, 0);
-        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::LOCAL_VELOCITY_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, besteffort_out, topics[to_underlying(TopicIndex::LOCAL_VELOCITY_PUB)].dw_id, &ub, topic_size);
         const bool success = geometry_msgs_msg_TwistStamped_serialize_topic(&ub, &tx_local_velocity_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.
@@ -970,7 +1016,7 @@ void AP_DDS_Client::write_geo_pose_topic()
     if (connected) {
         ucdrBuffer ub {};
         const uint32_t topic_size = geographic_msgs_msg_GeoPoseStamped_size_of_topic(&geo_pose_topic, 0);
-        request_list[request_list_size++] = uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::GEOPOSE_PUB)].dw_id, &ub, topic_size);
+        request_list[request_list_size++] = uxr_prepare_output_stream(&session, besteffort_out, topics[to_underlying(TopicIndex::GEOPOSE_PUB)].dw_id, &ub, topic_size);
         const bool success = geographic_msgs_msg_GeoPoseStamped_serialize_topic(&ub, &geo_pose_topic);
         if (!success) {
             // TODO sometimes serialization fails on bootup. Determine why.

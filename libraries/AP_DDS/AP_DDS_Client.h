@@ -8,6 +8,7 @@
 #include "ardupilot_msgs/msg/GlobalPosition.h"
 #include "builtin_interfaces/msg/Time.h"
 
+#include "ardupilot_msgs/srv/ArmMotors.h"
 #include "sensor_msgs/msg/NavSatFix.h"
 #include "tf2_msgs/msg/TFMessage.h"
 #include "sensor_msgs/msg/BatteryState.h"
@@ -31,6 +32,7 @@
 #define DDS_STREAM_HISTORY  8
 #define DDS_BUFFER_SIZE     DDS_MTU * DDS_STREAM_HISTORY
 
+
 #if AP_DDS_UDP_ENABLED
 #include <AP_HAL/utility/Socket.h>
 #include <AP_Networking/AP_Networking_address.h>
@@ -52,8 +54,12 @@ private:
     // input and output stream
     uint8_t *input_reliable_stream;
     uint8_t *output_reliable_stream;
+    uint8_t *input_besteffort_stream;
+    uint8_t *output_besteffort_stream;
     uxrStreamId reliable_in;
     uxrStreamId reliable_out;
+    uxrStreamId besteffort_in;
+    uxrStreamId besteffort_out;
 
     // Outgoing Sensor and AHRS data
     builtin_interfaces_msg_Time time_topic;
@@ -73,6 +79,10 @@ private:
     tf2_msgs_msg_TFMessage tx_static_transforms_topic;
     // incoming transforms
     static tf2_msgs_msg_TFMessage rx_dynamic_transforms_topic;
+
+    // services
+    ardupilot_msgs_srv_ArmMotors_Request arm_motors_request;
+    ardupilot_msgs_srv_ArmMotors_Response arm_motors_response;
 
     HAL_Semaphore csem;
 
@@ -236,6 +246,8 @@ public:
         const char* topic_profile_label;
         const char* dw_profile_label;
         const char* dr_profile_label;
+        uxrStreamType dw_stream_type;
+        uxrStreamType dr_stream_type;
     };
     static const struct Topic_table topics[];
 
@@ -252,6 +264,12 @@ public:
 
         //! @brief Profile Label for the service replier
         const char* rep_profile_label;
+
+        //! @brief Stream type for requestor
+        uxrStreamType rq_stream_type;
+
+        //! @brief Stream type for replier
+        uxrStreamType rr_stream_type;
     };
     static const struct Service_table services[];
 };
