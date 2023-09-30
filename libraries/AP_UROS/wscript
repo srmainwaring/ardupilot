@@ -2,42 +2,35 @@
 
 import pathlib
 
+distro = 'uros-macos-13.4-arm64' 
+uros_include_dir = f'modules/ardupilot_uros/{distro}/uros/include' 
+uros_library_dir = f'modules/ardupilot_uros/{distro}/uros/lib' 
+
 
 def configure(cfg):
+    
     extra_src_inc = [
-        'libraries/AP_UROS/uros/include',
-        'libraries/AP_UROS/uros/include/rcl',
-        'libraries/AP_UROS/uros/include/rcl_action',
-        'libraries/AP_UROS/uros/include/rcutils',
-        'libraries/AP_UROS/uros/include/rmw',
-        'libraries/AP_UROS/uros/include/rosidl_runtime_c',
-        'libraries/AP_UROS/uros/include/rosidl_typesupport_interface',
-        'libraries/AP_UROS/uros/include/rosidl_typesupport_introspection_c',
-        'libraries/AP_UROS/uros/include/action_msgs',
-        'libraries/AP_UROS/uros/include/builtin_interfaces',
-        'libraries/AP_UROS/uros/include/geometry_msgs',
-        'libraries/AP_UROS/uros/include/rosgraph_msgs',
-        'libraries/AP_UROS/uros/include/sensor_msgs',
-        'libraries/AP_UROS/uros/include/std_msgs',
-        'libraries/AP_UROS/uros/include/tf2_msgs',
-        'libraries/AP_UROS/uros/include/unique_identifier_msgs',
+        f'{uros_include_dir}',
+        f'{uros_include_dir}/rcl',
+        f'{uros_include_dir}/rcl_action',
+        f'{uros_include_dir}/rcutils',
+        f'{uros_include_dir}/rmw',
+        f'{uros_include_dir}/rosidl_runtime_c',
+        f'{uros_include_dir}/rosidl_typesupport_interface',
+        f'{uros_include_dir}/rosidl_typesupport_introspection_c',
+        f'{uros_include_dir}/action_msgs',
+        f'{uros_include_dir}/builtin_interfaces',
+        f'{uros_include_dir}/geometry_msgs',
+        f'{uros_include_dir}/rosgraph_msgs',
+        f'{uros_include_dir}/sensor_msgs',
+        f'{uros_include_dir}/std_msgs',
+        f'{uros_include_dir}/tf2_msgs',
+        f'{uros_include_dir}/unique_identifier_msgs',
     ]
     for inc in extra_src_inc:
         cfg.env.INCLUDES += [str(cfg.srcnode.make_node(inc))]
 
-    # Suppress build error:
-    #
-    # ../../libraries/AP_UROS/uros/include/rcutils/rcutils/error_handling.h:139:5:
-    # fatal error: '__STDC_VERSION__' is not defined, evaluates to 0 [-Wundef]
-    # #if __STDC_VERSION__ >= 201112L && !defined(RCUTILS_AVOID_DYNAMIC_ALLOCATION)
-    #
-    # Better to edit error_handling.h:139:5 ??
-    # 
-    # #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L && !defined(RCUTILS_AVOID_DYNAMIC_ALLOCATION)
-    # 
-    cfg.env.AP_LIB_EXTRA_CXXFLAGS['AP_UROS'] = ['-Wno-undef']
-
 
 def build(bld):
     bld.env.LIB += ['microros']
-    bld.env.LIBPATH += [bld.env.SRCROOT + '/libraries/AP_UROS/uros/']
+    bld.env.LIBPATH += [bld.env.SRCROOT + f'/{uros_library_dir}/']
