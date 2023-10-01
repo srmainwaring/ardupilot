@@ -568,8 +568,8 @@ void AP_UROS_Client::on_tf_msg_trampoline(const void * msgin, void* context)
 void AP_UROS_Client::on_tf_msg(const tf2_msgs__msg__TFMessage * msg)
 {
     if (msg->transforms.size > 0) {
-        uros_info("UROS: tf2_msgs/TFMessage with size: %lu",
-            msg->transforms.size);
+        uros_info("UROS: tf2_msgs/TFMessage with size: %u",
+            (uint16_t)msg->transforms.size);
     } else {
         uros_error("UROS: tf2_msgs/TFMessage with no content");
     }
