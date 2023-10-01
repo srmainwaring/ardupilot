@@ -34,28 +34,34 @@ if(NOT DEFINED ARDUPILOT_CMD)
     set(ARDUPILOT_CMD "none")
 endif()
 
+set(ARDUPILOT_UROS_LIBRARY_DIR "${ARDUPILOT_LIB}/../../../modules/ardupilot_uros/uros-esp-idf-4.4-custom/uros/lib")
+
 IF(${ARDUPILOT_CMD} STREQUAL "plane")
     message("Building for plane")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libarduplane.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduPlane_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_UROS_LIBRARY_DIR}/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "copter")
     message("Building for copter")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libarducopter.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduCopter_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_UROS_LIBRARY_DIR}/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "rover")
     message("Building for rover")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libardurover.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libRover_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_UROS_LIBRARY_DIR}/libmicroros.a")
 ENDIF()
 
 IF(${ARDUPILOT_CMD} STREQUAL "sub")
     message("Building for submarine")
     target_link_libraries(${elf_file} "${ARDUPILOT_BIN}/libardusub.a")
     target_link_libraries(${elf_file} "${ARDUPILOT_LIB}/libArduSub_libs.a")
+    target_link_libraries(${elf_file} "${ARDUPILOT_UROS_LIBRARY_DIR}/libmicroros.a")
 ENDIF()
 
 add_custom_target(showinc ALL
