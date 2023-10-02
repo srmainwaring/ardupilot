@@ -612,17 +612,17 @@ void AP_UROS_Client::arm_motors_callback(
     ardupilot_msgs__srv__ArmMotors_Response *res)
 {
     if (req->arm) {
-        uros_info("Request for arming received");
+        uros_info("UROS: Request for arming received");
         res->result = AP::arming().arm(AP_Arming::Method::DDS);
     } else {
-        uros_info("Request for disarming received");
+        uros_info("UROS: Request for disarming received");
         res->result = AP::arming().disarm(AP_Arming::Method::DDS);
     }
 
     if (res->result) {
-        uros_info("Request for Arming/Disarming : SUCCESS");
+        uros_info("UROS: Request for Arming/Disarming : SUCCESS");
     } else {
-        uros_info("Request for Arming/Disarming : FAIL");
+        uros_info("UROS: Request for Arming/Disarming : FAIL");
     }
 }
 
@@ -645,9 +645,9 @@ void AP_UROS_Client::mode_switch_callback(
     res->curr_mode = AP::vehicle()->get_mode();
 
     if (res->status) {
-        uros_info("Request for Mode Switch : SUCCESS");
+        uros_info("UROS: Request for Mode Switch : SUCCESS");
     } else {
-        uros_info("Request for Mode Switch : FAIL");
+        uros_info("UROS: Request for Mode Switch : FAIL");
     }
 }
 
