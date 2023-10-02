@@ -8,14 +8,13 @@
 
 void AP_UROS_External_Odom::handle_external_odom(const tf2_msgs__msg__TFMessage& msg)
 {
-#if 0
     auto *visual_odom = AP::visualodom();
     if (visual_odom == nullptr) {
         return;
     }
 
-    for (size_t i = 0; i < msg.transforms_size; i++) {
-        const auto& ros_transform_stamped = msg.transforms[i];
+    for (size_t i = 0; i < msg.transforms.size; i++) {
+        const auto& ros_transform_stamped = msg.transforms.data[i];
         if (!is_odometry_frame(ros_transform_stamped)) {
             continue;
         }
@@ -42,24 +41,19 @@ void AP_UROS_External_Odom::handle_external_odom(const tf2_msgs__msg__TFMessage&
         visual_odom->handle_pose_estimate(remote_time_us, time_ms, ap_position.x, ap_position.y, ap_position.z, ap_rotation, posErr, angErr, reset_counter);
 
     }
-#endif
 }
 
 bool AP_UROS_External_Odom::is_odometry_frame(const geometry_msgs__msg__TransformStamped& msg)
 {
-#if 0
     char odom_parent[] = "odom";
     char odom_child[] = "base_link";
     // Assume the frame ID's are null terminated.
-    return (strcmp(msg.header.frame_id, odom_parent) == 0) &&
-           (strcmp(msg.child_frame_id, odom_child) == 0);
-#endif
-    return true;
+    return (strcmp(msg.header.frame_id.data, odom_parent) == 0) &&
+           (strcmp(msg.child_frame_id.data, odom_child) == 0);
 }
 
 void AP_UROS_External_Odom::convert_transform(const geometry_msgs__msg__Transform& ros_transform, Vector3f& translation, Quaternion& rotation)
 {
-#if 0
     // convert from x-forward, y-left, z-up to NED
     // https://github.com/mavlink/mavros/issues/49#issuecomment-51614130
     translation = {
@@ -75,7 +69,6 @@ void AP_UROS_External_Odom::convert_transform(const geometry_msgs__msg__Transfor
     rotation.q2 = ros_transform.rotation.x;
     rotation.q3 = -ros_transform.rotation.y;
     rotation.q4 = -ros_transform.rotation.z;
-#endif
 }
 
 #endif // AP_UROS_VISUALODOM_ENABLED
