@@ -560,6 +560,23 @@ void AP_UROS_Client::on_joy_msg(const sensor_msgs__msg__Joy *msg)
     }
 }
 
+void AP_UROS_Client::on_velocity_control_msg_trampoline(const void * msgin, void* context)
+{
+    AP_UROS_Client *uros = (AP_UROS_Client*)context;
+    const geometry_msgs__msg__TwistStamped *msg = (const geometry_msgs__msg__TwistStamped *)msgin;
+    uros->on_velocity_control_msg(msg);
+}
+
+void AP_UROS_Client::on_velocity_control_msg(const geometry_msgs__msg__TwistStamped *msg)
+{
+    // if (msg->axes.size >= 4) {
+    //     uros_info("UROS: sensor_msgs/Joy: %f, %f, %f, %f",
+    //         msg->axes.data[0], msg->axes.data[1], msg->axes.data[2], msg->axes.data[3]);
+    // } else {
+    //     uros_error("UROS: sensor_msgs/Joy must have axes size >= 4");
+    // }
+}
+
 void AP_UROS_Client::on_tf_msg_trampoline(const void * msgin, void* context)
 {
     AP_UROS_Client *uros = (AP_UROS_Client*)context;
@@ -1000,6 +1017,22 @@ bool AP_UROS_Client::create()
         uros_debug("UROS: configure joy msg... OK");
     }
     {
+        rx_velocity_control_conf.max_string_capacity = 32;
+        rx_velocity_control_conf.max_ros2_type_sequence_capacity = 32;
+        rx_velocity_control_conf.max_basic_type_sequence_capacity = 2;
+
+        rx_velocity_control_mem_init = micro_ros_utilities_create_message_memory(
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+            &rx_velocity_control_msg,
+            rx_velocity_control_conf
+        );
+        if (!rx_velocity_control_mem_init) {
+            uros_error("UROS: configure velocity control msg... FAILED");
+            return false;
+        }
+        uros_debug("UROS: configure velocity control msg... OK");
+    }
+    {
         rx_dynamic_transforms_conf.max_string_capacity = 32;
         rx_dynamic_transforms_conf.max_ros2_type_sequence_capacity = 16;
         rx_dynamic_transforms_conf.max_basic_type_sequence_capacity = 16;
@@ -1148,6 +1181,20 @@ bool AP_UROS_Client::create()
         uros_debug("UROS: create joy subscriber... OK");
     }
 
+    if (rx_velocity_control_mem_init) {
+        rcl_ret_t rc = rclc_subscription_init_default(
+            &rx_velocity_control_subscriber,
+            &node,
+            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, TwistStamped),
+            "ap/cmd_vel");
+        if (!(rx_velocity_control_sub_init = (rc == RCL_RET_OK))) {
+            uros_error("UROS: create velocity control subscriber... FAILED (%d)", (int16_t)rc);
+            return false;
+        }
+        number_of_subscribers++;
+        uros_debug("UROS: create velocity control subscriber... OK");
+    }
+
     if (rx_dynamic_transforms_mem_init) {
         rcl_ret_t rc = rclc_subscription_init_default(
             &rx_dynamic_transforms_subscriber,
@@ -1257,6 +1304,11 @@ bool AP_UROS_Client::create()
         UROS_CHECK(rclc_executor_add_subscription_with_context(&executor, &rx_joy_subscriber,
             &rx_joy_msg, &AP_UROS_Client::on_joy_msg_trampoline, this, ON_NEW_DATA),
             "add subscription joy to executor");
+    }
+    if (rx_velocity_control_sub_init) {
+        UROS_CHECK(rclc_executor_add_subscription_with_context(&executor, &rx_velocity_control_subscriber,
+            &rx_velocity_control_msg, &AP_UROS_Client::on_velocity_control_msg_trampoline, this, ON_NEW_DATA),
+            "add subscription velocity control to executor");
     }
     if (rx_dynamic_transforms_sub_init) {
         UROS_CHECK(rclc_executor_add_subscription_with_context(&executor, &rx_dynamic_transforms_subscriber,

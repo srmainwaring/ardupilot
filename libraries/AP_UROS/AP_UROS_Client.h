@@ -137,6 +137,13 @@ private:
     bool rx_joy_mem_init = false;
     bool rx_joy_sub_init = false;
 
+    // velocity control (ROS REP 147)
+    rcl_subscription_t rx_velocity_control_subscriber;
+    geometry_msgs__msg__TwistStamped rx_velocity_control_msg;
+    micro_ros_utilities_memory_conf_t rx_velocity_control_conf;
+    bool rx_velocity_control_mem_init = false;
+    bool rx_velocity_control_sub_init = false;
+
     // incoming transforms
     rcl_subscription_t rx_dynamic_transforms_subscriber;
     tf2_msgs__msg__TFMessage rx_dynamic_transforms_msg;
@@ -182,6 +189,9 @@ private:
     // subscribers
     static void on_joy_msg_trampoline(const void * msgin, void *context);
     void on_joy_msg(const sensor_msgs__msg__Joy * msg);
+
+    static void on_velocity_control_msg_trampoline(const void * msgin, void *context);
+    void on_velocity_control_msg(const geometry_msgs__msg__TwistStamped * msg);
 
     static void on_tf_msg_trampoline(const void * msgin, void *context);
     void on_tf_msg(const tf2_msgs__msg__TFMessage * msg);
