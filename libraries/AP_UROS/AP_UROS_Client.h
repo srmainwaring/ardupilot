@@ -36,23 +36,7 @@
 #include "fcntl.h"
 
 #include <AP_Param/AP_Param.h>
-
-#if CONFIG_HAL_BOARD == HAL_BOARD_ESP32
-// esp32 - free-rtos
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/portmacro.h>
-#endif
-
-// Only enable parameter server on SITL or EPS32
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL || CONFIG_HAL_BOARD == HAL_BOARD_ESP32
-#define AP_UROS_PARAM_SRV_ENABLED 1
-#else
-#define AP_UROS_PARAM_SRV_ENABLED 0
-#endif
-
-// UDP only on SITL for now
-#define AP_UROS_UDP_ENABLED (CONFIG_HAL_BOARD == HAL_BOARD_SITL)
+#include "AP_UROS_config.h"
 
 #if AP_UROS_UDP_ENABLED
 #include <AP_HAL/utility/Socket.h>

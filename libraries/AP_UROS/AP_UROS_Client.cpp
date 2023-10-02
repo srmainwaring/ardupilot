@@ -25,6 +25,12 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 
+#include <AP_ExternalControl/AP_ExternalControl_config.h>
+#if AP_EXTERNAL_CONTROL_ENABLED
+#include "AP_UROS_ExternalControl.h"
+#endif
+#include "AP_UROS_Frames.h"
+
 #define UROS_DEBUG 1
 #define UROS_INFO 1
 #define UROS_ERROR 1
@@ -79,19 +85,12 @@
     }\
 }
 
-
-// topic constants
-static char WGS_84_FRAME_ID[] = "WGS-84";
-// https://www.ros.org/reps/rep-0105.html#base-link
-static char BASE_LINK_FRAME_ID[] = "base_link";
-
 // publishers
 constexpr uint16_t DELAY_BATTERY_STATE_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
 constexpr uint16_t DELAY_GEO_POSE_TOPIC_MS = 33;
 constexpr uint16_t DELAY_LOCAL_POSE_TOPIC_MS = 33;
 constexpr uint16_t DELAY_LOCAL_TWIST_TOPIC_MS = 33;
-// constexpr uint16_t DELAY_NAV_SAT_FIX_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_STATIC_TRANSFORM_TOPIC_MS = 1000;
 constexpr uint16_t DELAY_TIME_TOPIC_MS = 10;
 
@@ -552,6 +551,7 @@ void AP_UROS_Client::on_joy_msg_trampoline(const void * msgin, void* context)
 
 void AP_UROS_Client::on_joy_msg(const sensor_msgs__msg__Joy *msg)
 {
+    //! @todo(srmainwaring) implement joystick RC control to AP
     if (msg->axes.size >= 4) {
         uros_info("UROS: sensor_msgs/Joy: %f, %f, %f, %f",
             msg->axes.data[0], msg->axes.data[1], msg->axes.data[2], msg->axes.data[3]);
@@ -569,12 +569,11 @@ void AP_UROS_Client::on_velocity_control_msg_trampoline(const void * msgin, void
 
 void AP_UROS_Client::on_velocity_control_msg(const geometry_msgs__msg__TwistStamped *msg)
 {
-    // if (msg->axes.size >= 4) {
-    //     uros_info("UROS: sensor_msgs/Joy: %f, %f, %f, %f",
-    //         msg->axes.data[0], msg->axes.data[1], msg->axes.data[2], msg->axes.data[3]);
-    // } else {
-    //     uros_error("UROS: sensor_msgs/Joy must have axes size >= 4");
-    // }
+#if AP_EXTERNAL_CONTROL_ENABLED
+    if (!AP_UROS_External_Control::handle_velocity_control(*msg)) {
+        // TODO #23430 handle velocity control failure through rosout, throttled.
+    }
+#endif // AP_EXTERNAL_CONTROL_ENABLED
 }
 
 void AP_UROS_Client::on_tf_msg_trampoline(const void * msgin, void* context)
