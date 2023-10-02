@@ -15,13 +15,14 @@
 #include <driver/uart.h>
 #endif
 
+#include <AP_AHRS/AP_AHRS.h>
+#include <AP_Arming/AP_Arming.h>
+#include <AP_BattMonitor/AP_BattMonitor.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
-#include <AP_RTC/AP_RTC.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_RTC/AP_RTC.h>
 #include <GCS_MAVLink/GCS.h>
-#include <AP_BattMonitor/AP_BattMonitor.h>
-#include <AP_AHRS/AP_AHRS.h>
 
 #define UROS_DEBUG 1
 #define UROS_INFO 1
@@ -591,8 +592,19 @@ void AP_UROS_Client::arm_motors_callback(
     const ardupilot_msgs__srv__ArmMotors_Request *req,
     ardupilot_msgs__srv__ArmMotors_Response *res)
 {
-    uros_info("UROS: ardupilot_msgs/ArmMotors request: %d", (int)req->arm);
-    res->result = req->arm;
+    if (req->arm) {
+        uros_info("Request for arming received");
+        res->result = AP::arming().arm(AP_Arming::Method::DDS);
+    } else {
+        uros_info("Request for disarming received");
+        res->result = AP::arming().disarm(AP_Arming::Method::DDS);
+    }
+
+    if (res->result) {
+        uros_info("Request for Arming/Disarming : SUCCESS");
+    } else {
+        uros_info("Request for Arming/Disarming : FAIL");
+    }
 }
 
 void AP_UROS_Client::mode_switch_callback_trampoline(
