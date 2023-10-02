@@ -16,6 +16,7 @@
 
 // ROS msgs
 #include <ardupilot_msgs/srv/arm_motors.h>
+#include <ardupilot_msgs/srv/mode_switch.h>
 #include <builtin_interfaces/msg/time.h>
 #include <geographic_msgs/msg/geo_pose_stamped.h>
 #include <geometry_msgs/msg/pose_stamped.h>
@@ -149,6 +150,11 @@ private:
     ardupilot_msgs__srv__ArmMotors_Response arm_motors_res;
     bool arm_motors_srv_init = false;
 
+    rcl_service_t mode_switch_service;
+    ardupilot_msgs__srv__ModeSwitch_Request mode_switch_req;
+    ardupilot_msgs__srv__ModeSwitch_Response mode_switch_res;
+    bool mode_switch_srv_init = false;
+
 #if AP_UROS_PARAM_SRV_ENABLED
     // parameter server
     rclc_parameter_server_t param_server;
@@ -185,6 +191,11 @@ private:
     void arm_motors_callback(
         const ardupilot_msgs__srv__ArmMotors_Request *req,
         ardupilot_msgs__srv__ArmMotors_Response *res);
+
+    static void mode_switch_callback_trampoline(const void *req, void *res, void *context);
+    void mode_switch_callback(
+        const ardupilot_msgs__srv__ModeSwitch_Request *req,
+        ardupilot_msgs__srv__ModeSwitch_Response *res);
 
 #if AP_UROS_PARAM_SRV_ENABLED
     // parameter server callback

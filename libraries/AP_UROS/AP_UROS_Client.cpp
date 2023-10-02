@@ -595,6 +595,25 @@ void AP_UROS_Client::arm_motors_callback(
     res->result = req->arm;
 }
 
+void AP_UROS_Client::mode_switch_callback_trampoline(
+    const void *req, void *res, void *context)
+{
+    AP_UROS_Client *uros = (AP_UROS_Client*)context;
+        ardupilot_msgs__srv__ModeSwitch_Request *req_in =
+        (ardupilot_msgs__srv__ModeSwitch_Request *) req;
+    ardupilot_msgs__srv__ModeSwitch_Response *res_in =
+        (ardupilot_msgs__srv__ModeSwitch_Response *) res;
+    uros->mode_switch_callback(req_in, res_in);
+}
+
+void AP_UROS_Client::mode_switch_callback(
+    const ardupilot_msgs__srv__ModeSwitch_Request *req,
+    ardupilot_msgs__srv__ModeSwitch_Response *res)
+{
+    uros_info("UROS: ardupilot_msgs/ModeSwitch request: %d", (int)req->mode);
+    res->status = true;
+}
+
 #if AP_UROS_PARAM_SRV_ENABLED
 // parameter server callback
 bool AP_UROS_Client::on_parameter_changed_trampoline(
@@ -1141,6 +1160,20 @@ bool AP_UROS_Client::create()
         uros_debug("UROS: create arm_motors service... OK");
     }
 
+    {
+        rcl_ret_t rc = rclc_service_init_default(
+            &mode_switch_service,
+            &node,
+            ROSIDL_GET_SRV_TYPE_SUPPORT(ardupilot_msgs, srv, ModeSwitch),
+            "/ap/mode_switch");
+        if (!(mode_switch_srv_init = (rc == RCL_RET_OK))) {
+            uros_error("UROS: create mode_switch service... FAILED (%d)", (int16_t)rc);
+            return false;
+        }
+        number_of_services++;
+        uros_debug("UROS: create mode_switch service... OK");
+    }
+
 #if AP_UROS_PARAM_SRV_ENABLED
     // create parameter server
     {
@@ -1218,6 +1251,12 @@ bool AP_UROS_Client::create()
             &arm_motors_req, &arm_motors_res,
             &AP_UROS_Client::arm_motors_callback_trampoline, this),
             "add service arm motors to executor");
+    }
+    if (mode_switch_srv_init) {
+        UROS_CHECK(rclc_executor_add_service_with_context(&executor, &mode_switch_service,
+            &mode_switch_req, &mode_switch_res,
+            &AP_UROS_Client::mode_switch_callback_trampoline, this),
+            "add service mode switch to executor");
     }
 
 #if AP_UROS_PARAM_SRV_ENABLED
