@@ -22,6 +22,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_RTC/AP_RTC.h>
+#include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 
 #define UROS_DEBUG 1
@@ -622,8 +623,14 @@ void AP_UROS_Client::mode_switch_callback(
     const ardupilot_msgs__srv__ModeSwitch_Request *req,
     ardupilot_msgs__srv__ModeSwitch_Response *res)
 {
-    uros_info("UROS: ardupilot_msgs/ModeSwitch request: %d", (int)req->mode);
-    res->status = true;
+    res->status = AP::vehicle()->set_mode(req->mode, ModeReason::DDS_COMMAND);
+    res->curr_mode = AP::vehicle()->get_mode();
+
+    if (res->status) {
+        uros_info("Request for Mode Switch : SUCCESS");
+    } else {
+        uros_info("Request for Mode Switch : FAIL");
+    }
 }
 
 #if AP_UROS_PARAM_SRV_ENABLED
