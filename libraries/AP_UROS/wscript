@@ -1,13 +1,50 @@
 #!/usr/bin/env python3
 
-import pathlib
-
-distro = 'uros-macos-13.4-arm64' 
-uros_include_dir = f'modules/ardupilot_uros/{distro}/uros/include' 
-uros_library_dir = f'modules/ardupilot_uros/{distro}/uros/lib' 
+import platform
 
 
 def configure(cfg):
+    global uros_include_dir 
+    global uros_library_dir 
+    
+    host_system = platform.system()
+    host_processor = platform.processor()
+    host_machine = platform.machine()
+    host_release = platform.release()       # kernel version
+    toolchain = cfg.env.TOOLCHAIN
+
+    print('host_system:     {}'.format(host_system))
+    print('host_processor:  {}'.format(host_processor))
+    print('host_machine:    {}'.format(host_machine))
+    print('host_release:    {}'.format(host_release))
+    print('toolchain:       {}'.format(toolchain))
+
+    distro = None
+    if toolchain == 'native':
+        if host_system == 'Darwin':
+            if host_machine == 'amd64':
+                distro = 'uros-macos-13.4-amd64'
+            elif host_machine == 'arm64':
+                distro = 'uros-macos-13.4-arm64'
+        elif host_system == 'Linux':
+            if host_machine == 'amd64':
+                distro = 'uros-ubuntu-22-amd64'
+            elif host_machine == 'arm64':
+                distro = 'uros-ubuntu-22-arm64'
+        else:
+            print('Cannot configure AP_UROS. Unsupported host: {}'.format(host_system))
+            return
+    elif toolchain == 'arm-none-eabi':
+        distro = 'uros-stm32-m7-custom'
+    elif toolchain == 'xtensa-esp32-elf':
+        distro = 'uros-esp-idf-4.4-custom'
+    else:
+        print('Cannot configure AP_UROS. Unsupported toolchain: {}'.format(toolchain))
+        return
+
+    uros_include_dir = f'modules/ardupilot_uros/{distro}/uros/include' 
+    uros_library_dir = f'modules/ardupilot_uros/{distro}/uros/lib' 
+
     extra_src_inc = [
         f'{uros_include_dir}',
         f'{uros_include_dir}/rcl',
@@ -37,5 +74,7 @@ def configure(cfg):
 
 
 def build(bld):
+    global uros_library_dir 
+
     bld.env.LIB += ['microros']
     bld.env.LIBPATH += [bld.env.SRCROOT + f'/{uros_library_dir}/']
