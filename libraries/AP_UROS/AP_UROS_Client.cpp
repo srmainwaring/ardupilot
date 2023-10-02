@@ -30,6 +30,7 @@
 #include "AP_UROS_ExternalControl.h"
 #endif
 #include "AP_UROS_Frames.h"
+#include "AP_UROS_External_Odom.h"
 
 #define UROS_DEBUG 1
 #define UROS_INFO 1
@@ -586,8 +587,9 @@ void AP_UROS_Client::on_tf_msg_trampoline(const void * msgin, void* context)
 void AP_UROS_Client::on_tf_msg(const tf2_msgs__msg__TFMessage * msg)
 {
     if (msg->transforms.size > 0) {
-        uros_info("UROS: tf2_msgs/TFMessage with size: %u",
-            (uint16_t)msg->transforms.size);
+#if AP_UROS_VISUALODOM_ENABLED
+        AP_UROS_External_Odom::handle_external_odom(*msg);
+#endif // AP_UROS_VISUALODOM_ENABLED
     } else {
         uros_error("UROS: tf2_msgs/TFMessage with no content");
     }
