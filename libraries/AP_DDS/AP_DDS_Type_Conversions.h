@@ -20,14 +20,10 @@ public:
 
 // string specialisations
 template <>
-const char* string_data(const char* str) {
-    return str;
-}
+const char* string_data(const char* str);
 
 template <>
-char* mutable_string_data(char* str) {
-    return str;
-}
+char* mutable_string_data(char* str);
 
 // transform specialisations
 template <>
@@ -42,15 +38,11 @@ struct mutable_transforms_size_type<tf2_msgs_msg_TFMessage>{
 
 template <>
 typename transforms_size_type<tf2_msgs_msg_TFMessage>::type
-transforms_size(const tf2_msgs_msg_TFMessage& msg) {
-    return msg.transforms_size;
-}
+transforms_size(const tf2_msgs_msg_TFMessage& msg);
 
 template <>
 typename mutable_transforms_size_type<tf2_msgs_msg_TFMessage>::type
-mutable_transforms_size(tf2_msgs_msg_TFMessage& msg) {
-    return msg.transforms_size;
-}
+mutable_transforms_size(tf2_msgs_msg_TFMessage& msg);
 
 template <>
 struct transforms_type<tf2_msgs_msg_TFMessage>{
@@ -64,14 +56,10 @@ struct mutable_transforms_type<tf2_msgs_msg_TFMessage>{
 
 template <>
 typename transforms_type<tf2_msgs_msg_TFMessage>::type
-transforms_data(const tf2_msgs_msg_TFMessage& msg) {
-    return msg.transforms;
-}
+transforms_data(const tf2_msgs_msg_TFMessage& msg);
 
 template <>
 typename mutable_transforms_type<tf2_msgs_msg_TFMessage>::type
-mutable_transforms_data(tf2_msgs_msg_TFMessage& msg) {
-    return msg.transforms;
-}
+mutable_transforms_data(tf2_msgs_msg_TFMessage& msg);
 
 #endif // AP_DDS_ENABLED
