@@ -81,8 +81,8 @@ void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time& msg)
 
 bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
 {
-    //AP_ROS_Client::update_nav_sat_fix(msg);
-#if 1
+    return AP_ROS_Client::update_nav_sat_fix(msg, instance, last_nav_sat_fix_time_ms);
+#if 0
     // Add a lambda that takes in navsatfix msg and populates the cov
     // Make it constexpr if possible
     // https://www.fluentcpp.com/2021/12/13/the-evolutions-of-lambdas-in-c14-c17-and-c20/
@@ -217,7 +217,7 @@ void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
 
 void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance)
 {
-    //AP_ROS_Client::update_battery_state(msg);
+    //AP_ROS_Client::update_battery_state(msg, instance);
 #if 1
     if (instance >= AP_BATT_MONITOR_MAX_INSTANCES) {
         return;
