@@ -5,6 +5,8 @@
 #include <AP_VisualOdom/AP_VisualOdom.h>
 #include <GCS_MAVLink/GCS.h>
 
+#include "AP_ROS_TypeConversions.h"
+
 class AP_ROS_External_Odom
 {
 public:
@@ -34,12 +36,12 @@ void AP_ROS_External_Odom::handle_external_odom(const TFMessage& msg)
         return;
     }
 
-    for (size_t i = 0; i < msg.transforms.size; i++) {
-        const auto& ros_transform_stamped = msg.transforms.data[i];
+    for (size_t i = 0; i < transforms_size<TFMessage>(msg); i++) {
+        const auto& ros_transform_stamped = transforms_data<TFMessage>(msg)[i];
         if (!is_odometry_frame(ros_transform_stamped)) {
             continue;
         }
-        const uint64_t remote_time_us {AP_UROS_Type_Conversions::time_u64_micros(ros_transform_stamped.header.stamp)};
+        const uint64_t remote_time_us {AP_ROS_TypeConversions::time_u64_micros(ros_transform_stamped.header.stamp)};
 
         Vector3f ap_position;
         Quaternion ap_rotation;
@@ -70,8 +72,8 @@ bool AP_ROS_External_Odom::is_odometry_frame(const TransformStamped& msg)
     char odom_parent[] = "odom";
     char odom_child[] = "base_link";
     // Assume the frame ID's are null terminated.
-    return (strcmp(msg.header.frame_id.data, odom_parent) == 0) &&
-           (strcmp(msg.child_frame_id.data, odom_child) == 0);
+    return (strcmp(string_data(msg.header.frame_id), odom_parent) == 0) &&
+           (strcmp(string_data(msg.child_frame_id), odom_child) == 0);
 }
 
 template <typename Transform>
