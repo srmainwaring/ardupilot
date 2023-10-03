@@ -42,4 +42,11 @@ mutable_transforms_data(tf2_msgs_msg_TFMessage& msg) {
     return msg.transforms;
 }
 
+// cell_voltage specialisations
+template <>
+typename mutable_cell_voltage_type<sensor_msgs_msg_BatteryState>::type
+mutable_cell_voltage_data(sensor_msgs_msg_BatteryState& msg) {
+    return msg.cell_voltage;
+}
+
 #endif // AP_DDS_ENABLED

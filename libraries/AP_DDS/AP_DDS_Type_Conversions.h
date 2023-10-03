@@ -8,6 +8,7 @@
 
 #include "builtin_interfaces/msg/Time.h"
 #include "geometry_msgs/msg/TransformStamped.h"
+#include "sensor_msgs/msg/BatteryState.h"
 #include "tf2_msgs/msg/TFMessage.h"
 
 class AP_DDS_Type_Conversions
@@ -61,5 +62,15 @@ transforms_data(const tf2_msgs_msg_TFMessage& msg);
 template <>
 typename mutable_transforms_type<tf2_msgs_msg_TFMessage>::type
 mutable_transforms_data(tf2_msgs_msg_TFMessage& msg);
+
+// cell_voltage specialisations
+template <>
+struct mutable_cell_voltage_type<sensor_msgs_msg_BatteryState> {
+    typedef float* type;
+};
+
+template <>
+typename mutable_cell_voltage_type<sensor_msgs_msg_BatteryState>::type
+mutable_cell_voltage_data(sensor_msgs_msg_BatteryState& msg);
 
 #endif // AP_DDS_ENABLED
