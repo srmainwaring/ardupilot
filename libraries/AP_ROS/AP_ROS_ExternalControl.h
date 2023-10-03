@@ -4,6 +4,7 @@
 #include <AP_ExternalControl/AP_ExternalControl.h>
 
 #include "AP_ROS_Frames.h"
+#include "AP_ROS_TypeConversions.h"
 
 class AP_ROS_External_Control
 {
@@ -21,7 +22,7 @@ bool AP_ROS_External_Control::handle_velocity_control(const TTwistStamped& cmd_v
         return false;
     }
 
-    if (strcmp(cmd_vel.header.frame_id.data, BASE_LINK_FRAME_ID) == 0) {
+    if (strcmp(string_data(cmd_vel.header.frame_id), BASE_LINK_FRAME_ID) == 0) {
         // Convert commands from body frame (x-forward, y-left, z-up) to NED.
         Vector3f linear_velocity;
         Vector3f linear_velocity_base_link {
@@ -35,7 +36,7 @@ bool AP_ROS_External_Control::handle_velocity_control(const TTwistStamped& cmd_v
         return external_control->set_linear_velocity_and_yaw_rate(linear_velocity, yaw_rate);
     }
 
-    else if (strcmp(cmd_vel.header.frame_id.data, MAP_FRAME) == 0) {
+    else if (strcmp(string_data(cmd_vel.header.frame_id), MAP_FRAME) == 0) {
         // Convert commands from ENU to NED frame
         Vector3f linear_velocity {
             float(cmd_vel.twist.linear.y),
