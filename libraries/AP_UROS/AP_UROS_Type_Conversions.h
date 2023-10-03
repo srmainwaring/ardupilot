@@ -48,7 +48,7 @@ transforms_size(const tf2_msgs__msg__TFMessage& msg) {
 
 template <>
 typename mutable_transforms_size_type<tf2_msgs__msg__TFMessage>::type
-transforms_mutable_size(tf2_msgs__msg__TFMessage& msg) {
+mutable_transforms_size(tf2_msgs__msg__TFMessage& msg) {
     return msg.transforms.size;
 }
 
@@ -70,7 +70,7 @@ transforms_data(const tf2_msgs__msg__TFMessage& msg) {
 
 template <>
 typename mutable_transforms_type<tf2_msgs__msg__TFMessage>::type
-transforms_mutable_data(tf2_msgs__msg__TFMessage& msg) {
+mutable_transforms_data(tf2_msgs__msg__TFMessage& msg) {
     return msg.transforms.data;
 }
 
