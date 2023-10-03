@@ -21,7 +21,8 @@ class AP_ROS_Client
 public:
 
     template <typename BatteryState>
-    static void update_battery_state(BatteryState& msg);
+    static void update_battery_state(BatteryState& msg,
+        const uint8_t instance);
 
     template <typename Clock>
     static void update_clock(Clock& msg);
@@ -38,16 +39,19 @@ public:
     template <typename TFMessage>
     static void update_static_transforms(TFMessage& msg);
 
+    template <typename NavSatFix>
+    static bool update_nav_sat_fix(NavSatFix& msg,
+        const uint8_t instance, uint64_t& last_nav_sat_fix_time_ms);
+
     template <typename Time>
     static void update_time(Time& msg);
 
 };
 
 template <typename BatteryState>
-void AP_ROS_Client::update_battery_state(BatteryState& msg)
+void AP_ROS_Client::update_battery_state(BatteryState& msg,
+    const uint8_t instance)
 {
-    const uint8_t instance = 0;
-
     if (instance >= AP_BATT_MONITOR_MAX_INSTANCES) {
         return;
     }
@@ -282,6 +286,100 @@ void AP_ROS_Client::update_static_transforms(TFMessage& msg)
 
         transforms_size(msg)++;
     }
+}
+
+template <typename NavSatFix>
+bool AP_ROS_Client::update_nav_sat_fix(NavSatFix& msg,
+    const uint8_t instance, uint64_t& last_nav_sat_fix_time_ms)
+{
+    // Add a lambda that takes in navsatfix msg and populates the cov
+    // Make it constexpr if possible
+    // https://www.fluentcpp.com/2021/12/13/the-evolutions-of-lambdas-in-c14-c17-and-c20/
+    // constexpr auto times2 = [] (sensor_msgs_msg_NavSatFix* msg) { return n * 2; };
+
+    // assert(instance >= GPS_MAX_RECEIVERS);
+    if (instance >= GPS_MAX_RECEIVERS) {
+        return false;
+    }
+
+    auto &gps = AP::gps();
+    WITH_SEMAPHORE(gps.get_semaphore());
+
+    if (!gps.is_healthy(instance)) {
+        msg.status.status = -1; // STATUS_NO_FIX
+        msg.status.service = 0; // No services supported
+        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
+        return false;
+    }
+
+    // No update is needed
+    const auto last_fix_time_ms = gps.last_fix_time_ms(instance);
+    if (last_nav_sat_fix_time_ms == last_fix_time_ms) {
+        return false;
+    } else {
+        last_nav_sat_fix_time_ms = last_fix_time_ms;
+    }
+
+
+    update_time(msg.header.stamp);
+    strcpy(mutable_string_data(msg.header.frame_id), WGS_84_FRAME_ID);
+    msg.status.service = 0; // SERVICE_GPS
+    msg.status.status = -1; // STATUS_NO_FIX
+
+
+    //! @todo What about glonass, compass, galileo?
+    //! This will be properly designed and implemented to spec in #23277
+    msg.status.service = 1; // SERVICE_GPS
+
+    const auto status = gps.status(instance);
+    switch (status) {
+    case AP_GPS::NO_GPS:
+    case AP_GPS::NO_FIX:
+        msg.status.status = -1; // STATUS_NO_FIX
+        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
+        return true;
+    case AP_GPS::GPS_OK_FIX_2D:
+    case AP_GPS::GPS_OK_FIX_3D:
+        msg.status.status = 0; // STATUS_FIX
+        break;
+    case AP_GPS::GPS_OK_FIX_3D_DGPS:
+        msg.status.status = 1; // STATUS_SBAS_FIX
+        break;
+    case AP_GPS::GPS_OK_FIX_3D_RTK_FLOAT:
+    case AP_GPS::GPS_OK_FIX_3D_RTK_FIXED:
+        msg.status.status = 2; // STATUS_SBAS_FIX
+        break;
+    default:
+        //! @todo Can we not just use an enum class and not worry about this condition?
+        break;
+    }
+    const auto loc = gps.location(instance);
+    msg.latitude = loc.lat * 1E-7;
+    msg.longitude = loc.lng * 1E-7;
+
+    int32_t alt_cm;
+    if (!loc.get_alt_cm(Location::AltFrame::ABSOLUTE, alt_cm)) {
+        // With absolute frame, this condition is unlikely
+        msg.status.status = -1; // STATUS_NO_FIX
+        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
+        return true;
+    }
+    msg.altitude = alt_cm * 0.01;
+
+    // ROS allows double precision, ArduPilot exposes float precision today
+    Matrix3f cov;
+    msg.position_covariance_type = (uint8_t)gps.position_covariance(instance, cov);
+    msg.position_covariance[0] = cov[0][0];
+    msg.position_covariance[1] = cov[0][1];
+    msg.position_covariance[2] = cov[0][2];
+    msg.position_covariance[3] = cov[1][0];
+    msg.position_covariance[4] = cov[1][1];
+    msg.position_covariance[5] = cov[1][2];
+    msg.position_covariance[6] = cov[2][0];
+    msg.position_covariance[7] = cov[2][1];
+    msg.position_covariance[8] = cov[2][2];
+
+    return true;
 }
 
 template <typename Time>
