@@ -24,9 +24,31 @@ const char* string_data(const rosidl_runtime_c__String& str) {
     return str.data;
 }
 
+template <>
+char* mutable_string_data(rosidl_runtime_c__String& str) {
+    return str.data;
+}
+
 // transform specialisations
 template <>
-uint32_t transforms_size(const tf2_msgs__msg__TFMessage& msg) {
+struct transforms_size_type<tf2_msgs__msg__TFMessage>{
+    typedef size_t type;
+};
+
+template <>
+struct mutable_transforms_size_type<tf2_msgs__msg__TFMessage>{
+    typedef size_t& type;
+};
+
+template <>
+typename transforms_size_type<tf2_msgs__msg__TFMessage>::type
+transforms_size(const tf2_msgs__msg__TFMessage& msg) {
+    return msg.transforms.size;
+}
+
+template <>
+typename mutable_transforms_size_type<tf2_msgs__msg__TFMessage>::type
+transforms_mutable_size(tf2_msgs__msg__TFMessage& msg) {
     return msg.transforms.size;
 }
 
@@ -36,8 +58,19 @@ struct transforms_type<tf2_msgs__msg__TFMessage>{
 };
 
 template <>
+struct mutable_transforms_type<tf2_msgs__msg__TFMessage>{
+    typedef geometry_msgs__msg__TransformStamped* type;
+};
+
+template <>
 typename transforms_type<tf2_msgs__msg__TFMessage>::type
 transforms_data(const tf2_msgs__msg__TFMessage& msg) {
+    return msg.transforms.data;
+}
+
+template <>
+typename mutable_transforms_type<tf2_msgs__msg__TFMessage>::type
+transforms_mutable_data(tf2_msgs__msg__TFMessage& msg) {
     return msg.transforms.data;
 }
 
