@@ -42,6 +42,13 @@ mutable_transforms_data(tf2_msgs__msg__TFMessage& msg) {
     return msg.transforms.data;
 }
 
+// cell_voltage specialisations
+template <>
+typename mutable_cell_voltage_type<sensor_msgs__msg__BatteryState>::type
+mutable_cell_voltage_data(sensor_msgs__msg__BatteryState& msg) {
+    return msg.cell_voltage.data;
+}
+
 #if 0
 //! @todo(srmainwaring) move to test / examples sub-folder.
 // tests for the accessor templates

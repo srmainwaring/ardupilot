@@ -8,6 +8,7 @@
 
 #include <builtin_interfaces/msg/time.h>
 #include <geometry_msgs/msg/transform_stamped.h>
+#include <sensor_msgs/msg/battery_state.h>
 #include <tf2_msgs/msg/tf_message.h>
 
 class AP_UROS_Type_Conversions
@@ -61,5 +62,15 @@ transforms_data(const tf2_msgs__msg__TFMessage& msg);
 template <>
 typename mutable_transforms_type<tf2_msgs__msg__TFMessage>::type
 mutable_transforms_data(tf2_msgs__msg__TFMessage& msg);
+
+// cell_voltage specialisations
+template <>
+struct mutable_cell_voltage_type<sensor_msgs__msg__BatteryState> {
+    typedef float* type;
+};
+
+template <>
+typename mutable_cell_voltage_type<sensor_msgs__msg__BatteryState>::type
+mutable_cell_voltage_data(sensor_msgs__msg__BatteryState& msg);
 
 #endif // AP_UROS_ENABLED
