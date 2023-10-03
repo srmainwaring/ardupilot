@@ -36,10 +36,10 @@ char* mutable_string_data(S& str);
 // see: https://stackoverflow.com/questions/15911890/overriding-return-type-in-function-template-specialization
 
 template <typename T>
-struct transforms_size_type{ typedef uint32_t type; };
+struct transforms_size_type { typedef uint32_t type; };
 
 template <typename T>
-struct mutable_transforms_size_type{ typedef uint32_t& type; };
+struct mutable_transforms_size_type { typedef uint32_t& type; };
 
 template <typename T>
 typename transforms_size_type<T>::type transforms_size(const T& msg);
@@ -48,10 +48,10 @@ template <typename T>
 typename mutable_transforms_size_type<T>::type mutable_transforms_size(T& msg);
 
 template <typename T>
-struct transforms_type{ typedef void* type; };
+struct transforms_type { typedef void* type; };
 
 template <typename T>
-struct mutable_transforms_type{ typedef void* type; };
+struct mutable_transforms_type { typedef void* type; };
 
 template <typename T>
 typename transforms_type<T>::type transforms_data(const T& msg);
