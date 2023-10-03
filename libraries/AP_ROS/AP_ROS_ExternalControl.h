@@ -8,12 +8,12 @@
 class AP_ROS_External_Control
 {
 public:
-    template<typename TTwistStamped>
+    template <typename TTwistStamped>
     static bool handle_velocity_control(const TTwistStamped& cmd_vel);
 
 };
 
-template<typename TTwistStamped>
+template <typename TTwistStamped>
 bool AP_ROS_External_Control::handle_velocity_control(const TTwistStamped& cmd_vel)
 {
     auto *external_control = AP::externalcontrol();

@@ -9,24 +9,24 @@ class AP_ROS_External_Odom
 {
 public:
     // Handler for external position localization
-    template<typename TFMessage>
+    template <typename TFMessage>
     static void handle_external_odom(const TFMessage& msg);
 
     // Checks the child and parent frames match a set needed for external odom.
     // Since multiple different transforms can be sent, this validates the specific transform is
     // for odometry.
-    template<typename TransformStamped>
+    template <typename TransformStamped>
     static bool is_odometry_frame(const TransformStamped& msg);
 
     // Helper to convert from ROS transform to AP datatypes
     // ros_transform is in ENU
     // translation is in NED
-    template<typename Transform>
+    template <typename Transform>
     static void convert_transform(const Transform& ros_transform, Vector3f& translation, Quaternion& rotation);
 
 };
 
-template<typename TFMessage>
+template <typename TFMessage>
 void AP_ROS_External_Odom::handle_external_odom(const TFMessage& msg)
 {
     auto *visual_odom = AP::visualodom();
@@ -64,7 +64,7 @@ void AP_ROS_External_Odom::handle_external_odom(const TFMessage& msg)
     }
 }
 
-template<typename TransformStamped>
+template <typename TransformStamped>
 bool AP_ROS_External_Odom::is_odometry_frame(const TransformStamped& msg)
 {
     char odom_parent[] = "odom";
@@ -74,7 +74,7 @@ bool AP_ROS_External_Odom::is_odometry_frame(const TransformStamped& msg)
            (strcmp(msg.child_frame_id.data, odom_child) == 0);
 }
 
-template<typename Transform>
+template <typename Transform>
 void AP_ROS_External_Odom::convert_transform(const Transform& ros_transform, Vector3f& translation, Quaternion& rotation)
 {
     // convert from x-forward, y-left, z-up to NED
