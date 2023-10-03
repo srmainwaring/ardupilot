@@ -27,12 +27,12 @@ char* mutable_string_data(char* str);
 
 // transform specialisations
 template <>
-struct transforms_size_type<tf2_msgs_msg_TFMessage>{
+struct transforms_size_type<tf2_msgs_msg_TFMessage> {
     typedef uint32_t type;
 };
 
 template <>
-struct mutable_transforms_size_type<tf2_msgs_msg_TFMessage>{
+struct mutable_transforms_size_type<tf2_msgs_msg_TFMessage> {
     typedef uint32_t& type;
 };
 
@@ -45,12 +45,12 @@ typename mutable_transforms_size_type<tf2_msgs_msg_TFMessage>::type
 mutable_transforms_size(tf2_msgs_msg_TFMessage& msg);
 
 template <>
-struct transforms_type<tf2_msgs_msg_TFMessage>{
+struct transforms_type<tf2_msgs_msg_TFMessage> {
     typedef const geometry_msgs_msg_TransformStamped* type;
 };
 
 template <>
-struct mutable_transforms_type<tf2_msgs_msg_TFMessage>{
+struct mutable_transforms_type<tf2_msgs_msg_TFMessage> {
     typedef geometry_msgs_msg_TransformStamped* type;
 };
 
