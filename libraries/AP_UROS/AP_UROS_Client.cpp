@@ -116,7 +116,8 @@ AP_UROS_Client *AP_UROS_Client::get_singleton() {
 
 void AP_UROS_Client::update_topic(sensor_msgs__msg__BatteryState& msg)
 {
-    AP_ROS_Client::update_battery_state(msg);
+    const uint8_t instance = 0;
+    AP_ROS_Client::update_battery_state(msg, instance);
 #if 0
     const uint8_t instance = 0;
 
@@ -365,8 +366,9 @@ void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
 
 bool AP_UROS_Client::update_topic(sensor_msgs__msg__NavSatFix& msg)
 {
-    //AP_ROS_Client::update_nav_sat_fix(msg);
-#if 1
+    const uint8_t instance = 0;
+    return AP_ROS_Client::update_nav_sat_fix(msg, instance, last_nav_sat_fix_time_ms);
+#if 0
     const uint8_t instance = 0;
 
     // Add a lambda that takes in navsatfix msg and populates the cov
