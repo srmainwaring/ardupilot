@@ -84,67 +84,7 @@ void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
 
 void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance)
 {
-    //AP_ROS_Client::update_battery_state(msg, instance);
-#if 1
-    if (instance >= AP_BATT_MONITOR_MAX_INSTANCES) {
-        return;
-    }
-
-    update_topic(msg.header.stamp);
-    auto &battery = AP::battery();
-
-    if (!battery.healthy(instance)) {
-        msg.power_supply_status = 3; //POWER_SUPPLY_HEALTH_DEAD
-        msg.present = false;
-        return;
-    }
-    msg.present = true;
-
-    msg.voltage = battery.voltage(instance);
-
-    float temperature;
-    msg.temperature = (battery.get_temperature(temperature, instance)) ? temperature : NAN;
-
-    float current;
-    msg.current = (battery.current_amps(current, instance)) ? -1 * current : NAN;
-
-    const float design_capacity = (float)battery.pack_capacity_mah(instance) * 0.001;
-    msg.design_capacity = design_capacity;
-
-    uint8_t percentage;
-    if (battery.capacity_remaining_pct(percentage, instance)) {
-        msg.percentage = percentage * 0.01;
-        msg.charge = (percentage * design_capacity) * 0.01;
-    } else {
-        msg.percentage = NAN;
-        msg.charge = NAN;
-    }
-
-    msg.capacity = NAN;
-
-    if (battery.current_amps(current, instance)) {
-        if (percentage == 100) {
-            msg.power_supply_status = 4;   //POWER_SUPPLY_STATUS_FULL
-        } else if (current < 0.0) {
-            msg.power_supply_status = 1;   //POWER_SUPPLY_STATUS_CHARGING
-        } else if (current > 0.0) {
-            msg.power_supply_status = 2;   //POWER_SUPPLY_STATUS_DISCHARGING
-        } else {
-            msg.power_supply_status = 3;   //POWER_SUPPLY_STATUS_NOT_CHARGING
-        }
-    } else {
-        msg.power_supply_status = 0; //POWER_SUPPLY_STATUS_UNKNOWN
-    }
-
-    msg.power_supply_health = (battery.overpower_detected(instance)) ? 4 : 1; //POWER_SUPPLY_HEALTH_OVERVOLTAGE or POWER_SUPPLY_HEALTH_GOOD
-
-    msg.power_supply_technology = 0; //POWER_SUPPLY_TECHNOLOGY_UNKNOWN
-
-    if (battery.has_cell_voltages(instance)) {
-        const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
-        std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage);
-    }
-#endif
+    AP_ROS_Client::update_battery_state(msg, instance);
 }
 
 void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
