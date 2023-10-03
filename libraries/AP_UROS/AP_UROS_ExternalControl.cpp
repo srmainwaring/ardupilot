@@ -7,7 +7,7 @@
 
 bool AP_UROS_External_Control::handle_velocity_control(const geometry_msgs__msg__TwistStamped& cmd_vel)
 {
-  return AP_ROS_External_Control::handle_velocity_control(cmd_vel);
+    return AP_ROS_External_Control::handle_velocity_control(cmd_vel);
 }
 
 #endif // AP_UROS_ENABLED
