@@ -45,7 +45,7 @@ template <typename T>
 typename transforms_size_type<T>::type transforms_size(const T& msg);
 
 template <typename T>
-typename mutable_transforms_size_type<T>::type transforms_mutable_size(T& msg);
+typename mutable_transforms_size_type<T>::type mutable_transforms_size(T& msg);
 
 template <typename T>
 struct transforms_type{ typedef void* type; };
@@ -57,4 +57,4 @@ template <typename T>
 typename transforms_type<T>::type transforms_data(const T& msg);
 
 template <typename T>
-typename mutable_transforms_type<T>::type transforms_mutable_data(T& msg);
+typename mutable_transforms_type<T>::type mutable_transforms_data(T& msg);

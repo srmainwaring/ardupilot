@@ -248,7 +248,7 @@ void AP_ROS_Client::update_twist_stamped(TwistStamped& msg)
 template <typename TFMessage>
 void AP_ROS_Client::update_static_transforms(TFMessage& msg)
 {
-    transforms_mutable_size<TFMessage>(msg) = 0;
+    mutable_transforms_size<TFMessage>(msg) = 0;
 
     auto &gps = AP::gps();
     for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
@@ -256,7 +256,7 @@ void AP_ROS_Client::update_static_transforms(TFMessage& msg)
         if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
             continue;
         }
-        auto* transform_stamped_seq = transforms_mutable_data<TFMessage>(msg);
+        auto* transform_stamped_seq = mutable_transforms_data<TFMessage>(msg);
         auto& transform_stamped = transform_stamped_seq[i];
 
         // update_time(transforms_data(msg)[i].header.stamp);
