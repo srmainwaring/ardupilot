@@ -25,11 +25,13 @@
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <GCS_MAVLink/GCS.h>
 
+#include <AP_ROS/AP_ROS_Client.h>
+
 #include <AP_ExternalControl/AP_ExternalControl_config.h>
 #if AP_EXTERNAL_CONTROL_ENABLED
 #include "AP_UROS_ExternalControl.h"
 #endif
-#include "AP_UROS_Frames.h"
+// #include "AP_UROS_Frames.h"
 #include "AP_UROS_External_Odom.h"
 
 #define UROS_DEBUG 1
@@ -112,10 +114,10 @@ AP_UROS_Client *AP_UROS_Client::get_singleton() {
 
 // update published topics
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance) 
 void AP_UROS_Client::update_topic(sensor_msgs__msg__BatteryState& msg)
 {
+    AP_ROS_Client::update_battery_state(msg);
+#if 0
     const uint8_t instance = 0;
 
     if (instance >= AP_BATT_MONITOR_MAX_INSTANCES) {
@@ -176,19 +178,21 @@ void AP_UROS_Client::update_topic(sensor_msgs__msg__BatteryState& msg)
         const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
         std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage.data);
     }
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock& msg)
 void AP_UROS_Client::update_topic(rosgraph_msgs__msg__Clock& msg)
 {
+    AP_ROS_Client::update_clock(msg);
+#if 0
     update_topic(msg.clock);
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
 void AP_UROS_Client::update_topic(geographic_msgs__msg__GeoPoseStamped& msg)
 {
+    AP_ROS_Client::update_geopose_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
 
@@ -220,12 +224,13 @@ void AP_UROS_Client::update_topic(geographic_msgs__msg__GeoPoseStamped& msg)
         msg.pose.orientation.y = orientation[2];
         msg.pose.orientation.z = orientation[3];
     }
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
 void AP_UROS_Client::update_topic(geometry_msgs__msg__PoseStamped& msg)
 {
+    AP_ROS_Client::update_pose_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
 
@@ -269,12 +274,13 @@ void AP_UROS_Client::update_topic(geometry_msgs__msg__PoseStamped& msg)
         msg.pose.orientation.y = orientation[2];
         msg.pose.orientation.z = orientation[3];
     }
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(geometry_msgs_msg_TwistStamped& msg)
 void AP_UROS_Client::update_topic(geometry_msgs__msg__TwistStamped& msg)
 {
+    AP_ROS_Client::update_twist_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id.data, BASE_LINK_FRAME_ID);
 
@@ -313,12 +319,13 @@ void AP_UROS_Client::update_topic(geometry_msgs__msg__TwistStamped& msg)
     msg.twist.angular.x = angular_velocity[0];
     msg.twist.angular.y = -angular_velocity[1];
     msg.twist.angular.z = -angular_velocity[2];
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
 void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
 {
+    //AP_ROS_Client::update_static_transforms(msg);
+#if 1
     msg.transforms.size = 0;
 
     auto &gps = AP::gps();
@@ -353,12 +360,13 @@ void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
 
         msg.transforms.size++;
     }
+#endif
 }
 
-// implementation copied from:
-// bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
 bool AP_UROS_Client::update_topic(sensor_msgs__msg__NavSatFix& msg)
 {
+    //AP_ROS_Client::update_nav_sat_fix(msg);
+#if 1
     const uint8_t instance = 0;
 
     // Add a lambda that takes in navsatfix msg and populates the cov
@@ -449,18 +457,12 @@ bool AP_UROS_Client::update_topic(sensor_msgs__msg__NavSatFix& msg)
     msg.position_covariance[8] = cov[2][2];
 
     return true;
+#endif
 }
 
-// implementation copied from:
-// void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time& msg)
 void AP_UROS_Client::update_topic(builtin_interfaces__msg__Time& msg)
 {
-    uint64_t utc_usec;
-    if (!AP::rtc().get_utc_usec(utc_usec)) {
-        utc_usec = AP_HAL::micros64();
-    }
-    msg.sec = utc_usec / 1000000ULL;
-    msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
+    AP_ROS_Client::update_time(msg);
 }
 
 // call publishers
