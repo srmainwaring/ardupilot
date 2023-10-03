@@ -108,7 +108,8 @@ void AP_ROS_Client::update_battery_state(BatteryState& msg,
 
     if (battery.has_cell_voltages(instance)) {
         const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
-        std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage.data);
+        std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX,
+            mutable_cell_voltage_data<BatteryState>(msg));
     }
 }
 
