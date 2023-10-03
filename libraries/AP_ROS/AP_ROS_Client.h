@@ -256,23 +256,20 @@ void AP_ROS_Client::update_static_transforms(TFMessage& msg)
         if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
             continue;
         }
-        auto* transform_stamped_seq = mutable_transforms_data<TFMessage>(msg);
-        auto& transform_stamped = transform_stamped_seq[i];
-
-        // update_time(transforms_data(msg)[i].header.stamp);
-        // update_time(transform_stamped.header.stamp);
+        auto* transforms = mutable_transforms_data<TFMessage>(msg);
+        update_time(transforms[i].header.stamp);
         char gps_frame_id[16];
         //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
         hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
-        // strcpy(string_data(transforms_data(msg)[i].header.frame_id), BASE_LINK_FRAME_ID);
-        // strcpy(string_data(transforms_data(msg)[i].child_frame_id), gps_frame_id);
+        strcpy(mutable_string_data(transforms[i].header.frame_id), BASE_LINK_FRAME_ID);
+        strcpy(mutable_string_data(transforms[i].child_frame_id), gps_frame_id);
         // The body-frame offsets
         // X - Forward
         // Y - Right
         // Z - Down
         // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
 
-        // const auto offset = gps.get_antenna_offset(i);
+        const auto offset = gps.get_antenna_offset(i);
 
         // In ROS REP 103, it follows this convention
         // X - Forward
@@ -280,11 +277,11 @@ void AP_ROS_Client::update_static_transforms(TFMessage& msg)
         // Z - Up
         // https://www.ros.org/reps/rep-0103.html#axis-orientation
 
-        // transforms_data(msg)[i].transform.translation.x = offset[0];
-        // transforms_data(msg)[i].transform.translation.y = -1 * offset[1];
-        // transforms_data(msg)[i].transform.translation.z = -1 * offset[2];
+        transforms[i].transform.translation.x = offset[0];
+        transforms[i].transform.translation.y = -1 * offset[1];
+        transforms[i].transform.translation.z = -1 * offset[2];
 
-        transforms_size(msg)++;
+        mutable_transforms_size<TFMessage>(msg)++;
     }
 }
 
