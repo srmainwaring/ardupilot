@@ -24,9 +24,31 @@ const char* string_data(const char* str) {
     return str;
 }
 
+template <>
+char* mutable_string_data(char* str) {
+    return str;
+}
+
 // transform specialisations
 template <>
-uint32_t transforms_size(const tf2_msgs_msg_TFMessage& msg) {
+struct transforms_size_type<tf2_msgs_msg_TFMessage>{
+    typedef uint32_t type;
+};
+
+template <>
+struct mutable_transforms_size_type<tf2_msgs_msg_TFMessage>{
+    typedef uint32_t& type;
+};
+
+template <>
+typename transforms_size_type<tf2_msgs_msg_TFMessage>::type
+transforms_size(const tf2_msgs_msg_TFMessage& msg) {
+    return msg.transforms_size;
+}
+
+template <>
+typename mutable_transforms_size_type<tf2_msgs_msg_TFMessage>::type
+transforms_mutable_size(tf2_msgs_msg_TFMessage& msg) {
     return msg.transforms_size;
 }
 
@@ -36,8 +58,19 @@ struct transforms_type<tf2_msgs_msg_TFMessage>{
 };
 
 template <>
+struct mutable_transforms_type<tf2_msgs_msg_TFMessage>{
+    typedef geometry_msgs_msg_TransformStamped* type;
+};
+
+template <>
 typename transforms_type<tf2_msgs_msg_TFMessage>::type
 transforms_data(const tf2_msgs_msg_TFMessage& msg) {
+    return msg.transforms;
+}
+
+template <>
+typename mutable_transforms_type<tf2_msgs_msg_TFMessage>::type
+transforms_mutable_data(tf2_msgs_msg_TFMessage& msg) {
     return msg.transforms;
 }
 
