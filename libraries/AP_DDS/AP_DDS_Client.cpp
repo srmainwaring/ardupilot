@@ -12,10 +12,13 @@
 #include <AP_Arming/AP_Arming.h>
 #include <AP_Vehicle/AP_Vehicle.h>
 #include <AP_ExternalControl/AP_ExternalControl_config.h>
+
+#include <AP_ROS/AP_ROS_Client.h>
+
 #if AP_EXTERNAL_CONTROL_ENABLED
 #include "AP_DDS_ExternalControl.h"
 #endif
-#include "AP_DDS_Frames.h"
+// #include "AP_DDS_Frames.h"
 
 #include "AP_DDS_Client.h"
 #include "AP_DDS_Topic_Table.h"
@@ -65,17 +68,21 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[] {
 
 void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time& msg)
 {
+    AP_ROS_Client::update_time(msg);
+#if 0
     uint64_t utc_usec;
     if (!AP::rtc().get_utc_usec(utc_usec)) {
         utc_usec = AP_HAL::micros64();
     }
     msg.sec = utc_usec / 1000000ULL;
     msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
-
+#endif
 }
 
 bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
 {
+    //AP_ROS_Client::update_nav_sat_fix(msg);
+#if 1
     // Add a lambda that takes in navsatfix msg and populates the cov
     // Make it constexpr if possible
     // https://www.fluentcpp.com/2021/12/13/the-evolutions-of-lambdas-in-c14-c17-and-c20/
@@ -164,10 +171,13 @@ bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t i
     msg.position_covariance[8] = cov[2][2];
 
     return true;
+#endif
 }
 
 void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
 {
+    //AP_ROS_Client::update_static_transforms(msg);
+#if 1
     msg.transforms_size = 0;
 
     auto &gps = AP::gps();
@@ -202,11 +212,13 @@ void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
 
         msg.transforms_size++;
     }
-
+#endif
 }
 
 void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance)
 {
+    //AP_ROS_Client::update_battery_state(msg);
+#if 1
     if (instance >= AP_BATT_MONITOR_MAX_INSTANCES) {
         return;
     }
@@ -265,10 +277,13 @@ void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_
         const uint16_t* cellVoltages = battery.get_cell_voltages(instance).cells;
         std::copy(cellVoltages, cellVoltages + AP_BATT_MONITOR_CELLS_MAX, msg.cell_voltage);
     }
+#endif
 }
 
 void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
 {
+    AP_ROS_Client::update_pose_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
 
@@ -312,10 +327,13 @@ void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
         msg.pose.orientation.y = orientation[2];
         msg.pose.orientation.z = orientation[3];
     }
+#endif
 }
 
 void AP_DDS_Client::update_topic(geometry_msgs_msg_TwistStamped& msg)
 {
+    AP_ROS_Client::update_twist_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
 
@@ -354,10 +372,13 @@ void AP_DDS_Client::update_topic(geometry_msgs_msg_TwistStamped& msg)
     msg.twist.angular.x = angular_velocity[0];
     msg.twist.angular.y = -angular_velocity[1];
     msg.twist.angular.z = -angular_velocity[2];
+#endif
 }
 
 void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
 {
+    AP_ROS_Client::update_geopose_stamped(msg);
+#if 0
     update_topic(msg.header.stamp);
     strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
 
@@ -389,11 +410,15 @@ void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
         msg.pose.orientation.y = orientation[2];
         msg.pose.orientation.z = orientation[3];
     }
+#endif
 }
 
 void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock& msg)
 {
+    AP_ROS_Client::update_clock(msg);
+#if 0
     update_topic(msg.clock);
+#endif
 }
 
 /*
