@@ -3,6 +3,7 @@
 #if AP_UROS_ENABLED
 
 #include "AP_UROS_Client.h"
+#include "AP_UROS_Type_Conversions.h"
 
 #include <algorithm>
 #include <string.h>
@@ -142,43 +143,7 @@ void AP_UROS_Client::update_topic(geometry_msgs__msg__TwistStamped& msg)
 
 void AP_UROS_Client::update_topic(tf2_msgs__msg__TFMessage& msg)
 {
-    //AP_ROS_Client::update_static_transforms(msg);
-#if 1
-    msg.transforms.size = 0;
-
-    auto &gps = AP::gps();
-    for (uint8_t i = 0; i < GPS_MAX_RECEIVERS; i++) {
-        const auto gps_type = gps.get_type(i);
-        if (gps_type == AP_GPS::GPS_Type::GPS_TYPE_NONE) {
-            continue;
-        }
-        update_topic(msg.transforms.data[i].header.stamp);
-        char gps_frame_id[16];
-        //! @todo should GPS frame ID's be 0 or 1 indexed in ROS?
-        hal.util->snprintf(gps_frame_id, sizeof(gps_frame_id), "GPS_%u", i);
-        strcpy(msg.transforms.data[i].header.frame_id.data, BASE_LINK_FRAME_ID);
-        strcpy(msg.transforms.data[i].child_frame_id.data, gps_frame_id);
-        // The body-frame offsets
-        // X - Forward
-        // Y - Right
-        // Z - Down
-        // https://ardupilot.org/copter/docs/common-sensor-offset-compensation.html#sensor-position-offset-compensation
-
-        const auto offset = gps.get_antenna_offset(i);
-
-        // In ROS REP 103, it follows this convention
-        // X - Forward
-        // Y - Left
-        // Z - Up
-        // https://www.ros.org/reps/rep-0103.html#axis-orientation
-
-        msg.transforms.data[i].transform.translation.x = offset[0];
-        msg.transforms.data[i].transform.translation.y = -1 * offset[1];
-        msg.transforms.data[i].transform.translation.z = -1 * offset[2];
-
-        msg.transforms.size++;
-    }
-#endif
+    AP_ROS_Client::update_static_transforms(msg);
 }
 
 bool AP_UROS_Client::update_topic(sensor_msgs__msg__NavSatFix& msg)
