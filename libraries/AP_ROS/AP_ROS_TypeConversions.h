@@ -58,3 +58,11 @@ typename transforms_type<T>::type transforms_data(const T& msg);
 
 template <typename T>
 typename mutable_transforms_type<T>::type mutable_transforms_data(T& msg);
+
+// battery state : cell_voltage
+
+template <typename T>
+struct mutable_cell_voltage_type { typedef void* type; };
+
+template <typename T>
+typename mutable_cell_voltage_type<T>::type mutable_cell_voltage_data(T& msg);
