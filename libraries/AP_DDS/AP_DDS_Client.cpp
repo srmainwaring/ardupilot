@@ -69,109 +69,11 @@ const AP_Param::GroupInfo AP_DDS_Client::var_info[] {
 void AP_DDS_Client::update_topic(builtin_interfaces_msg_Time& msg)
 {
     AP_ROS_Client::update_time(msg);
-#if 0
-    uint64_t utc_usec;
-    if (!AP::rtc().get_utc_usec(utc_usec)) {
-        utc_usec = AP_HAL::micros64();
-    }
-    msg.sec = utc_usec / 1000000ULL;
-    msg.nanosec = (utc_usec % 1000000ULL) * 1000UL;
-#endif
 }
 
 bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance)
 {
     return AP_ROS_Client::update_nav_sat_fix(msg, instance, last_nav_sat_fix_time_ms);
-#if 0
-    // Add a lambda that takes in navsatfix msg and populates the cov
-    // Make it constexpr if possible
-    // https://www.fluentcpp.com/2021/12/13/the-evolutions-of-lambdas-in-c14-c17-and-c20/
-    // constexpr auto times2 = [] (sensor_msgs_msg_NavSatFix* msg) { return n * 2; };
-
-    // assert(instance >= GPS_MAX_RECEIVERS);
-    if (instance >= GPS_MAX_RECEIVERS) {
-        return false;
-    }
-
-    auto &gps = AP::gps();
-    WITH_SEMAPHORE(gps.get_semaphore());
-
-    if (!gps.is_healthy(instance)) {
-        msg.status.status = -1; // STATUS_NO_FIX
-        msg.status.service = 0; // No services supported
-        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        return false;
-    }
-
-    // No update is needed
-    const auto last_fix_time_ms = gps.last_fix_time_ms(instance);
-    if (last_nav_sat_fix_time_ms == last_fix_time_ms) {
-        return false;
-    } else {
-        last_nav_sat_fix_time_ms = last_fix_time_ms;
-    }
-
-
-    update_topic(msg.header.stamp);
-    strcpy(msg.header.frame_id, WGS_84_FRAME_ID);
-    msg.status.service = 0; // SERVICE_GPS
-    msg.status.status = -1; // STATUS_NO_FIX
-
-
-    //! @todo What about glonass, compass, galileo?
-    //! This will be properly designed and implemented to spec in #23277
-    msg.status.service = 1; // SERVICE_GPS
-
-    const auto status = gps.status(instance);
-    switch (status) {
-    case AP_GPS::NO_GPS:
-    case AP_GPS::NO_FIX:
-        msg.status.status = -1; // STATUS_NO_FIX
-        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        return true;
-    case AP_GPS::GPS_OK_FIX_2D:
-    case AP_GPS::GPS_OK_FIX_3D:
-        msg.status.status = 0; // STATUS_FIX
-        break;
-    case AP_GPS::GPS_OK_FIX_3D_DGPS:
-        msg.status.status = 1; // STATUS_SBAS_FIX
-        break;
-    case AP_GPS::GPS_OK_FIX_3D_RTK_FLOAT:
-    case AP_GPS::GPS_OK_FIX_3D_RTK_FIXED:
-        msg.status.status = 2; // STATUS_SBAS_FIX
-        break;
-    default:
-        //! @todo Can we not just use an enum class and not worry about this condition?
-        break;
-    }
-    const auto loc = gps.location(instance);
-    msg.latitude = loc.lat * 1E-7;
-    msg.longitude = loc.lng * 1E-7;
-
-    int32_t alt_cm;
-    if (!loc.get_alt_cm(Location::AltFrame::ABSOLUTE, alt_cm)) {
-        // With absolute frame, this condition is unlikely
-        msg.status.status = -1; // STATUS_NO_FIX
-        msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
-        return true;
-    }
-    msg.altitude = alt_cm * 0.01;
-
-    // ROS allows double precision, ArduPilot exposes float precision today
-    Matrix3f cov;
-    msg.position_covariance_type = (uint8_t)gps.position_covariance(instance, cov);
-    msg.position_covariance[0] = cov[0][0];
-    msg.position_covariance[1] = cov[0][1];
-    msg.position_covariance[2] = cov[0][2];
-    msg.position_covariance[3] = cov[1][0];
-    msg.position_covariance[4] = cov[1][1];
-    msg.position_covariance[5] = cov[1][2];
-    msg.position_covariance[6] = cov[2][0];
-    msg.position_covariance[7] = cov[2][1];
-    msg.position_covariance[8] = cov[2][2];
-
-    return true;
-#endif
 }
 
 void AP_DDS_Client::populate_static_transforms(tf2_msgs_msg_TFMessage& msg)
@@ -283,142 +185,21 @@ void AP_DDS_Client::update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_
 void AP_DDS_Client::update_topic(geometry_msgs_msg_PoseStamped& msg)
 {
     AP_ROS_Client::update_pose_stamped(msg);
-#if 0
-    update_topic(msg.header.stamp);
-    strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
-
-    auto &ahrs = AP::ahrs();
-    WITH_SEMAPHORE(ahrs.get_semaphore());
-
-    // ROS REP 103 uses the ENU convention:
-    // X - East
-    // Y - North
-    // Z - Up
-    // https://www.ros.org/reps/rep-0103.html#axis-orientation
-    // AP_AHRS uses the NED convention
-    // X - North
-    // Y - East
-    // Z - Down
-    // As a consequence, to follow ROS REP 103, it is necessary to switch X and Y,
-    // as well as invert Z
-
-    Vector3f position;
-    if (ahrs.get_relative_position_NED_home(position)) {
-        msg.pose.position.x = position[1];
-        msg.pose.position.y = position[0];
-        msg.pose.position.z = -position[2];
-    }
-
-    // In ROS REP 103, axis orientation uses the following convention:
-    // X - Forward
-    // Y - Left
-    // Z - Up
-    // https://www.ros.org/reps/rep-0103.html#axis-orientation
-    // As a consequence, to follow ROS REP 103, it is necessary to switch X and Y,
-    // as well as invert Z (NED to ENU convertion) as well as a 90 degree rotation in the Z axis
-    // for x to point forward
-    Quaternion orientation;
-    if (ahrs.get_quaternion(orientation)) {
-        Quaternion aux(orientation[0], orientation[2], orientation[1], -orientation[3]); //NED to ENU transformation
-        Quaternion transformation (sqrtF(2) * 0.5,0,0,sqrtF(2) * 0.5); // Z axis 90 degree rotation
-        orientation = aux * transformation;
-        msg.pose.orientation.w = orientation[0];
-        msg.pose.orientation.x = orientation[1];
-        msg.pose.orientation.y = orientation[2];
-        msg.pose.orientation.z = orientation[3];
-    }
-#endif
 }
 
 void AP_DDS_Client::update_topic(geometry_msgs_msg_TwistStamped& msg)
 {
     AP_ROS_Client::update_twist_stamped(msg);
-#if 0
-    update_topic(msg.header.stamp);
-    strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
-
-    auto &ahrs = AP::ahrs();
-    WITH_SEMAPHORE(ahrs.get_semaphore());
-
-    // ROS REP 103 uses the ENU convention:
-    // X - East
-    // Y - North
-    // Z - Up
-    // https://www.ros.org/reps/rep-0103.html#axis-orientation
-    // AP_AHRS uses the NED convention
-    // X - North
-    // Y - East
-    // Z - Down
-    // As a consequence, to follow ROS REP 103, it is necessary to switch X and Y,
-    // as well as invert Z
-    Vector3f velocity;
-    if (ahrs.get_velocity_NED(velocity)) {
-        msg.twist.linear.x = velocity[1];
-        msg.twist.linear.y = velocity[0];
-        msg.twist.linear.z = -velocity[2];
-    }
-
-    // In ROS REP 103, axis orientation uses the following convention:
-    // X - Forward
-    // Y - Left
-    // Z - Up
-    // https://www.ros.org/reps/rep-0103.html#axis-orientation
-    // The gyro data is received from AP_AHRS in body-frame
-    // X - Forward
-    // Y - Right
-    // Z - Down
-    // As a consequence, to follow ROS REP 103, it is necessary to invert Y and Z
-    Vector3f angular_velocity = ahrs.get_gyro();
-    msg.twist.angular.x = angular_velocity[0];
-    msg.twist.angular.y = -angular_velocity[1];
-    msg.twist.angular.z = -angular_velocity[2];
-#endif
 }
 
 void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
 {
     AP_ROS_Client::update_geopose_stamped(msg);
-#if 0
-    update_topic(msg.header.stamp);
-    strcpy(msg.header.frame_id, BASE_LINK_FRAME_ID);
-
-    auto &ahrs = AP::ahrs();
-    WITH_SEMAPHORE(ahrs.get_semaphore());
-
-    Location loc;
-    if (ahrs.get_location(loc)) {
-        msg.pose.position.latitude = loc.lat * 1E-7;
-        msg.pose.position.longitude = loc.lng * 1E-7;
-        msg.pose.position.altitude = loc.alt * 0.01; // Transform from cm to m
-    }
-
-    // In ROS REP 103, axis orientation uses the following convention:
-    // X - Forward
-    // Y - Left
-    // Z - Up
-    // https://www.ros.org/reps/rep-0103.html#axis-orientation
-    // As a consequence, to follow ROS REP 103, it is necessary to switch X and Y,
-    // as well as invert Z (NED to ENU convertion) as well as a 90 degree rotation in the Z axis
-    // for x to point forward
-    Quaternion orientation;
-    if (ahrs.get_quaternion(orientation)) {
-        Quaternion aux(orientation[0], orientation[2], orientation[1], -orientation[3]); //NED to ENU transformation
-        Quaternion transformation(sqrtF(2) * 0.5, 0, 0, sqrtF(2) * 0.5); // Z axis 90 degree rotation
-        orientation = aux * transformation;
-        msg.pose.orientation.w = orientation[0];
-        msg.pose.orientation.x = orientation[1];
-        msg.pose.orientation.y = orientation[2];
-        msg.pose.orientation.z = orientation[3];
-    }
-#endif
 }
 
 void AP_DDS_Client::update_topic(rosgraph_msgs_msg_Clock& msg)
 {
     AP_ROS_Client::update_clock(msg);
-#if 0
-    update_topic(msg.clock);
-#endif
 }
 
 /*
@@ -864,6 +645,7 @@ void AP_DDS_Client::write_battery_state_topic()
         }
     }
 }
+
 void AP_DDS_Client::write_local_pose_topic()
 {
     WITH_SEMAPHORE(csem);
