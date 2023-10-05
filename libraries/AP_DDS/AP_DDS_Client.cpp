@@ -445,12 +445,39 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         }
 
         if (rx_joy_topic.axes_size >= 4) {
-            GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received sensor_msgs/Joy: %f, %f, %f, %f",
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Received sensor_msgs/Joy: %f, %f, %f, %f",
                           rx_joy_topic.axes[0], rx_joy_topic.axes[1], rx_joy_topic.axes[2], rx_joy_topic.axes[3]);
-            // TODO implement joystick RC control to AP
         } else {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Received sensor_msgs/Joy: Insufficient axes size ");
         }
+
+        //! @todo is this the correct time function?
+        const uint32_t tnow = AP_HAL::millis();
+
+        //! @todo - to use same convention as MAVLink spec?
+        // see: void GCS_MAVLINK::handle_rc_channels_override
+
+        for (uint8_t i=0; i<MIN(8U, rx_joy_topic.axes_size); i++) {
+          const uint16_t override_data = static_cast<uint16_t>(rx_joy_topic.axes[i]);
+
+          // Per MAVLink spec a value of UINT16_MAX means to ignore this field.
+          if (override_data != UINT16_MAX) {
+              RC_Channels::set_override(i, override_data, tnow);
+          }
+        }
+        for (uint8_t i=8; i<rx_joy_topic.axes_size; i++) {
+            const uint16_t override_data = static_cast<uint16_t>(rx_joy_topic.axes[i]);
+
+            // Per MAVLink spec a value of zero or UINT16_MAX means to
+            // ignore this field.
+            if (override_data != 0 && override_data != UINT16_MAX) {
+                // per the mavlink spec, a value of UINT16_MAX-1 means
+                // return the field to RC radio values:
+                const uint16_t value = override_data == (UINT16_MAX-1) ? 0 : override_data;
+                RC_Channels::set_override(i, value, tnow);
+            }
+        }
+
         break;
     }
     case topics[to_underlying(TopicIndex::DYNAMIC_TRANSFORMS_SUB)].dr_id.id: {
