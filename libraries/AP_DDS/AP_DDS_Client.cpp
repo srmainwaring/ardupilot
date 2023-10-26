@@ -444,7 +444,6 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
     switch (object_id.id) {
     case topics[to_underlying(TopicIndex::JOY_SUB)].dr_id.id: {
         const bool success = sensor_msgs_msg_Joy_deserialize_topic(ub, &rx_joy_topic);
-
         if (success == false) {
             break;
         }
@@ -454,30 +453,44 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
                           msg_prefix, rx_joy_topic.axes[0], rx_joy_topic.axes[1], rx_joy_topic.axes[2], rx_joy_topic.axes[3]);
             // TODO implement joystick RC control to AP
             const uint32_t tnow = AP_HAL::millis();
-            
-            for (uint8_t i=0; i<rx_joy_topic.axes_size; i++) {
-                const uint16_t override_data = static_cast<uint16_t>(rx_joy_topic.axes[i]);
+
+            const double axes_min{-1.0};
+            const double axes_max{1.0};
+
+            for (uint8_t i = 0; i<rx_joy_topic.axes_size; ++i) {
+                const uint16_t axes_value = static_cast<uint16_t>(rx_joy_topic.axes[i]);
+
+                //! @todo(srmainwaring) add check for nullptr?
                 const RC_Channel *c = rc().channel(i);
-                radio_min_val=c->get_radio_min();
-                radio_max_val=c->get_radio_max();
+                const int16_t radio_min_val = c->get_radio_min();
+                const int16_t radio_max_val = c->get_radio_max();
 
+                const uint16_t override_data = linear_interpolate(
+                    radio_min_val, radio_max_val, axes_value, axes_min, axes_max);
 
-                // Per MAVLink spec a value of UINT16_MAX means to ignore this field.
-                if (override_data != UINT16_MAX) {
-                    const uint16_t mapped_data=linear_interpolate(radio_min_val,radio_max_val,override_data,-1.0,1.0);
-                    RC_Channels::set_override(i, mapped_data, tnow);
-                }
-            }
-            for (uint8_t i=8; i<rx_joy_topic.axes_size; i++) {
-                const uint16_t override_data = static_cast<uint16_t>(rx_joy_topic.axes[i]);
+                //! @todo(srmainwaring) decide equivalent for ROS Joy msgs.
 
-                // Per MAVLink spec a value of zero or UINT16_MAX means to
-                // ignore this field.
-                if (override_data != 0 && override_data != UINT16_MAX) {
-                    // per the mavlink spec, a value of UINT16_MAX-1 means
-                    // return the field to RC radio values:
-                    const uint16_t value = override_data == (UINT16_MAX-1) ? 0 : linear_interpolate(radio_min_val,radio_max_val,override_data,-1.0,1.0);
-                    RC_Channels::set_override(i, value, tnow);
+                // See: GCS_MAVLink/GCS_Common.cpp: GCS_MAVLINK::handle_rc_channels_override
+                //    overrides are disabled in handle_rc_channels_override
+                //     by a value of 0.
+                //
+                // MAVLink spec: https://mavlink.io/en/messages/common.html#RC_CHANNELS_OVERRIDE
+                //    i < 8:
+                //        UINT16_MAX means to ignore this field.
+                //        0 means release the channel back to the RC radio.
+                //    i >= 8:
+                //        0 or UINT16_MAX means to ignore this field.
+                //        UINT16_MAX-1 means release the channel back to the RC radio.
+                if (i < 8) {
+                    if (override_data != UINT16_MAX) {
+                        RC_Channels::set_override(i, override_data, tnow);
+                    }
+                } else {
+                    if (override_data != 0 && override_data != UINT16_MAX) {
+                        const uint16_t value =
+                            override_data == (UINT16_MAX-1) ? 0 : override_data;
+                        RC_Channels::set_override(i, value, tnow);
+                    }
                 }
             }
         } else {
