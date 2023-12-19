@@ -39,7 +39,7 @@
  * Authors and acknowledgements in header.
  */
 
-#include "npfg.hpp"
+#include "npfg.h"
 
 #include <AP_Math/AP_Math.h>
 
