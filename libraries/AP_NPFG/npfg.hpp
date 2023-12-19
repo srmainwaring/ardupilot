@@ -60,8 +60,7 @@
 #ifndef NPFG_H_
 #define NPFG_H_
 
-#include <matrix/math.hpp>
-#include <lib/mathlib/mathlib.h>
+#include <AP_Math/AP_Math.h>
 
 /*
  * NPFG
@@ -83,20 +82,20 @@ public:
 	 * @param[in] position_on_path Horizontal point on the path to track described in local coordinates [m]
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
 	 */
-	void guideToPath(const matrix::Vector2f &curr_pos_local, const matrix::Vector2f &ground_vel,
-			 const matrix::Vector2f &wind_vel,
-			 const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &position_on_path,
+	void guideToPath(const Vector2f &curr_pos_local, const Vector2f &ground_vel,
+			 const Vector2f &wind_vel,
+			 const Vector2f &unit_path_tangent, const Vector2f &position_on_path,
 			 const float path_curvature);
 
 	/*
 	 * Set the nominal controller period [s].
 	 */
-	void setPeriod(float period) { period_ = math::max(period, NPFG_EPSILON); }
+	void setPeriod(float period) { period_ = MAX(period, NPFG_EPSILON); }
 
 	/*
 	 * Set the nominal controller damping ratio.
 	 */
-	void setDamping(float damping) { damping_ = math::constrain(damping, NPFG_EPSILON, 1.0f); }
+	void setDamping(float damping) { damping_ = constrain_value(damping, NPFG_EPSILON, 1.0f); }
 
 	/*
 	 * Enable automatic lower bounding of the user set controller period.
@@ -128,23 +127,23 @@ public:
 	/*
 	 * Set the minimum allowed forward ground speed [m/s].
 	 */
-	void setMinGroundSpeed(float min_gsp) { min_gsp_desired_ = math::max(min_gsp, 0.0f); }
+	void setMinGroundSpeed(float min_gsp) { min_gsp_desired_ = MAX(min_gsp, 0.0f); }
 
 	/*
 	 * Set the maximum value of the minimum forward ground speed command for track
 	 * keeping (occurs at the track error boundary) [m/s].
 	 */
-	void setMaxTrackKeepingMinGroundSpeed(float min_gsp) { min_gsp_track_keeping_max_ = math::max(min_gsp, 0.0f); }
+	void setMaxTrackKeepingMinGroundSpeed(float min_gsp) { min_gsp_track_keeping_max_ = MAX(min_gsp, 0.0f); }
 
 	/*
 	 * Set the nominal airspeed reference [m/s].
 	 */
-	void setAirspeedNom(float airsp) { airspeed_nom_ = math::max(airsp, 0.1f); }
+	void setAirspeedNom(float airsp) { airspeed_nom_ = MAX(airsp, 0.1f); }
 
 	/*
 	 * Set the maximum airspeed reference [m/s].
 	 */
-	void setAirspeedMax(float airsp) { airspeed_max_ = math::max(airsp, 0.1f); }
+	void setAirspeedMax(float airsp) { airspeed_max_ = MAX(airsp, 0.1f); }
 
 	/*
 	 * Set the autopilot roll response time constant [s].
@@ -154,12 +153,12 @@ public:
 	/*
 	 * Set the switch distance multiplier.
 	 */
-	void setSwitchDistanceMultiplier(float mult) { switch_distance_multiplier_ = math::max(mult, 0.1f); }
+	void setSwitchDistanceMultiplier(float mult) { switch_distance_multiplier_ = MAX(mult, 0.1f); }
 
 	/*
 	 * Set the period safety factor.
 	 */
-	void setPeriodSafetyFactor(float sf) { period_safety_factor_ = math::max(sf, 1.0f); }
+	void setPeriodSafetyFactor(float sf) { period_safety_factor_ = MAX(sf, 1.0f); }
 
 	/*
 	 * @return Controller proportional gain [rad/s]
@@ -194,12 +193,12 @@ public:
 	/*
 	 * @return Heading angle reference [rad]
 	 */
-	float getHeadingRef() const { return atan2f(air_vel_ref_(1), air_vel_ref_(0)); }
+	float getHeadingRef() const { return atan2f(air_vel_ref_[1], air_vel_ref_[0]); }
 
 	/*
 	 * @return Bearing angle [rad]
 	 */
-	float getBearing() const { return atan2f(bearing_vec_(1), bearing_vec_(0)); }
+	float getBearing() const { return atan2f(bearing_vec_[1], bearing_vec_[0]); }
 
 	/*
 	 * @return Lateral acceleration command [m/s^2]
@@ -332,14 +331,14 @@ private:
 
 	// path following states
 	float signed_track_error_{0.0f}; // signed track error [m]
-	matrix::Vector2f bearing_vec_{matrix::Vector2f{1.0f, 0.0f}}; // bearing unit vector
+	Vector2f bearing_vec_{Vector2f{1.0f, 0.0f}}; // bearing unit vector
 
 	/*
 	 * guidance outputs
 	 */
 
 	float airspeed_ref_{15.0f}; // airspeed reference [m/s]
-	matrix::Vector2f air_vel_ref_{matrix::Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
+	Vector2f air_vel_ref_{Vector2f{15.0f, 0.0f}}; // air velocity reference vector [m/s]
 	float lateral_accel_{0.0f}; // lateral acceleration reference [m/s^2]
 	float lateral_accel_ff_{0.0f}; // lateral acceleration demand to maintain path curvature [m/s^2]
 
@@ -348,7 +347,7 @@ private:
 	 */
 
 	float dt_{0}; // control loop time [s]
-	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
+	float roll_lim_rad_{radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
 	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
 
@@ -368,8 +367,8 @@ private:
 	 * @return Adapted period [s]
 	 */
 	float adaptPeriod(const float ground_speed, const float airspeed, const float wind_speed,
-			  const float track_error, const float path_curvature, const matrix::Vector2f &wind_vel,
-			  const matrix::Vector2f &unit_path_tangent, const float feas_on_track) const;
+			  const float track_error, const float path_curvature, const Vector2f &wind_vel,
+			  const Vector2f &unit_path_tangent, const float feas_on_track) const;
 
 	/*
 	 * Returns normalized (unitless) and constrained track error [0,1].
@@ -477,7 +476,7 @@ private:
 	 *            determined by path normal direction) [m]
 	 * @return Unit bearing vector
 	 */
-	matrix::Vector2f bearingVec(const matrix::Vector2f &unit_path_tangent, const float look_ahead_ang,
+	Vector2f bearingVec(const Vector2f &unit_path_tangent, const float look_ahead_ang,
 				    const float signed_track_error) const;
 
 	/*
@@ -503,7 +502,7 @@ private:
 	 * @param[in] min_ground_speed Minimum commanded forward ground speed [m/s]
 	 * @return Air velocity vector [m/s]
 	 */
-	matrix::Vector2f refAirVelocity(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
+	Vector2f refAirVelocity(const Vector2f &wind_vel, const Vector2f &bearing_vec,
 					const float wind_cross_bearing, const float wind_dot_bearing, const float wind_speed,
 					const float min_ground_speed) const;
 
@@ -538,8 +537,8 @@ private:
 	 * @param[in] bearing_vec Bearing vector
 	 * @return Air velocity vector [m/s]
 	 */
-	matrix::Vector2f solveWindTriangle(const float wind_cross_bearing, const float airsp_dot_bearing,
-					   const matrix::Vector2f &bearing_vec) const;
+	Vector2f solveWindTriangle(const float wind_cross_bearing, const float airsp_dot_bearing,
+					   const Vector2f &bearing_vec) const;
 
 
 	/*
@@ -551,7 +550,7 @@ private:
 	 * @param[in] airspeed Vehicle airspeed [m/s]
 	 * @return Air velocity vector [m/s]
 	 */
-	matrix::Vector2f infeasibleAirVelRef(const matrix::Vector2f &wind_vel, const matrix::Vector2f &bearing_vec,
+	Vector2f infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bearing_vec,
 					     const float wind_speed, const float airspeed) const;
 
 
@@ -583,7 +582,7 @@ private:
 	 * @param[in] path_curvature Path curvature at closest point on track [m^-1]
 	 * @return Feed-forward lateral acceleration command [m/s^2]
 	 */
-	float lateralAccelFF(const matrix::Vector2f &unit_path_tangent, const matrix::Vector2f &ground_vel,
+	float lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &ground_vel,
 			     const float wind_dot_upt, const float wind_cross_upt, const float airspeed,
 			     const float wind_speed, const float signed_track_error, const float path_curvature) const;
 
@@ -596,7 +595,7 @@ private:
 	 * @param[in] airspeed Vehicle airspeed [m/s]
 	 * @return Lateral acceleration demand [m/s^2]
 	 */
-	float lateralAccel(const matrix::Vector2f &air_vel, const matrix::Vector2f &air_vel_ref,
+	float lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref,
 			   const float airspeed) const;
 
 	/*******************************************************************************

@@ -40,29 +40,27 @@
  */
 
 #include "npfg.hpp"
-#include <lib/geo/geo.h>
-#include <px4_platform_common/defines.h>
-#include <float.h>
 
-using matrix::Vector2d;
-using matrix::Vector2f;
+#include <AP_Math/AP_Math.h>
 
-void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
+static inline constexpr bool ISFINITE(float x) { return __builtin_isfinite(x); }
+
+void NPFG::guideToPath(const Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
 		       const Vector2f &unit_path_tangent,
 		       const Vector2f &position_on_path, const float path_curvature)
 {
-	const float ground_speed = ground_vel.norm();
+	const float ground_speed = ground_vel.length();
 
 	const Vector2f air_vel = ground_vel - wind_vel;
-	const float airspeed = air_vel.norm();
+	const float airspeed = air_vel.length();
 
-	const float wind_speed = wind_vel.norm();
+	const float wind_speed = wind_vel.length();
 
 	const Vector2f path_pos_to_vehicle{curr_pos_local - position_on_path};
-	signed_track_error_ = unit_path_tangent.cross(path_pos_to_vehicle);
+	signed_track_error_ = unit_path_tangent % path_pos_to_vehicle;
 
 	// on-track wind triangle projections
-	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
+	const float wind_cross_upt = wind_vel % unit_path_tangent;
 	const float wind_dot_upt = wind_vel.dot(unit_path_tangent);
 
 	// calculate the bearing feasibility on the track at the current closest point
@@ -89,7 +87,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error_);
 
 	// wind triangle projections
-	const float wind_cross_bearing = wind_vel.cross(bearing_vec_);
+	const float wind_cross_bearing = wind_vel % bearing_vec_;
 	const float wind_dot_bearing = wind_vel.dot(bearing_vec_);
 
 	// continuous representation of the bearing feasibility
@@ -105,7 +103,7 @@ void NPFG::guideToPath(const matrix::Vector2f &curr_pos_local, const Vector2f &g
 	// speed violations and/or high wind conditions in general
 	air_vel_ref_ = refAirVelocity(wind_vel, bearing_vec_, wind_cross_bearing,
 				      wind_dot_bearing, wind_speed, min_ground_speed_ref_);
-	airspeed_ref_ = air_vel_ref_.norm();
+	airspeed_ref_ = air_vel_ref_.length();
 
 	// lateral acceleration demand based on heading error
 	const float lateral_accel = lateralAccel(air_vel, air_vel_ref_, airspeed);
@@ -155,7 +153,7 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 		period_lb = period_lb * track_proximity + (1.0f - track_proximity) * period_lb_zero_curvature;
 
 		// lower bounded period
-		period = math::max(period_lb, period);
+		period = MAX(period_lb, period);
 
 		// only allow upper bounding ONLY if lower bounding is enabled (is otherwise
 		// dangerous to allow period decrements without stability checks).
@@ -166,13 +164,13 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 
 			const float period_ub = periodUpperBound(air_turn_rate, wind_factor, feas_on_track);
 
-			if (en_period_ub_ && PX4_ISFINITE(period_ub) && period > period_ub) {
+			if (en_period_ub_ && ISFINITE(period_ub) && period > period_ub) {
 				// NOTE: if the roll time constant is not accurately known, reducing
 				// the period here can destabilize the system!
 				// enable this feature at your own risk!
 
 				// upper bound the period (for track keeping stability), prefer lower bound if violated
-				const float period_adapted = math::max(period_lb, period_ub);
+				const float period_adapted = MAX(period_lb, period_ub);
 
 				// transition from the nominal period to the adapted period as we get
 				// closer to the track
@@ -186,7 +184,7 @@ float NPFG::adaptPeriod(const float ground_speed, const float airspeed, const fl
 
 float NPFG::normalizedTrackError(const float track_error, const float track_error_bound) const
 {
-	return math::constrain(track_error / track_error_bound, 0.0f, 1.0f);
+	return constrain_value(track_error / track_error_bound, 0.0f, 1.0f);
 }
 
 float NPFG::windFactor(const float airspeed, const float wind_speed) const
@@ -196,7 +194,7 @@ float NPFG::windFactor(const float airspeed, const float wind_speed) const
 		return 2.0f;
 
 	} else {
-		return 2.0f * (1.0f - sqrtf(1.0f - math::min(1.0f, wind_speed / airspeed)));
+		return 2.0f * (1.0f - sqrtf(1.0f - MIN(1.0f, wind_speed / airspeed)));
 	}
 } // windFactor
 
@@ -205,7 +203,7 @@ float NPFG::periodUpperBound(const float air_turn_rate, const float wind_factor,
 	if (air_turn_rate * wind_factor > NPFG_EPSILON) {
 		// multiply air turn rate by feasibility on track to zero out when we anyway
 		// should not consider the curvature
-		return 4.0f * M_PI_F * damping_ / (air_turn_rate * wind_factor * feas_on_track);
+		return 4.0f * M_PI * damping_ / (air_turn_rate * wind_factor * feas_on_track);
 	}
 
 	return INFINITY;
@@ -217,14 +215,14 @@ float NPFG::periodLowerBound(const float air_turn_rate, const float wind_factor,
 	// worst case bound for any wind ratio, airspeed, and path curvature
 
 	// the lower bound for zero curvature and no wind OR damping ratio < 0.5
-	const float period_lb = M_PI_F * roll_time_const_ / damping_;
+	const float period_lb = M_PI * roll_time_const_ / damping_;
 
 	if (air_turn_rate * wind_factor < NPFG_EPSILON || damping_ < 0.5f) {
 		return period_lb;
 
 	} else {
 		// the lower bound for tracking a curved path in wind with damping ratio > 0.5
-		const float period_windy_curved_damped = 4.0f * M_PI_F * roll_time_const_ * damping_;
+		const float period_windy_curved_damped = 4.0f * M_PI * roll_time_const_ * damping_;
 
 		// blend the two together as the bearing on track becomes less feasible
 		return period_windy_curved_damped * feas_on_track + (1.0f - feas_on_track) * period_lb;
@@ -251,7 +249,7 @@ float NPFG::trackErrorBound(const float ground_speed, const float time_const) co
 
 float NPFG::pGain(const float period, const float damping) const
 {
-	return 4.0f * M_PI_F * damping / period;
+	return 4.0f * M_PI * damping / period;
 } // pGain
 
 float NPFG::timeConst(const float period, const float damping) const
@@ -261,7 +259,7 @@ float NPFG::timeConst(const float period, const float damping) const
 
 float NPFG::lookAheadAngle(const float normalized_track_error) const
 {
-	return M_PI_2_F * (normalized_track_error - 1.0f) * (normalized_track_error - 1.0f);
+	return M_PI_2 * (normalized_track_error - 1.0f) * (normalized_track_error - 1.0f);
 } // lookAheadAngle
 
 Vector2f NPFG::bearingVec(const Vector2f &unit_path_tangent, const float look_ahead_ang,
@@ -270,10 +268,10 @@ Vector2f NPFG::bearingVec(const Vector2f &unit_path_tangent, const float look_ah
 	const float cos_look_ahead_ang = cosf(look_ahead_ang);
 	const float sin_look_ahead_ang = sinf(look_ahead_ang);
 
-	Vector2f unit_path_normal(-unit_path_tangent(1), unit_path_tangent(0)); // right handed 90 deg (clockwise) turn
-	Vector2f unit_track_error = -((signed_track_error < 0.0f) ? -1.0f : 1.0f) * unit_path_normal;
+	Vector2f unit_path_normal(-unit_path_tangent[1], unit_path_tangent[0]); // right handed 90 deg (clockwise) turn
+	Vector2f unit_track_error = unit_path_normal * -1.0 * ((signed_track_error < 0.0f) ? -1.0f : 1.0f);
 
-	return cos_look_ahead_ang * unit_track_error + sin_look_ahead_ang * unit_path_tangent;
+	return unit_track_error * cos_look_ahead_ang + unit_path_tangent * sin_look_ahead_ang;
 } // bearingVec
 
 float NPFG::minGroundSpeed(const float normalized_track_error, const float feas)
@@ -285,7 +283,7 @@ float NPFG::minGroundSpeed(const float normalized_track_error, const float feas)
 		// zero out track keeping speed increment when bearing is feasible
 		// maximum track keeping speed increment is applied until we are within
 		// a user defined fraction of the normalized track error
-		min_gsp_track_keeping_ = (1.0f - feas) * min_gsp_track_keeping_max_ * math::constrain(
+		min_gsp_track_keeping_ = (1.0f - feas) * min_gsp_track_keeping_max_ * constrain_value(
 						 normalized_track_error / NTE_FRACTION, 0.0f,
 						 1.0f);
 	}
@@ -297,7 +295,7 @@ float NPFG::minGroundSpeed(const float normalized_track_error, const float feas)
 		min_gsp_desired = min_gsp_desired_;
 	}
 
-	return math::max(min_gsp_track_keeping_, min_gsp_desired);
+	return MAX(min_gsp_track_keeping_, min_gsp_desired);
 } // minGroundSpeed
 
 Vector2f NPFG::refAirVelocity(const Vector2f &wind_vel, const Vector2f &bearing_vec,
@@ -375,7 +373,7 @@ float NPFG::projectAirspOnBearing(const float airspeed, const float wind_cross_b
 	// NOTE: wind_cross_bearing must be less than airspeed to use this function
 	// it is assumed that bearing feasibility is checked and found feasible (e.g. bearingIsFeasible() = true) prior to entering this method
 	// otherwise the return will be erroneous
-	return sqrtf(math::max(airspeed * airspeed - wind_cross_bearing * wind_cross_bearing, 0.0f));
+	return sqrtf(MAX(airspeed * airspeed - wind_cross_bearing * wind_cross_bearing, 0.0f));
 } // projectAirspOnBearing
 
 int NPFG::bearingIsFeasible(const float wind_cross_bearing, const float wind_dot_bearing, const float airspeed,
@@ -388,8 +386,8 @@ Vector2f NPFG::solveWindTriangle(const float wind_cross_bearing, const float air
 				 const Vector2f &bearing_vec) const
 {
 	// essentially a 2D rotation with the speeds (magnitudes) baked in
-	return Vector2f{airsp_dot_bearing * bearing_vec(0) - wind_cross_bearing * bearing_vec(1),
-			wind_cross_bearing * bearing_vec(0) + airsp_dot_bearing * bearing_vec(1)};
+	return Vector2f{airsp_dot_bearing * bearing_vec[0] - wind_cross_bearing * bearing_vec[1],
+			wind_cross_bearing * bearing_vec[0] + airsp_dot_bearing * bearing_vec[1]};
 } // solveWindTriangle
 
 Vector2f NPFG::infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bearing_vec, const float wind_speed,
@@ -398,7 +396,7 @@ Vector2f NPFG::infeasibleAirVelRef(const Vector2f &wind_vel, const Vector2f &bea
 	// NOTE: wind speed must be greater than airspeed, and airspeed must be greater than zero to use this function
 	// it is assumed that bearing feasibility is checked and found infeasible (e.g. bearingIsFeasible() = false) prior to entering this method
 	// otherwise the normalization of the air velocity vector could have a division by zero
-	Vector2f air_vel_ref = sqrtf(math::max(wind_speed * wind_speed - airspeed * airspeed, 0.0f)) * bearing_vec - wind_vel;
+	Vector2f air_vel_ref =  bearing_vec * sqrtf(MAX(wind_speed * wind_speed - airspeed * airspeed, 0.0f)) - wind_vel;
 	return air_vel_ref.normalized() * airspeed;
 } // infeasibleAirVelRef
 
@@ -412,7 +410,7 @@ float NPFG::bearingFeasibility(float wind_cross_bearing, const float wind_dot_be
 		wind_cross_bearing = fabsf(wind_cross_bearing);
 	}
 
-	float sin_arg = sinf(M_PI_F * 0.5f * math::constrain((airspeed - wind_cross_bearing) / AIRSPEED_BUFFER, 0.0f, 1.0f));
+	float sin_arg = sinf(M_PI * 0.5f * constrain_value((airspeed - wind_cross_bearing) / AIRSPEED_BUFFER, 0.0f, 1.0f));
 	return sin_arg * sin_arg;
 } // bearingFeasibility
 
@@ -429,17 +427,17 @@ float NPFG::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &gr
 
 	// path frame curvature is the instantaneous curvature at our current distance
 	// from the actual path (considering e.g. concentric circles emanating outward/inward)
-	const float path_frame_curvature = path_curvature / math::max(1.0f - path_curvature * signed_track_error,
+	const float path_frame_curvature = path_curvature / MAX(1.0f - path_curvature * signed_track_error,
 					   fabsf(path_curvature) * MIN_RADIUS);
 
 	// limit tangent ground speed to along track (forward moving) direction
-	const float tangent_ground_speed = math::max(ground_vel.dot(unit_path_tangent), 0.0f);
+	const float tangent_ground_speed = MAX(ground_vel.dot(unit_path_tangent), 0.0f);
 
 	const float path_frame_rate = path_frame_curvature * tangent_ground_speed;
 
 	// speed ratio = projection of ground vel on track / projection of air velocity
 	// on track
-	const float speed_ratio = (1.0f + wind_dot_upt / math::max(projectAirspOnBearing(airspeed, wind_cross_upt),
+	const float speed_ratio = (1.0f + wind_dot_upt / MAX(projectAirspOnBearing(airspeed, wind_cross_upt),
 				   NPFG_EPSILON));
 
 	// note the use of airspeed * speed_ratio as oppose to ground_speed^2 here --
@@ -453,7 +451,7 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
 	// lateral acceleration demand only from the heading error
 
 	const float dot_air_vel_err = air_vel.dot(air_vel_ref);
-	const float cross_air_vel_err = air_vel.cross(air_vel_ref);
+	const float cross_air_vel_err = air_vel % air_vel_ref;
 
 	if (dot_air_vel_err < 0.0f) {
 		// hold max lateral acceleration command above 90 deg heading error
@@ -468,20 +466,20 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
 
 float NPFG::switchDistance(float wp_radius) const
 {
-	return math::min(wp_radius, track_error_bound_ * switch_distance_multiplier_);
+	return MIN(wp_radius, track_error_bound_ * switch_distance_multiplier_);
 } // switchDistance
 
 void NPFG::updateRollSetpoint()
 {
-	float roll_new = atanf(lateral_accel_ * 1.0f / CONSTANTS_ONE_G);
-	roll_new = math::constrain(roll_new, -roll_lim_rad_, roll_lim_rad_);
+	float roll_new = atanf(lateral_accel_ * 1.0f / GRAVITY_MSS);
+	roll_new = constrain_value(roll_new, -roll_lim_rad_, roll_lim_rad_);
 
 	if (dt_ > 0.0f && roll_slew_rate_ > 0.0f) {
 		// slew rate limiting active
-		roll_new = math::constrain(roll_new, roll_setpoint_ - roll_slew_rate_ * dt_, roll_setpoint_ + roll_slew_rate_ * dt_);
+		roll_new = constrain_value(roll_new, roll_setpoint_ - roll_slew_rate_ * dt_, roll_setpoint_ + roll_slew_rate_ * dt_);
 	}
 
-	if (PX4_ISFINITE(roll_new)) {
+	if (ISFINITE(roll_new)) {
 		roll_setpoint_ = roll_new;
 	}
 } // updateRollSetpoint
