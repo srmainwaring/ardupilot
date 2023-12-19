@@ -6,6 +6,8 @@
 #include <AP_Navigation/AP_Navigation.h>
 #include <AP_Common/Location.h>
 
+#include "AP_NPFG/npfg.h"
+
 class AP_NPFG : public  AP_Navigation {
 public:
     // return the desired roll angle in centi-degrees to move towards
@@ -110,4 +112,7 @@ public:
     bool data_is_stale(void) const override;
 
     void set_reverse(bool reverse) override;
+
+private:
+    NPFG npfg_;
 };
