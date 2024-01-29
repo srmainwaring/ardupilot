@@ -541,8 +541,8 @@ void AP_DDS_Client::on_request(uxrSession* uxr_session, uxrObjectId object_id, u
     (void) length;
     switch (object_id.id) {
     case services[to_underlying(ServiceIndex::ARMING_MOTORS)].rep_id: {
-        ardupilot_msgs_srv_ArmMotors_Request arm_motors_request;
-        ardupilot_msgs_srv_ArmMotors_Response arm_motors_response;
+        // ardupilot_msgs_srv_ArmMotors_Request arm_motors_request;
+        // ardupilot_msgs_srv_ArmMotors_Response arm_motors_response;
         const bool deserialize_success = ardupilot_msgs_srv_ArmMotors_Request_deserialize_topic(ub, &arm_motors_request);
         if (deserialize_success == false) {
             break;
@@ -758,17 +758,17 @@ bool AP_DDS_Client::create()
     WITH_SEMAPHORE(csem);
 
     //! @note debug information for message sizes
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Request:   %u", sizeof(ardupilot_msgs_srv_ArmMotors_Request));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Response:  %u", sizeof(ardupilot_msgs_srv_ArmMotors_Response));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: builtin_interfaces_msg_Time:            %u", sizeof(builtin_interfaces_msg_Time));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geographic_msgs_msg_GeoPoseStamped:     %u", sizeof(geographic_msgs_msg_GeoPoseStamped));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_PoseStamped:          %u", sizeof(geometry_msgs_msg_PoseStamped));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_TwistStamped:         %u", sizeof(geometry_msgs_msg_TwistStamped));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_BatteryState:           %u", sizeof(sensor_msgs_msg_BatteryState));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_Joy:                    %u", sizeof(sensor_msgs_msg_Joy));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_NavSatFix:              %u", sizeof(sensor_msgs_msg_NavSatFix));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: rosgraph_msgs_msg_Clock:                %u", sizeof(rosgraph_msgs_msg_Clock));
-    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: tf2_msgs_msg_TFMessage:                 %u", sizeof(tf2_msgs_msg_TFMessage));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Request:   %lu", sizeof(ardupilot_msgs_srv_ArmMotors_Request));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: ardupilot_msgs_srv_ArmMotors_Response:  %lu", sizeof(ardupilot_msgs_srv_ArmMotors_Response));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: builtin_interfaces_msg_Time:            %lu", sizeof(builtin_interfaces_msg_Time));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geographic_msgs_msg_GeoPoseStamped:     %lu", sizeof(geographic_msgs_msg_GeoPoseStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_PoseStamped:          %lu", sizeof(geometry_msgs_msg_PoseStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: geometry_msgs_msg_TwistStamped:         %lu", sizeof(geometry_msgs_msg_TwistStamped));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_BatteryState:           %lu", sizeof(sensor_msgs_msg_BatteryState));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_Joy:                    %lu", sizeof(sensor_msgs_msg_Joy));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: sensor_msgs_msg_NavSatFix:              %lu", sizeof(sensor_msgs_msg_NavSatFix));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: rosgraph_msgs_msg_Clock:                %lu", sizeof(rosgraph_msgs_msg_Clock));
+    GCS_SEND_TEXT(MAV_SEVERITY_DEBUG,"DDS Client: tf2_msgs_msg_TFMessage:                 %lu", sizeof(tf2_msgs_msg_TFMessage));
 
     // Participant
     const uxrObjectId participant_id = {
@@ -1095,12 +1095,12 @@ void AP_DDS_Client::update()
     status_ok = uxr_run_session_time(&session, 1);
   
     if (cur_time_ms - last_stats_time_ms > DELAY_STATS_MS) {
-        uint64_t delta_update_count = update_count - last_update_count;
-        uint64_t delta_update_fail_count = update_fail_count - last_update_fail_count;
+        // uint64_t delta_update_count = update_count - last_update_count;
+        // uint64_t delta_update_fail_count = update_fail_count - last_update_fail_count;
         // uint64_t delta_time_ms = cur_time_ms - last_stats_time_ms;
 
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: updates: %llu / %llu, fail: %llu / %llu",
-            delta_update_count, update_count, delta_update_fail_count, update_fail_count);
+        // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: updates: %llu / %llu, fail: %llu / %llu",
+        //     delta_update_count, update_count, delta_update_fail_count, update_fail_count);
 
 #if 0
         // display last status
@@ -1144,12 +1144,12 @@ void AP_DDS_Client::update()
         GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: requests: av: %.1f, max: %u, sum: %llu",
             (float)request_list_size_sum/(float)update_count, request_list_size_max, request_list_size_sum);
 
-        GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: status: pass: %llu, fail: %llu",
-            status_pass_count, status_fail_count);
+        // GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "DDS Client: status: pass: %llu, fail: %llu",
+        //     status_pass_count, status_fail_count);
 
         last_stats_time_ms = cur_time_ms;
         last_update_count = update_count;
-        last_update_fail_count = update_fail_count;
+        // last_update_fail_count = update_fail_count;
     }
 
     //! @note May be better to have short timeout with many misses than longer
