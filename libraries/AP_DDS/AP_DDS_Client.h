@@ -82,10 +82,7 @@ private:
     HAL_Semaphore csem;
 
     // connection parametrics
-<<<<<<< HEAD
     bool connected = false;
-=======
->>>>>>> 2752cfd58b (AP_DDS: gather status stats for uxr_run_session)
     bool initialised = false;
 
     // store request ids from `uxr_buffer_reply` and `uxr_prepare_output_stream`
