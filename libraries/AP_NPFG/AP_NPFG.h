@@ -122,7 +122,7 @@ public:
 
     void set_reverse(bool reverse) override;
 
-    // store the NAVNPFG_* user settable parameters
+    // store the NPFG_* user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
