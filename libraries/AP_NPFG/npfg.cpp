@@ -45,6 +45,11 @@
 
 static inline constexpr bool ISFINITE(float x) { return __builtin_isfinite(x); }
 
+const float NPFG::NPFG_EPSILON = 1.0e-6;  // small number *bigger than machine epsilon
+const float NPFG::MIN_RADIUS = 0.5f;      // minimum effective radius (avoid singularities) [m]
+const float NPFG::NTE_FRACTION = 0.5f;    // normalized track error fraction (must be > 0)
+const float NPFG::AIRSPEED_BUFFER = 1.5f; // airspeed buffer [m/s] (must be > 0)
+
 void NPFG::guideToPath(const Vector2f &curr_pos_local, const Vector2f &ground_vel, const Vector2f &wind_vel,
                const Vector2f &unit_path_tangent,
                const Vector2f &position_on_path, const float path_curvature)

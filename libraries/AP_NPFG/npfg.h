@@ -270,11 +270,11 @@ public:
 
 private:
 
-    static constexpr float NPFG_EPSILON = 1.0e-6; // small number *bigger than machine epsilon
-    static constexpr float MIN_RADIUS = 0.5f; // minimum effective radius (avoid singularities) [m]
-    static constexpr float NTE_FRACTION = 0.5f; // normalized track error fraction (must be > 0)
+    static const float NPFG_EPSILON;    // small number *bigger than machine epsilon
+    static const float MIN_RADIUS;      // minimum effective radius (avoid singularities) [m]
+    static const float NTE_FRACTION;    // normalized track error fraction (must be > 0)
     // ^determines at what fraction of the normalized track error the maximum track keeping forward ground speed demand is reached
-    static constexpr float AIRSPEED_BUFFER = 1.5f; // airspeed buffer [m/s] (must be > 0)
+    static const float AIRSPEED_BUFFER; // airspeed buffer [m/s] (must be > 0)
     // ^the size of the feasibility transition region at cross wind angle >= 90 deg.
     //  This must be non-zero to avoid jumpy airspeed incrementation while using wind
     //  excess handling logic. Similarly used as buffer region around zero airspeed.
