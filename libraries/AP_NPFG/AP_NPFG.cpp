@@ -163,7 +163,7 @@ void AP_NPFG::update_loiter(const class Location &center_WP, float radius, int8_
     uint32_t control_interval_ms = now_ms - _last_update_ms;
     _last_update_ms = now_ms;
 
-    const float control_interval_s = float(control_interval_ms) * 1.0E-6;
+    const float control_interval_s = float(control_interval_ms) * 1.0E-3;
 
     // update control time step for slew rates  
     _npfg.setDt(control_interval_s);
