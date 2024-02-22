@@ -1475,6 +1475,8 @@ void GCS_MAVLINK_Plane::handle_set_position_target_global_int(const mavlink_mess
 
                             // //! @todo(srmainwaring) remove - used for debugging
                             // gcs().send_text(MAV_SEVERITY_DEBUG, "radius: %f, dir: %f", radius, dir);
+                        }  else {
+                            plane.mode_terrain_navigation.set_radius_and_direction(0.0, true);
                         }
                     }
                 }
