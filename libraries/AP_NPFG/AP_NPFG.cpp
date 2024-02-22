@@ -158,11 +158,19 @@ void AP_NPFG::update_loiter(const class Location &center_WP, float radius, int8_
     // check for parameter updates
     update_parameters();
 
+    // calculate control interval
+    uint32_t now_ms = AP_HAL::millis();
+    uint32_t control_interval_ms = now_ms - _last_update_ms;
+    _last_update_ms = now_ms;
+
+    const float control_interval_s = float(control_interval_ms) * 1.0E-6;
+
+    // update control time step for slew rates  
+    _npfg.setDt(control_interval_s);
 
     //! @todo remove hardcoding
     _npfg.setAirspeedNom(15.0f);
     _npfg.setAirspeedMax(20.0f);
-
 
     // get current position and velocity
     Location current_loc;
@@ -249,7 +257,7 @@ void AP_NPFG::update_parameters() {
     _npfg.setRollTimeConst(_npfg_roll_time_const);
     _npfg.setSwitchDistanceMultiplier(_npfg_switch_distance_multiplier);
     _npfg.setRollLimit(radians(30.0 /*_param_fw_r_lim*/));
-    _npfg.setRollSlewRate(radians(0.0 /*_param_fw_pn_r_slew_max*/));
+    _npfg.setRollSlewRate(radians(50.0 /*_param_fw_pn_r_slew_max*/));
     _npfg.setPeriodSafetyFactor(_npfg_period_safety_factor);
 }
 
