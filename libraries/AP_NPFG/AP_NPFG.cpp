@@ -35,7 +35,7 @@ const AP_Param::GroupInfo AP_NPFG::var_info[] = {
     // @DisplayName: NPFG enable track keeping.
     // @Description: The airspeed reference is incremented to return to the track and sustain zero ground velocity until excess wind subsides.
     // @User: Advanced
-    AP_GROUPINFO("TRACK_KEEP", 4, AP_NPFG, _npfg_en_track_keeping, 0),
+    AP_GROUPINFO("TRACK_KEEP", 4, AP_NPFG, _npfg_en_track_keeping, 1),
 
     // @Param: EN_MIN_GSP
     // @DisplayName: NPFG enable min ground speed.
