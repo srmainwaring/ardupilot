@@ -257,7 +257,7 @@ void AP_NPFG::update_parameters() {
     _npfg.setRollTimeConst(_npfg_roll_time_const);
     _npfg.setSwitchDistanceMultiplier(_npfg_switch_distance_multiplier);
     _npfg.setRollLimit(radians(30.0 /*_param_fw_r_lim*/));
-    _npfg.setRollSlewRate(radians(50.0 /*_param_fw_pn_r_slew_max*/));
+    _npfg.setRollSlewRate(radians(90.0 /*_param_fw_pn_r_slew_max*/));
     _npfg.setPeriodSafetyFactor(_npfg_period_safety_factor);
 }
 
