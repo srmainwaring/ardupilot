@@ -43,7 +43,7 @@ void ModeTerrainNavigation::navigate()
         // moving along arc of circle - loiter about wp located at
         // centre of curvature.
         auto center_wp = plane.next_WP_loc;
-        Vector3p tangent_ned(_unit_path_tangent.x, _unit_path_tangent.y, 1.0);
+        Vector3p tangent_ned(_unit_path_tangent.x, _unit_path_tangent.y, 0.0);
         Vector3p dn_ned(0.0, 0.0, 1.0); 
         auto ofs_ned = dn_ned.cross(tangent_ned)
             * _radius_m * plane.loiter.direction;
