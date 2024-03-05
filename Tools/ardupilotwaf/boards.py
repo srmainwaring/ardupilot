@@ -71,13 +71,14 @@ class Board:
             env.CXXFLAGS += ['-DHAL_GCS_ENABLED=0']
 
         # configurations for XRCE-DDS
-        if cfg.options.enable_dds:
+        # if cfg.options.enable_dds:
+        if True:
             cfg.recurse('libraries/AP_DDS')
             env.ENABLE_DDS = True
             env.AP_LIBRARIES += [
                 'AP_DDS'
             ]
-            env.DEFINES.update(AP_DDS_ENABLED = 1)
+            # env.DEFINES.update(AP_DDS_ENABLED = 1)
             # check for microxrceddsgen
             cfg.find_program('microxrceddsgen',mandatory=True)
         else:
