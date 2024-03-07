@@ -54,6 +54,9 @@ enum class TopicIndex: uint8_t {
 #if AP_DDS_STATUS_PUB_ENABLED
     STATUS_PUB,
 #endif // AP_DDS_STATUS_PUB_ENABLED
+
+    MODE_PUB,
+
 #if AP_DDS_JOY_SUB_ENABLED
     JOY_SUB,
 #endif // AP_DDS_JOY_SUB_ENABLED
@@ -311,6 +314,16 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
     },
 #endif // AP_DDS_STATUS_PUB_ENABLED
 #if AP_DDS_JOY_SUB_ENABLED
+    {
+        .topic_id = to_underlying(TopicIndex::MODE_PUB),
+        .pub_id = to_underlying(TopicIndex::MODE_PUB),
+        .sub_id = to_underlying(TopicIndex::MODE_PUB),
+        .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::MODE_PUB), .type=UXR_DATAWRITER_ID},
+        .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::MODE_PUB), .type=UXR_DATAREADER_ID},
+        .topic_profile_label = "mode__t",
+        .dw_profile_label = "mode__dw",
+        .dr_profile_label = "",
+    },
     {
         .topic_id = to_underlying(TopicIndex::JOY_SUB),
         .pub_id = to_underlying(TopicIndex::JOY_SUB),

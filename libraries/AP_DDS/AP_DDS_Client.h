@@ -10,6 +10,9 @@
 #if AP_DDS_GLOBAL_POS_CTRL_ENABLED
 #include "ardupilot_msgs/msg/GlobalPosition.h"
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
+
+#include "ardupilot_msgs/msg/Mode.h"
+
 #if AP_DDS_TIME_PUB_ENABLED
 #include "builtin_interfaces/msg/Time.h"
 #endif // AP_DDS_TIME_PUB_ENABLED
@@ -190,6 +193,7 @@ private:
 
 #if AP_DDS_CLOCK_PUB_ENABLED
     rosgraph_msgs_msg_Clock clock_topic;
+<<<<<<< HEAD
     // The last ms timestamp AP_DDS wrote a Clock message
     uint64_t last_clock_time_ms;
     //! @brief Serialize the current clock and publish to the IO stream(s)
@@ -209,6 +213,15 @@ private:
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
 #if AP_DDS_STATIC_TF_PUB_ENABLED
+=======
+    ardupilot_msgs_msg_Mode mode_topic;
+    // incoming joystick data
+    static sensor_msgs_msg_Joy rx_joy_topic;
+    // incoming REP147 velocity control
+    static geometry_msgs_msg_TwistStamped rx_velocity_control_topic;
+    // incoming REP147 goal interface global position
+    static ardupilot_msgs_msg_GlobalPosition rx_global_position_control_topic;
+>>>>>>> f3a130d71f (AP_DDS: publish mode)
     // outgoing transforms
     tf2_msgs_msg_TFMessage tx_static_transforms_topic;
     //! @brief Serialize the static transforms and publish to the IO stream(s)
@@ -246,6 +259,21 @@ private:
     bool status_ok{false};
     bool connected{false};
 
+<<<<<<< HEAD
+=======
+    static void update_topic(builtin_interfaces_msg_Time& msg);
+    bool update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t instance) WARN_IF_UNUSED;
+    static void populate_static_transforms(tf2_msgs_msg_TFMessage& msg);
+    static void update_topic(sensor_msgs_msg_BatteryState& msg, const uint8_t instance);
+    static void update_topic(geometry_msgs_msg_PoseStamped& msg);
+    static void update_topic(geometry_msgs_msg_TwistStamped& msg);
+    static void update_topic(geographic_msgs_msg_GeoPoseStamped& msg);
+    static void update_topic(sensor_msgs_msg_Imu& msg);
+    static void update_topic(rosgraph_msgs_msg_Clock& msg);
+    static void update_topic(geographic_msgs_msg_GeoPointStamped& msg);
+    static void update_topic(ardupilot_msgs_msg_Mode& msg);
+
+>>>>>>> f3a130d71f (AP_DDS: publish mode)
     // subscription callback function
     static void on_topic_trampoline(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* ub, uint16_t length, void* args);
     void on_topic(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* ub, uint16_t length);
@@ -262,6 +290,30 @@ private:
         .min_pace_period = 0
     };
 
+<<<<<<< HEAD
+=======
+    // The last ms timestamp AP_DDS wrote a Time message
+    uint64_t last_time_time_ms;
+    // The last ms timestamp AP_DDS wrote a NavSatFix message
+    uint64_t last_nav_sat_fix_time_ms;
+    // The last ms timestamp AP_DDS wrote a BatteryState message
+    uint64_t last_battery_state_time_ms;
+    // The last ms timestamp AP_DDS wrote an IMU message
+    uint64_t last_imu_time_ms;
+    // The last ms timestamp AP_DDS wrote a Local Pose message
+    uint64_t last_local_pose_time_ms;
+    // The last ms timestamp AP_DDS wrote a Local Velocity message
+    uint64_t last_local_velocity_time_ms;
+    // The last ms timestamp AP_DDS wrote a GeoPose message
+    uint64_t last_geo_pose_time_ms;
+    // The last ms timestamp AP_DDS wrote a Clock message
+    uint64_t last_clock_time_ms;
+    // The last ms timestamp AP_DDS wrote a gps global origin message
+    uint64_t last_gps_global_origin_time_ms;
+    // The last ms timestamp AP_DDS wrote a mode message
+    uint64_t last_mode_time_ms;
+
+>>>>>>> f3a130d71f (AP_DDS: publish mode)
     // functions for serial transport
     bool ddsSerialInit();
     static bool serial_transport_open(uxrCustomTransport* args);
@@ -316,6 +368,31 @@ public:
     //! @return True on successful creation, false on failure
     bool create() WARN_IF_UNUSED;
 
+<<<<<<< HEAD
+=======
+    //! @brief Serialize the current time state and publish to the IO stream(s)
+    void write_time_topic();
+    //! @brief Serialize the current nav_sat_fix state and publish to the IO stream(s)
+    void write_nav_sat_fix_topic();
+    //! @brief Serialize the static transforms and publish to the IO stream(s)
+    void write_static_transforms();
+    //! @brief Serialize the current nav_sat_fix state and publish it to the IO stream(s)
+    void write_battery_state_topic();
+    //! @brief Serialize the current local_pose and publish to the IO stream(s)
+    void write_local_pose_topic();
+    //! @brief Serialize the current local velocity and publish to the IO stream(s)
+    void write_tx_local_velocity_topic();
+    //! @brief Serialize the current geo_pose and publish to the IO stream(s)
+    void write_geo_pose_topic();
+    //! @brief Serialize the current IMU data and publish to the IO stream(s)
+    void write_imu_topic();
+    //! @brief Serialize the current clock and publish to the IO stream(s)
+    void write_clock_topic();
+    //! @brief Serialize the current gps global origin and publish to the IO stream(s)
+    void write_gps_global_origin_topic();
+    //! @brief Serialize the current mode and publish to the IO stream(s)
+    void write_mode_topic();
+>>>>>>> f3a130d71f (AP_DDS: publish mode)
     //! @brief Update the internally stored DDS messages with latest data
     void update();
 

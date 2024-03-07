@@ -77,6 +77,8 @@ static constexpr uint16_t DELAY_CLOCK_TOPIC_MS =AP_DDS_DELAY_CLOCK_TOPIC_MS;
 #if AP_DDS_GPS_GLOBAL_ORIGIN_PUB_ENABLED
 static constexpr uint16_t DELAY_GPS_GLOBAL_ORIGIN_TOPIC_MS = AP_DDS_DELAY_GPS_GLOBAL_ORIGIN_TOPIC_MS;
 #endif // AP_DDS_GPS_GLOBAL_ORIGIN_PUB_ENABLED
+
+static constexpr uint16_t DELAY_MODE_TOPIC_MS = 1000;
 static constexpr uint16_t DELAY_PING_MS = 500;
 #if AP_DDS_STATUS_PUB_ENABLED
 static constexpr uint16_t DELAY_STATUS_TOPIC_MS = AP_DDS_DELAY_STATUS_TOPIC_MS;
@@ -717,6 +719,12 @@ bool AP_DDS_Client::update_topic(ardupilot_msgs_msg_Status& msg)
     }
 }
 #endif // AP_DDS_STATUS_PUB_ENABLED
+
+void AP_DDS_Client::update_topic(ardupilot_msgs_msg_Mode& msg)
+{
+    msg.mode = AP::vehicle()->get_mode();
+}
+
 /*
   start the DDS thread
  */
@@ -1667,6 +1675,21 @@ void AP_DDS_Client::write_status_topic()
 }
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
+void AP_DDS_Client::write_mode_topic()
+{
+    WITH_SEMAPHORE(csem);
+    if (connected) {
+        ucdrBuffer ub {};
+        const uint32_t topic_size = ardupilot_msgs_msg_Mode_size_of_topic(&mode_topic, 0);
+        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::MODE_PUB)].dw_id, &ub, topic_size);
+        const bool success = ardupilot_msgs_msg_Mode_serialize_topic(&ub, &mode_topic);
+        if (!success) {
+            // TODO sometimes serialization fails on bootup. Determine why.
+            // AP_HAL::panic("FATAL: DDS_Client failed to serialize\n");
+        }
+    }
+}
+
 void AP_DDS_Client::update()
 {
     WITH_SEMAPHORE(csem);
@@ -1763,6 +1786,12 @@ void AP_DDS_Client::update()
         last_status_check_time_ms = cur_time_ms;
     }
 #endif // AP_DDS_STATUS_PUB_ENABLED
+
+    if (cur_time_ms - last_mode_time_ms > DELAY_MODE_TOPIC_MS) {
+        update_topic(mode_topic);
+        last_mode_time_ms = cur_time_ms;
+        write_mode_topic();
+    }
 
     status_ok = uxr_run_session_time(&session, 1);
 }

@@ -159,6 +159,7 @@ Published topics:
  * /ap/geopose/filtered [geographic_msgs/msg/GeoPoseStamped] 1 publisher
  * /ap/gps_global_origin/filtered [geographic_msgs/msg/GeoPointStamped] 1 publisher
  * /ap/imu/experimental/data [sensor_msgs/msg/Imu] 1 publisher
+ * /ap/mode [ardupilot_msgs/msg/Mode] 1 publisher
  * /ap/navsat [sensor_msgs/msg/NavSatFix] 1 publisher
  * /ap/pose/filtered [geometry_msgs/msg/PoseStamped] 1 publisher
  * /ap/tf_static [tf2_msgs/msg/TFMessage] 1 publisher
