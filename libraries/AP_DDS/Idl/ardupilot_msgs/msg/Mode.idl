@@ -1,0 +1,24 @@
+// generated from rosidl_adapter/resource/msg.idl.em
+// with input from ardupilot_msgs/msg/Mode.msg
+// generated code does not contain a copyright notice
+
+
+module ardupilot_msgs {
+  module msg {
+    @verbatim (language="comment", text=
+      "Experimental REP147 mode interface." "\n"
+      "" "\n"
+      "https://ros.org/reps/rep-0147.html#flight-modes" "\n"
+      "" "\n"
+      "Differences to the REP147 proposal:" "\n"
+      "  - Name message and field Mode rather than FlightMode as it applies to" "\n"
+      "    all vehicles, not just aerial ones." "\n"
+      "  - Do not supply enums for the mode. These may be specific to a flight stack" "\n"
+      "    and vehicle.")
+    struct Mode {
+      @verbatim (language="comment", text=
+        "The value of the current drive/flight mode.")
+      uint8 mode;
+    };
+  };
+};
