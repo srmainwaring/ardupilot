@@ -8,6 +8,7 @@
 #include "ucdr/microcdr.h"
 
 #include "ardupilot_msgs/msg/GlobalPosition.h"
+#include "ardupilot_msgs/msg/Mode.h"
 #include "builtin_interfaces/msg/Time.h"
 
 #include "sensor_msgs/msg/NavSatFix.h"
@@ -68,6 +69,7 @@ private:
     sensor_msgs_msg_NavSatFix nav_sat_fix_topic;
     sensor_msgs_msg_Imu imu_topic;
     rosgraph_msgs_msg_Clock clock_topic;
+    ardupilot_msgs_msg_Mode mode_topic;
     // incoming joystick data
     static sensor_msgs_msg_Joy rx_joy_topic;
     // incoming REP147 velocity control
@@ -95,6 +97,7 @@ private:
     static void update_topic(sensor_msgs_msg_Imu& msg);
     static void update_topic(rosgraph_msgs_msg_Clock& msg);
     static void update_topic(geographic_msgs_msg_GeoPointStamped& msg);
+    static void update_topic(ardupilot_msgs_msg_Mode& msg);
 
     // subscription callback function
     static void on_topic_trampoline(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* ub, uint16_t length, void* args);
@@ -130,6 +133,8 @@ private:
     uint64_t last_clock_time_ms;
     // The last ms timestamp AP_DDS wrote a gps global origin message
     uint64_t last_gps_global_origin_time_ms;
+    // The last ms timestamp AP_DDS wrote a mode message
+    uint64_t last_mode_time_ms;
 
     // functions for serial transport
     bool ddsSerialInit();
@@ -204,6 +209,8 @@ public:
     void write_clock_topic();
     //! @brief Serialize the current gps global origin and publish to the IO stream(s)
     void write_gps_global_origin_topic();
+    //! @brief Serialize the current mode and publish to the IO stream(s)
+    void write_mode_topic();
     //! @brief Update the internally stored DDS messages with latest data
     void update();
 

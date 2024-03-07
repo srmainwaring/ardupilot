@@ -38,6 +38,7 @@ static constexpr uint16_t DELAY_LOCAL_VELOCITY_TOPIC_MS = 33;
 static constexpr uint16_t DELAY_GEO_POSE_TOPIC_MS = 33;
 static constexpr uint16_t DELAY_CLOCK_TOPIC_MS = 10;
 static constexpr uint16_t DELAY_GPS_GLOBAL_ORIGIN_TOPIC_MS = 1000;
+static constexpr uint16_t DELAY_MODE_TOPIC_MS = 1000;
 static constexpr uint16_t DELAY_PING_MS = 500;
 
 // Define the subscriber data members, which are static class scope.
@@ -493,6 +494,11 @@ void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPointStamped& msg)
         msg.position.longitude = ekf_origin.lng * 1E-7;
         msg.position.altitude = ekf_origin.alt * 0.01;
     }
+}
+
+void AP_DDS_Client::update_topic(ardupilot_msgs_msg_Mode& msg)
+{
+    msg.mode = AP::vehicle()->get_mode();
 }
 
 /*
@@ -1093,6 +1099,20 @@ void AP_DDS_Client::write_gps_global_origin_topic()
     }
 }
 
+void AP_DDS_Client::write_mode_topic()
+{
+    WITH_SEMAPHORE(csem);
+    if (connected) {
+        ucdrBuffer ub {};
+        const uint32_t topic_size = ardupilot_msgs_msg_Mode_size_of_topic(&mode_topic, 0);
+        uxr_prepare_output_stream(&session, reliable_out, topics[to_underlying(TopicIndex::MODE_PUB)].dw_id, &ub, topic_size);
+        const bool success = ardupilot_msgs_msg_Mode_serialize_topic(&ub, &mode_topic);
+        if (!success) {
+            // AP_HAL::panic("FATAL: DDS_Client failed to serialize\n");
+        }
+    }
+}
+
 void AP_DDS_Client::update()
 {
     WITH_SEMAPHORE(csem);
@@ -1150,6 +1170,12 @@ void AP_DDS_Client::update()
         update_topic(gps_global_origin_topic);
         last_gps_global_origin_time_ms = cur_time_ms;
         write_gps_global_origin_topic();
+    }
+
+    if (cur_time_ms - last_mode_time_ms > DELAY_MODE_TOPIC_MS) {
+        update_topic(mode_topic);
+        last_mode_time_ms = cur_time_ms;
+        write_mode_topic();
     }
 
     status_ok = uxr_run_session_time(&session, 1);
