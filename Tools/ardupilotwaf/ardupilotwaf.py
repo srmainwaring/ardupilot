@@ -48,6 +48,7 @@ COMMON_VEHICLE_DEPENDENT_LIBRARIES = [
     'AP_RangeFinder',
     'AP_Scheduler',
     'AP_SerialManager',
+    'AP_Geoid',
     'AP_Terrain',
     'AP_Vehicle',
     'AP_InternalError',

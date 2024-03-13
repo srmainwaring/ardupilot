@@ -887,6 +887,7 @@ class sitl_periph(sitl):
             HAL_PROXIMITY_ENABLED = 0,
             HAL_RALLY_ENABLED = 0,
             HAL_SUPPORT_RCOUT_SERIAL = 0,
+            AP_GEOID_AVAILABLE = 0,
             AP_TERRAIN_AVAILABLE = 0,
             AP_CUSTOMROTATIONS_ENABLED = 0,
         )
@@ -919,6 +920,7 @@ class sitl_periph_universal(sitl_periph):
             AP_BATTERY_ESC_ENABLED = 1,
             HAL_PWM_COUNT = 32,
             HAL_WITH_ESC_TELEM = 1,
+            AP_GEOID_AVAILABLE = 1,
             AP_TERRAIN_AVAILABLE = 1,
         )
 
