@@ -29,6 +29,7 @@ extern const AP_HAL::HAL& hal;
 
 using namespace AP_HAL;
 
+#include <AP_Geoid/AP_Geoid.h>
 #include <AP_Terrain/AP_Terrain.h>
 
 #ifndef AP_SIM_FRAME_CLASS

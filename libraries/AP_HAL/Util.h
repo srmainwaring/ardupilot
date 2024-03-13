@@ -32,6 +32,7 @@ public:
     bool was_watchdog_armed() const { return was_watchdog_reset() && persistent_data.armed; }
 
     virtual const char* get_custom_log_directory() const { return nullptr; }
+    virtual const char* get_custom_geoid_directory() const { return nullptr;  }
     virtual const char* get_custom_terrain_directory() const { return nullptr;  }
     virtual const char *get_custom_storage_directory() const { return nullptr;  }
 
