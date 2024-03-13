@@ -74,6 +74,7 @@ def build(bld):
                      'AP_Proximity',
                      'AP_RCProtocol',
                      'AP_AHRS',
+                     'AP_Geoid',
                      'AP_Terrain',
                      'AP_Torqeedo',
                      'AP_Volz_Protocol',
