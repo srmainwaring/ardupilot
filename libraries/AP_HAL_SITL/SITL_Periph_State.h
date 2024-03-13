@@ -21,6 +21,7 @@
 #include <AP_Baro/AP_Baro.h>
 #include <AP_InertialSensor/AP_InertialSensor.h>
 #include <AP_Compass/AP_Compass.h>
+#include <AP_Geoid/AP_Geoid.h>
 #include <AP_Terrain/AP_Terrain.h>
 #include <AP_HAL/utility/Socket_native.h>
 
