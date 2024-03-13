@@ -113,6 +113,7 @@ define HAL_OS_FATFS_IO 1
 
 # now some defines for logging and terrain data files
 define HAL_BOARD_LOG_DIRECTORY "/APM/LOGS"
+define HAL_BOARD_GEOID_DIRECTORY "/APM/GEOID"
 define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
 
 # define the order that I2C buses

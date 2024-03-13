@@ -15,6 +15,17 @@
 #define HAL_OS_FATFS_IO 0
 #endif
 
+#ifndef AP_GEOID_AVAILABLE
+// enable geoid only if there's an SD card available:
+#define AP_GEOID_AVAILABLE HAL_OS_FATFS_IO
+#endif
+
+#if AP_GEOID_AVAILABLE
+#ifndef HAL_BOARD_GEOID_DIRECTORY
+#define HAL_BOARD_GEOID_DIRECTORY "/APM/GEOID"
+#endif
+#endif  // AP_GEOID_AVAILABLE
+
 #ifndef AP_TERRAIN_AVAILABLE
 // enable terrain only if there's an SD card available:
 #define AP_TERRAIN_AVAILABLE HAL_OS_FATFS_IO
