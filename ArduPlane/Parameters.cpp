@@ -778,6 +778,12 @@ const AP_Param::Info Plane::var_info[] = {
     // @User: Standard
     GSCALAR(rangefinder_landing,    "RNGFND_LANDING",   0),
 
+#if AP_GEOID_AVAILABLE
+    // @Group: GEOID_
+    // @Path: ../libraries/AP_Geoid/AP_Geoid.cpp
+    GOBJECT(geoid, "GEOID_", AP_Geoid),
+#endif
+
 #if AP_TERRAIN_AVAILABLE
     // @Group: TERRAIN_
     // @Path: ../libraries/AP_Terrain/AP_Terrain.cpp
