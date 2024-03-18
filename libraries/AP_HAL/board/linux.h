@@ -23,6 +23,7 @@
 
 #if CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_NONE
     #define HAL_BOARD_LOG_DIRECTORY "logs"
+    #define HAL_BOARD_GEOID_DIRECTORY "geoids"
     #define HAL_BOARD_TERRAIN_DIRECTORY "terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "."
     #define HAL_INS_DEFAULT HAL_INS_NONE
@@ -43,6 +44,7 @@
     #define HAL_GPIO_LED_OFF          1
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_BEBOP
     #define HAL_BOARD_LOG_DIRECTORY "/data/ftp/internal_000/ardupilot/logs"
+    #define HAL_BOARD_GEOID_DIRECTORY "/data/ftp/internal_000/ardupilot/geoids"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/data/ftp/internal_000/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/data/ftp/internal_000/ardupilot"
     #define HAL_INS_PROBE_LIST PROBE_IMU_I2C(Invensense, 2, 0x68, ROTATION_YAW_270)
@@ -87,6 +89,7 @@
     #define HAL_AHRS_EKF_TYPE_DEFAULT 11
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_DISCO
     #define HAL_BOARD_LOG_DIRECTORY "/data/ftp/internal_000/ardupilot/logs"
+    #define HAL_BOARD_GEOID_DIRECTORY "/data/ftp/internal_000/ardupilot/geoids"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/data/ftp/internal_000/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/data/ftp/internal_000/ardupilot"
     #define HAL_INS_PROBE_LIST PROBE_IMU_I2C(Invensense, 2, 0x68, ROTATION_PITCH_180_YAW_90)
@@ -263,6 +266,7 @@
     #define HAL_GPIO_LED_OFF          1
 #elif CONFIG_HAL_BOARD_SUBTYPE == HAL_BOARD_SUBTYPE_LINUX_EDGE
     #define HAL_BOARD_LOG_DIRECTORY "/edge/ardupilot/logs"
+    #define HAL_BOARD_GEOID_DIRECTORY "/edge/ardupilot/geoids"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/edge/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/edge/ardupilot"
     #define HAL_INS_PROBE1 PROBE_IMU_SPI(Invensense, "mpu60x0", ROTATION_YAW_90)
@@ -299,6 +303,7 @@
     #define HAL_GPIO_LED_ON           0
     #define HAL_GPIO_LED_OFF          1
     #define HAL_BOARD_LOG_DIRECTORY "/home/pi/ardupilot/logs"
+    #define HAL_BOARD_GEOID_DIRECTORY "/home/pi/ardupilot/geoids"
     #define HAL_BOARD_TERRAIN_DIRECTORY "/home/pi/ardupilot/terrain"
     #define HAL_BOARD_STORAGE_DIRECTORY "/home/pi/ardupilot"
     #define HAL_DEFAULT_INS_FAST_SAMPLE 0
@@ -316,6 +321,7 @@
     // GY-91 SPI Connection
     #ifdef HAL_BOARD_SUBTYPE_LINUX_OBAL_V1_MPU_9250_SPI
         #define HAL_BOARD_LOG_DIRECTORY "/home/pi/ardupilot/logs"
+        #define HAL_BOARD_GEOID_DIRECTORY "/home/pi/ardupilot/geoids"
         #define HAL_BOARD_TERRAIN_DIRECTORY "/home/pi/ardupilot/terrain"
         #define HAL_BOARD_STORAGE_DIRECTORY "/home/pi/ardupilot"
         #define HAL_PARAM_DEFAULTS_PATH "/home/pi/ardupilot.parm"
@@ -367,6 +373,10 @@
 
 #ifndef HAL_BOARD_LOG_DIRECTORY
     #define HAL_BOARD_LOG_DIRECTORY HAL_BOARD_STATE_DIRECTORY "/logs"
+#endif
+
+#ifndef HAL_BOARD_GEOID_DIRECTORY
+    #define HAL_BOARD_GEOID_DIRECTORY HAL_BOARD_STATE_DIRECTORY "/geoids"
 #endif
 
 #ifndef HAL_BOARD_TERRAIN_DIRECTORY
