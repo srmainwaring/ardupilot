@@ -383,6 +383,7 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
         {"serial7",       true,  0, CMDLINE_SERIAL7},
         {"serial8",       true,  0, CMDLINE_SERIAL8},
         {"serial9",       true,  0, CMDLINE_SERIAL9},
+        {"geoid-directory",     true,  0, 'g'},
         {"log-directory",       true,  0, 'l'},
         {"terrain-directory",   true,  0, 't'},
         {"storage-directory",   true,  0, 's'},
@@ -432,6 +433,9 @@ void HAL_Linux::run(int argc, char* const argv[], Callbacks* callbacks) const
         case CMDLINE_SERIAL8:
         case CMDLINE_SERIAL9:
             serialDrivers[opt - CMDLINE_SERIAL0]->set_device_path(gopt.optarg);
+            break;
+        case 'g':
+            utilInstance.set_custom_geoid_directory(gopt.optarg);
             break;
         case 'l':
             utilInstance.set_custom_log_directory(gopt.optarg);

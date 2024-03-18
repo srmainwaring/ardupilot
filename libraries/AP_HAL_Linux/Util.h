@@ -43,10 +43,12 @@ public:
     uint64_t get_hw_rtc() const override;
 
     const char *get_custom_log_directory() const override final { return custom_log_directory; }
+    const char *get_custom_geoid_directory() const override final { return custom_geoid_directory; }
     const char *get_custom_terrain_directory() const override final { return custom_terrain_directory; }
     const char *get_custom_storage_directory() const override final { return custom_storage_directory; }
 
     void set_custom_log_directory(const char *_custom_log_directory) { custom_log_directory = _custom_log_directory; }
+    void set_custom_geoid_directory(const char *_custom_geoid_directory) { custom_geoid_directory = _custom_geoid_directory; }
     void set_custom_terrain_directory(const char *_custom_terrain_directory) { custom_terrain_directory = _custom_terrain_directory; }
     void set_custom_storage_directory(const char *_custom_storage_directory) {
         custom_storage_directory = _custom_storage_directory;
@@ -112,6 +114,7 @@ private:
     Heat *_heat;
     char *const *saved_argv;
     const char *custom_log_directory = nullptr;
+    const char *custom_geoid_directory = nullptr;
     const char *custom_terrain_directory = nullptr;
     const char *custom_storage_directory = nullptr;
     const char *custom_defaults = HAL_PARAM_DEFAULTS_PATH;
