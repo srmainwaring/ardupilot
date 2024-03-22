@@ -3,6 +3,7 @@
 #if AP_DDS_ENABLED
 #include <uxr/client/util/ping.h>
 
+#include <AP_Geoid/AP_Geoid.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_HAL/AP_HAL.h>
 #include <AP_RTC/AP_RTC.h>
@@ -174,7 +175,16 @@ bool AP_DDS_Client::update_topic(sensor_msgs_msg_NavSatFix& msg, const uint8_t i
         msg.position_covariance_type = 0; // COVARIANCE_TYPE_UNKNOWN
         return true;
     }
-    msg.altitude = alt_cm * 0.01;
+    float alt_geoid_m = alt_cm * 0.01;
+
+    // convert datum from geoid to ellipsoid
+    auto &geoid = AP::geoid();
+    float alt_ellipsoid_m;
+    if (geoid.height_above_ellipsoid(loc, alt_geoid_m, alt_ellipsoid_m)) {
+        msg.altitude = alt_ellipsoid_m;
+    } else {
+        msg.altitude = alt_geoid_m;
+    }
 
     // ROS allows double precision, ArduPilot exposes float precision today
     Matrix3f cov;
