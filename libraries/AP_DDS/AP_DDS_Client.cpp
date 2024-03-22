@@ -406,7 +406,18 @@ void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPoseStamped& msg)
         msg.pose.position.longitude = loc.lng * 1E-7;
         // TODO this is assumed to be absolute frame in WGS-84 as per the GeoPose message definition in ROS.
         // Use loc.get_alt_frame() to convert if necessary.
-        msg.pose.position.altitude = loc.alt * 0.01; // Transform from cm to m
+        // msg.pose.position.altitude = loc.alt * 0.01; // Transform from cm to m
+
+        float alt_geoid_m = loc.alt * 0.01;
+
+        // convert datum from geoid to ellipsoid
+        auto &geoid = AP::geoid();
+        float alt_ellipsoid_m;
+        if (geoid.height_above_ellipsoid(loc, alt_geoid_m, alt_ellipsoid_m)) {
+            msg.pose.position.altitude = alt_ellipsoid_m;
+        } else {
+            msg.pose.position.altitude = alt_geoid_m;
+        }
     }
 
     // In ROS REP 103, axis orientation uses the following convention:
@@ -484,7 +495,18 @@ void AP_DDS_Client::update_topic(geographic_msgs_msg_GeoPointStamped& msg)
     if (ahrs.get_origin(ekf_origin)) {
         msg.position.latitude = ekf_origin.lat * 1E-7;
         msg.position.longitude = ekf_origin.lng * 1E-7;
-        msg.position.altitude = ekf_origin.alt * 0.01;
+        // msg.position.altitude = ekf_origin.alt * 0.01;
+
+        float alt_geoid_m = ekf_origin.alt * 0.01;
+
+        // convert datum from geoid to ellipsoid
+        auto &geoid = AP::geoid();
+        float alt_ellipsoid_m;
+        if (geoid.height_above_ellipsoid(ekf_origin, alt_geoid_m, alt_ellipsoid_m)) {
+            msg.position.altitude = alt_ellipsoid_m;
+        } else {
+            msg.position.altitude = alt_geoid_m;
+        }
     }
 }
 
