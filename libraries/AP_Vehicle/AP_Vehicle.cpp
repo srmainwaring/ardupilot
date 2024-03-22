@@ -22,6 +22,7 @@
 #include <AP_HAL_ChibiOS/hwdef/common/stm32_util.h>
 #endif
 #include <AP_DDS/AP_DDS_Client.h>
+#include <AP_Geoid/AP_Geoid.h>
 #if HAL_WITH_IO_MCU
 #include <AP_IOMCU/AP_IOMCU.h>
 extern AP_IOMCU iomcu;
@@ -514,6 +515,12 @@ void AP_Vehicle::setup()
 #if AP_DDS_ENABLED
     if (!init_dds_client()) {
         GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Failed to Initialize", AP_DDS_Client::msg_prefix);
+    }
+#endif
+
+#if AP_GEOID_AVAILABLE
+    if (!init_geoid()) {
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "%s Failed to Initialize", "Geoid:");
     }
 #endif
 }
@@ -1073,6 +1080,15 @@ bool AP_Vehicle::init_dds_client()
     return dds_client->start();
 }
 #endif // AP_DDS_ENABLED
+
+#if AP_GEOID_AVAILABLE
+bool AP_Vehicle::init_geoid()
+{
+    // AP_Geoid &geoid = AP::geoid();
+    geoid.init();
+    return !geoid.init_failed();
+}
+#endif // AP_GEOID_AVAILABLE
 
 // Check if this mode can be entered from the GCS
 #if APM_BUILD_COPTER_OR_HELI || APM_BUILD_TYPE(APM_BUILD_ArduPlane) || APM_BUILD_TYPE(APM_BUILD_Rover)

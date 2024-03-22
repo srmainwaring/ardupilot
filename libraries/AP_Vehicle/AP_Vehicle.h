@@ -80,6 +80,8 @@
 #include <AP_Gripper/AP_Gripper.h>
 #endif
 
+#include <AP_Geoid/AP_Geoid.h>
+
 class AP_DDS_Client;
 
 class AP_Vehicle : public AP_HAL::HAL::Callbacks {
@@ -483,6 +485,11 @@ protected:
     // Declare the dds client for communication with ROS2 and DDS(common for all vehicles)
     AP_DDS_Client *dds_client;
     bool init_dds_client() WARN_IF_UNUSED;
+#endif
+
+#if AP_GEOID_AVAILABLE
+    AP_Geoid geoid;
+    bool init_geoid() WARN_IF_UNUSED;
 #endif
 
     // Check if this mode can be entered from the GCS
