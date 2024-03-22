@@ -42,7 +42,6 @@
 #include <AP_RangeFinder/AP_RangeFinder.h>     // Range finder library
 #include <Filter/Filter.h>                     // Filter library
 #include <AP_Camera/AP_Camera.h>          // Photo or video camera
-#include <AP_Geoid/AP_Geoid.h>
 #include <AP_Terrain/AP_Terrain.h>
 #include <AP_RPM/AP_RPM.h>
 #include <AP_Beacon/AP_Beacon.h>
@@ -642,11 +641,6 @@ private:
 
 #if PARACHUTE == ENABLED
     AP_Parachute parachute;
-#endif
-
-    // geoid handling
-#if AP_GEOID_AVAILABLE
-    AP_Geoid geoid;
 #endif
 
     // terrain handling
