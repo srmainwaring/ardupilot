@@ -221,17 +221,19 @@ public:
 
     //! @brief Convenience grouping for a single "channel" of data
     struct Topic_table {
-        const uint8_t topic_id;
-        const uint8_t pub_id;
-        const uint8_t sub_id;    // added sub_id fields to avoid confusion
-        const uxrObjectId dw_id;
-        const uxrObjectId dr_id; // added dr_id fields to avoid confusion
-        const Topic_rw topic_rw;
-        const char* topic_name;
-        const char* type_name;
-        const uxrQoS_t qos;
+        uint8_t topic_id;
+        uint8_t pub_id;
+        uint8_t sub_id;    // added sub_id fields to avoid confusion
+        uxrObjectId dw_id;
+        uxrObjectId dr_id; // added dr_id fields to avoid confusion
+        Topic_rw topic_rw;
+        char* topic_name;
+        char* type_name;
+        uxrQoS_t qos;
     };
-    static const struct Topic_table topics[];
+    // static const struct Topic_table topics[];
+    Topic_table *topics;
+    Topic_table *new_topic_table();
 
     //! @brief Enum used to mark a service as a requester or replier
     enum class Service_rr : uint8_t {

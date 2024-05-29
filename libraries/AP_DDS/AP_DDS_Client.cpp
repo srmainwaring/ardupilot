@@ -535,12 +535,11 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
     (void) request_id;
     (void) stream_id;
     (void) length;
-    switch (object_id.id) {
-    case topics[to_underlying(TopicIndex::JOY_SUB)].dr_id.id: {
+    if (object_id.id == topics[to_underlying(TopicIndex::JOY_SUB)].dr_id.id) {
         const bool success = sensor_msgs_msg_Joy_deserialize_topic(ub, &rx_joy_topic);
 
         if (success == false) {
-            break;
+            return;
         }
 
         if (rx_joy_topic.axes_size >= 4) {
@@ -550,12 +549,11 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         } else {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Received sensor_msgs/Joy. Axes size must be >= 4", msg_prefix);
         }
-        break;
     }
-    case topics[to_underlying(TopicIndex::DYNAMIC_TRANSFORMS_SUB)].dr_id.id: {
+    else if (object_id.id == topics[to_underlying(TopicIndex::DYNAMIC_TRANSFORMS_SUB)].dr_id.id) {
         const bool success = tf2_msgs_msg_TFMessage_deserialize_topic(ub, &rx_dynamic_transforms_topic);
         if (success == false) {
-            break;
+            return;
         }
 
         if (rx_dynamic_transforms_topic.transforms_size > 0) {
@@ -566,12 +564,11 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
         } else {
             GCS_SEND_TEXT(MAV_SEVERITY_INFO, "%s Received tf2_msgs/TFMessage: TF is empty", msg_prefix);
         }
-        break;
     }
-    case topics[to_underlying(TopicIndex::VELOCITY_CONTROL_SUB)].dr_id.id: {
+    else if (object_id.id == topics[to_underlying(TopicIndex::VELOCITY_CONTROL_SUB)].dr_id.id) {
         const bool success = geometry_msgs_msg_TwistStamped_deserialize_topic(ub, &rx_velocity_control_topic);
         if (success == false) {
-            break;
+            return;
         }
 
 #if AP_EXTERNAL_CONTROL_ENABLED
@@ -579,12 +576,11 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
             // TODO #23430 handle velocity control failure through rosout, throttled.
         }
 #endif // AP_EXTERNAL_CONTROL_ENABLED
-        break;
     }
-    case topics[to_underlying(TopicIndex::GLOBAL_POSITION_SUB)].dr_id.id: {
+    else if (object_id.id == topics[to_underlying(TopicIndex::GLOBAL_POSITION_SUB)].dr_id.id) {
         const bool success = ardupilot_msgs_msg_GlobalPosition_deserialize_topic(ub, &rx_global_position_control_topic);
         if (success == false) {
-            break;
+            return;
         }
 
 #if AP_EXTERNAL_CONTROL_ENABLED
@@ -592,10 +588,7 @@ void AP_DDS_Client::on_topic(uxrSession* uxr_session, uxrObjectId object_id, uin
             // TODO #23430 handle global position control failure through rosout, throttled.
         }
 #endif // AP_EXTERNAL_CONTROL_ENABLED
-        break;
     }
-    }
-
 }
 
 /*
@@ -808,6 +801,9 @@ bool AP_DDS_Client::init_session()
 
 bool AP_DDS_Client::create()
 {
+    // Allocate topic and service tables - move from static
+    topics = new_topic_table();
+
     WITH_SEMAPHORE(csem);
 
     // Participant
@@ -833,7 +829,7 @@ bool AP_DDS_Client::create()
         return false;
     }
 
-    for (uint16_t i = 0 ; i < ARRAY_SIZE(topics); i++) {
+    for (uint16_t i = 0 ; i < sizeof(topics); i++) {
         // Topic
         const uxrObjectId topic_id = {
             .id = topics[i].topic_id,
