@@ -320,9 +320,15 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
         .sub_id = to_underlying(TopicIndex::MODE_PUB),
         .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::MODE_PUB), .type=UXR_DATAWRITER_ID},
         .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::MODE_PUB), .type=UXR_DATAREADER_ID},
-        .topic_profile_label = "mode__t",
-        .dw_profile_label = "mode__dw",
-        .dr_profile_label = "",
+        .topic_rw = Topic_rw::DataWriter,
+        .topic_name = "rt/ap/mode",
+        .type_name = "ardupilot_msgs::msg::dds_::Mode_",
+        .qos = {
+            .durability = UXR_DURABILITY_VOLATILE,
+            .reliability = UXR_RELIABILITY_BEST_EFFORT,
+            .history = UXR_HISTORY_KEEP_LAST,
+            .depth = 5,
+        },
     },
     {
         .topic_id = to_underlying(TopicIndex::JOY_SUB),
