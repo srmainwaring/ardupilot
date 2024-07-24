@@ -455,17 +455,43 @@ void AP_DDS_Client::update_topic(sensor_msgs_msg_Imu& msg)
 
     WITH_SEMAPHORE(ahrs.get_semaphore());
 
-    Quaternion orientation;
-    if (ahrs.get_quaternion(orientation)) {
-        msg.orientation.x = orientation[0];
-        msg.orientation.y = orientation[1];
-        msg.orientation.z = orientation[2];
-        msg.orientation.w = orientation[3];
+    // The orientation from AHRS is the rotation from the NED earth-frame
+    // to the FRD body-frame.
+    // ROS REP 103 requires the earth-frame to be ENU and the
+    // body-frame to be FLU.
+    //  
+    // X_enu_flu = X_enu_ned X_ned_frd X_frd_flu
+    //
+    // where
+    // X_ned_frd is ahrs.get_quaternion
+    // X_enu_ned = (0, 180, 90)
+    // X_frd_flu = (180, 0,  0) 
+    Quaternion X_ned_frd;
+    if (ahrs.get_quaternion(X_ned_frd)) {
+        Quaternion X_enu_ned;
+        Quaternion X_frd_flu;
+        X_enu_ned.from_euler(0.0f, radians(180.0f), radians(90.0f));
+        X_frd_flu.from_euler(0.0f, 0.0f, radians(90.0f));
+        Quaternion X_enu_flu = X_enu_ned * X_ned_frd * X_frd_flu;
+
+        msg.orientation.x = X_enu_flu[0];
+        msg.orientation.y = X_enu_flu[1];
+        msg.orientation.z = X_enu_flu[2];
+        msg.orientation.w = X_enu_flu[3];
     } else {
         initialize(msg.orientation);
     }
     msg.orientation_covariance[0] = -1;
 
+    // The accel and gyro data from the IMU are in the FRD body-frame
+    // X - Forward
+    // Y - Right
+    // Z - Down
+    // ROS REP 103 requires the data to be in the FLU body-frame
+    // X - Forward
+    // Y - Left
+    // Z - Up
+    // So we must invert Y and Z in the accel and gyro vectors.
     uint8_t accel_index = ahrs.get_primary_accel_index();
     uint8_t gyro_index = ahrs.get_primary_gyro_index();
     const Vector3f accel_data = imu.get_accel(accel_index);
@@ -473,12 +499,12 @@ void AP_DDS_Client::update_topic(sensor_msgs_msg_Imu& msg)
 
     // Populate the message fields
     msg.linear_acceleration.x = accel_data.x;
-    msg.linear_acceleration.y = accel_data.y;
-    msg.linear_acceleration.z = accel_data.z;
+    msg.linear_acceleration.y = -accel_data.y;
+    msg.linear_acceleration.z = -accel_data.z;
 
     msg.angular_velocity.x = gyro_data.x;
-    msg.angular_velocity.y = gyro_data.y;
-    msg.angular_velocity.z = gyro_data.z;
+    msg.angular_velocity.y = -gyro_data.y;
+    msg.angular_velocity.z = -gyro_data.z;
     msg.angular_velocity_covariance[0] = -1;
     msg.linear_acceleration_covariance[0] = -1;
 }
