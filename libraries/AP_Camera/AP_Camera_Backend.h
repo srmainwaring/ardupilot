@@ -91,6 +91,14 @@ public:
     // Onboard controller specific tracking
     bool set_tracking_external(TrackingType tracking_type, const Vector2f& top_left, const Vector2f& bottom_right);
 
+#if AP_CAMERA_TRACKING_ENABLED
+    // default tracking supported by camera
+    virtual bool set_tracking_internal(TrackingType tracking_type, const Vector2f& top_left, const Vector2f& bottom_right) { return false; }
+#endif
+
+    // Onboard controller specific tracking
+    bool set_tracking_external(TrackingType tracking_type, const Vector2f& top_left, const Vector2f& bottom_right);
+
 #if AP_CAMERA_SET_CAMERA_SOURCE_ENABLED
     // set camera lens as a value from 0 to 5
     virtual bool set_lens(uint8_t lens) { return false; }
