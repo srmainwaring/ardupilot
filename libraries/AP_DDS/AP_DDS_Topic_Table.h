@@ -107,7 +107,7 @@ constexpr struct AP_DDS_Client::Topic_table AP_DDS_Client::topics[] = {
         .dw_id = uxrObjectId{.id=to_underlying(TopicIndex::IMU_PUB), .type=UXR_DATAWRITER_ID},
         .dr_id = uxrObjectId{.id=to_underlying(TopicIndex::IMU_PUB), .type=UXR_DATAREADER_ID},
         .topic_rw = Topic_rw::DataWriter,
-        .topic_name = "rt/ap/imu/experimental/data",
+        .topic_name = "rt/ap/imu/raw",
         .type_name = "sensor_msgs::msg::dds_::Imu_",
         .qos = {
             .durability = UXR_DURABILITY_VOLATILE,
