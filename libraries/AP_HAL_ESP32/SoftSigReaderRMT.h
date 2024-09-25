@@ -21,6 +21,11 @@
 #include "AP_HAL_ESP32.h"
 #include "driver/rmt.h"
 
+// what is the point to have dedicated define for SoftSigReaderRMT input pin?
+#ifndef HAL_ESP32_RMT_RX_PIN_NUMBER
+#define HAL_ESP32_RMT_RX_PIN_NUMBER HAL_ESP32_RCIN
+#endif
+
 namespace ESP32
 {
 
