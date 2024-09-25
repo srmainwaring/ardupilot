@@ -1,3 +1,4 @@
+
 /*
  * This file is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,7 +18,14 @@
 
 #include <AP_HAL/utility/RingBuffer.h>
 #include "AP_HAL_ESP32.h"
+
 #include "driver/rmt.h"
+
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+  #if SOC_RMT_SUPPORT_RX_PINGPONG == 1
+    #error SOC_RMT_SUPPORT_RX_PINGPONG should be defined as 0 for esp32s3 target in modules/esp_idf/components/soc/esp32s3/include/soc/soc_caps.h
+  #endif
+#endif
 
 class ESP32::RmtSigReader
 {
