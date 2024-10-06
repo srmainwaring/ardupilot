@@ -94,7 +94,7 @@ class GstUdpMediaFactory(GstRtspServer.RTSPMediaFactory):
 
         codec = "application/x-rtp, payload=96 ! rtph264depay ! h264parse ! avdec_h264"
 
-        s_h264 = "x264enc tune=zerolatency"
+        s_h264 = "x264enc bitrate=500 speed-preset=ultrafast tune=zerolatency"
         pipeline_str = f"( {source} ! {codec} ! queue max-size-buffers=1 name=q_enc ! {s_h264} ! rtph264pay name=pay0 pt=96 )"
         print(pipeline_str)
         return Gst.parse_launch(pipeline_str)
