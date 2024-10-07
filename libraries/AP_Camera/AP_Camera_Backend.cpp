@@ -509,6 +509,7 @@ void AP_Camera_Backend::handle_message(mavlink_channel_t chan, const mavlink_mes
             break;
         case MAVLINK_MSG_ID_CAMERA_TRACKING_IMAGE_STATUS:
             handle_message_camera_tracking_image_status(chan,msg);
+            break;
         default:
             break;
     }
