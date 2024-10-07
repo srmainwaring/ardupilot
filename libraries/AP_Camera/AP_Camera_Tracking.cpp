@@ -25,7 +25,8 @@ bool AP_Camera_Tracking::set_tracking(TrackingType tracking_type, const Vector2f
             break;
     }
 
-    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Tracking: New Tracking request");
+    GCS_SEND_TEXT(MAV_SEVERITY_INFO,"AP_Camera: New tracking request (type: %d, sys: %d, comp: %d)",
+        int(tracking_type), tracking_device_sysid, tracking_device_compid);
 
     if (_link == nullptr) {
         uint8_t proxy_device_compid = tracking_device_compid;
@@ -34,11 +35,12 @@ bool AP_Camera_Tracking::set_tracking(TrackingType tracking_type, const Vector2f
         if (proxy_device_sysid != tracking_device_sysid) {
             // means the tracking device sysid we found is not same as what we declared through parameters
             _link = nullptr;
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"AP_Camera: Found Controller but its different from the declared one in parameters");
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"AP_Camera: Found tracking controller (sys: %d) but does not match CAMx_TRK_SYSID (sys: %d)",
+                proxy_device_sysid, tracking_device_sysid);
             return false;
         }
         if (_link == nullptr) {
-            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"AP_Camera: Could Not find any onboard controller registered");
+            GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"AP_Camera: Could not find an onboard tracking controller");
             return false;
         }
     }
@@ -80,7 +82,6 @@ bool AP_Camera_Tracking::set_tracking(TrackingType tracking_type, const Vector2f
     }
 
     _link->send_message(MAVLINK_MSG_ID_COMMAND_LONG, (const char*)&pkt);
-    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"sent message to device sysid %d and comp %d",tracking_device_sysid,tracking_device_compid);
     return true;
 }
 
