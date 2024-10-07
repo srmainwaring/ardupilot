@@ -88,7 +88,7 @@ public:
 
     // returns true if the objkect to be tracked is visible in the frame
     bool is_tracking_object_visible() {
-        if (camera_settings._cam_tracking_status.tracking_status & CAMERA_TRACKING_STATUS_FLAGS::CAMERA_TRACKING_STATUS_FLAGS_ACTIVE) {
+        if (camera_settings._cam_tracking_status.tracking_status & CAMERA_TRACKING_STATUS_FLAGS_ACTIVE) {
             return true;
         }
         return false;
@@ -248,12 +248,6 @@ private:
         uint8_t _sysid_camera;      // sysid of camera
         uint8_t _compid_camera;     // component id of gimbal
     } camera_settings;
-
-    enum CAMERA_TRACKING_STATUS_FLAGS : uint8_t {
-        CAMERA_TRACKING_STATUS_FLAGS_IDLE,
-        CAMERA_TRACKING_STATUS_FLAGS_ACTIVE,
-        CAMERA_TRACKING_STATUS_FLAGS_ERROR
-    };
 };
 
 #endif // AP_CAMERA_ENABLED
