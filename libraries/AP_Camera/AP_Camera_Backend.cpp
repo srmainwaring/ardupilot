@@ -20,7 +20,7 @@ void AP_Camera_Backend::init()
 #if AP_CAMERA_TRACKING_ENABLED
     // initialise the tracking object
     if (_params.track_enable == 1) {
-        tracker = NEW_NOTHROW AP_Camera_Tracking();
+        tracker = new AP_Camera_Tracking();
     }
 #endif
 }
