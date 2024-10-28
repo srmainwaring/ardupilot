@@ -35,7 +35,11 @@ class CameraTrackingScript:
         self.resv = resv
 
     def connect_to_mavlink(self):
-        self.connection = mavutil.mavlink_connection(f'udp:{self.ip}:{self.port}', source_system=self.sysid)
+        self.connection = mavutil.mavlink_connection(
+            f'udp:{self.ip}:{self.port}',
+            source_system=self.sysid,
+            source_component=self.compid,
+        )
         print("Searching Vehicle")
         while not self.connection.probably_vehicle_heartbeat(self.connection.wait_heartbeat()):
             print(".", end="")
@@ -94,14 +98,14 @@ class CameraTrackingScript:
     def handle_camera_track_rectangle(self, msg):
         print("Received MAV_CMD_CAMERA_TRACK_RECTANGLE command.")
         # These should remain as floats (normalized coordinates)
-        norm_x = msg.param1
-        norm_y = msg.param2
-        norm_w = msg.param3
-        norm_h = msg.param4
-        print(f"Tracking rectangle parameters: norm_x={norm_x}, norm_y={norm_y}, norm_w={norm_w}, norm_h={norm_h}")
+        norm_x1 = msg.param1
+        norm_y1 = msg.param2
+        norm_x2 = msg.param3
+        norm_y2 = msg.param4
+        print(f"Tracking rectangle parameters: norm_x={norm_x1}, norm_y={norm_y1}, norm_w={norm_x2}, norm_h={norm_y2}")
 
         # Send normalized coordinates as floats to the OpenCV script
-        self.sock.sendto(struct.pack('!ffff', norm_x, norm_y, norm_w, norm_h), (self.udp_ip, self.udp_port))
+        self.sock.sendto(struct.pack('!ffff', norm_x1, norm_y1, norm_x2, norm_y2), (self.udp_ip, self.udp_port))
         print("Sent normalized tracking coordinates to OpenCV script.")
 
     def send_heartbeat(self):
