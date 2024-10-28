@@ -11,13 +11,21 @@ stop_thread = False
 
 class GimbalControl:
     def __init__(self, connection_str):
-        self.master = mavutil.mavlink_connection(connection_str)
+        self.src_sysid = 1
+        self.src_compid = 191
+        self.master = mavutil.mavlink_connection(
+            connection_str,
+            source_system=self.src_sysid,
+            source_component=self.src_compid,
+        )
         self.master.wait_heartbeat()
         print("Heartbeat from the system (system %u component %u)" % 
               (self.master.target_system, self.master.target_component))
         self.center_x = 0
         self.center_y = 0
         self.object_detected = False
+        self.object_norm_rect = None
+
         self.lock = threading.Lock()  # Initialize a lock for shared variables
 
         self.control_thread = threading.Thread(target=self.send_command)
@@ -34,23 +42,40 @@ class GimbalControl:
                 # Send 1 if object is detected, 2 if not
                 with stop_thread_lock:
                     if stop_thread == True:
-                        tracking_status = 0
+                        tracking_status = mavutil.mavlink.CAMERA_TRACKING_STATUS_FLAGS_IDLE
                     elif self.object_detected == True:
-                        tracking_status = 1
+                        tracking_status = mavutil.mavlink.CAMERA_TRACKING_STATUS_FLAGS_ACTIVE
                     else:
-                        tracking_status = 2
+                        tracking_status = mavutil.mavlink.CAMERA_TRACKING_STATUS_FLAGS_ERROR
+
+                if self.object_norm_rect is not None:
+                    tracking_mode = mavutil.mavlink.CAMERA_TRACKING_MODE_RECTANGLE
+                    target_data = mavutil.mavlink.CAMERA_TRACKING_TARGET_DATA_IN_STATUS
+                    x1 = self.object_norm_rect[0]
+                    y1 = self.object_norm_rect[1]
+                    x2 = self.object_norm_rect[2]
+                    y2 = self.object_norm_rect[3]
+                else:
+                    tracking_mode = mavutil.mavlink.CAMERA_TRACKING_MODE_NONE
+                    target_data = mavutil.mavlink.CAMERA_TRACKING_TARGET_DATA_NONE
+                    x1 = float("NaN")
+                    y1 = float("NaN")
+                    x2 = float("NaN")
+                    y2 = float("NaN")
+
+                # print(f"image_status: x1: {x1}, y1: {y1}, x2: {x2}, y2: {y2}")
 
                 self.send_camera_tracking_image_status(
                     tracking_status,  # Example: Active tracking
-                    tracking_mode=1,  # Example: CAMERA_TRACKING_MODE_POINT
-                    target_data=1,  # Example: Target location available
+                    tracking_mode=tracking_mode,  # Example: CAMERA_TRACKING_MODE_POINT
+                    target_data=target_data,  # Example: Target location available
                     point_x=0,
                     point_y=0,
                     radius=float("NaN"),
-                    rec_top_x=float("NaN"),
-                    rec_top_y=float("NaN"),
-                    rec_bottom_x=float("NaN"),
-                    rec_bottom_y=float("NaN"),
+                    rec_top_x=x1,
+                    rec_top_y=y1,
+                    rec_bottom_x=x2,
+                    rec_bottom_y=y2,
                     camera_device_id=0,
                 )
 
@@ -89,6 +114,12 @@ class GimbalControl:
             #camera_device_id
         )
         self.master.mav.send(msg)
+        # print(f"send image status: "
+        #       f"tgt_sys: {self.master.target_system}, "
+        #       f"tgt_cmp: {self.master.target_component}, "
+        #       f"src_sys: {self.master.source_system}, "
+        #       f"src_cmp: {self.master.source_component}"
+        # )
 
     def send_command(self):
         global stop_thread
@@ -112,7 +143,9 @@ class GimbalControl:
                 diff_x = (centre_x_copy - (640 / 2)) / 2
                 diff_y = -(centre_y_copy - (480 / 2)) / 2
 
-            self.send_gimbal_manager_pitch_yaw_angles(float("NaN"), float("NaN"), math.radians(diff_y), math.radians(diff_x))
+            k_p = 0.5
+
+            self.send_gimbal_manager_pitch_yaw_angles(float("NaN"), float("NaN"), k_p * math.radians(diff_y), k_p * math.radians(diff_x))
 
             # 50Hz
             elapsed_time = time.time() - start_time
@@ -141,7 +174,13 @@ class VideoStreamer:
 
     def initialize_video_capture(self):
         cap = cv2.VideoCapture(
-            'rtspsrc location=rtsp://localhost:8554/camera latency=50 ! decodebin ! videoconvert ! appsink',
+            "rtspsrc location=rtsp://localhost:8554/camera latency=50 "
+            "! decodebin "
+            "! videoconvert "
+            "! videoscale "
+            "! videorate "
+            "! video/x-raw,format=BGR,width=640,height=480,framerate=10/1 "
+            "! appsink",
             cv2.CAP_GSTREAMER
         )
         if not cap.isOpened():
@@ -153,6 +192,7 @@ class VideoStreamer:
         self.initBB = new_roi
         self.tracker = cv2.legacy.TrackerCSRT_create()  # Change to legacy namespace
         if self.frame is not None:
+            # print(f"tracker.init: roi: {new_roi}, shape: {self.frame.shape}")
             self.tracker.init(self.frame, new_roi)
 
     def process_frame(self, gimbal_control):
@@ -184,10 +224,13 @@ class VideoStreamer:
                     self.last_change_time = time.time()
                     with gimbal_control.lock:
                         gimbal_control.object_detected = True
+                        frame_h, frame_w = self.frame.shape[:2]
+                        gimbal_control.object_norm_rect = [x/frame_w, y/frame_h, (x + w)/frame_w, (y + h)/frame_h]
                 else:
                     print("Tracking failure detected, reinitializing tracker.")
                     with gimbal_control.lock:
                         gimbal_control.object_detected = False
+                        gimbal_control.object_norm_rect = None
                     self.reinitialize_tracker(gimbal_control)
 
             # Display the frame
@@ -234,13 +277,18 @@ class UDPReceiver:
         while True:
             global stop_thread
             data, addr = self.sock.recvfrom(16)
-            x, y, w, h = struct.unpack('!ffff', data)
-            print(f"Received new tracking coordinates: x={x}, y={y}, w={w}, h={h}")
+            x1, y1, x2, y2 = struct.unpack('!ffff', data)
+            print(f"Received new tracking coordinates: x1={x1}, y1={y1}, x2={x2}, y2={y2}")
             with stop_thread_lock:
                 stop_thread = False
             # Convert normalized coordinates to pixel values
-            x, y, w, h = int(x * self.video_streamer.frame_width), int(y * self.video_streamer.frame_height), int(w * self.video_streamer.frame_width), int(h * self.video_streamer.frame_height)
-            self.video_streamer.update_tracker((x, y, w-x, h-y))
+            frame_width = self.video_streamer.frame_width
+            frame_height = self.video_streamer.frame_height
+            x1 = int(x1 * frame_width)
+            y1 = int(y1 * frame_height)
+            x2 = int(x2 * frame_width)
+            y2 = int(y2 * frame_height)
+            self.video_streamer.update_tracker((x1, y1, x2 - x1, y2 - y1))
 
     def receive_udp_data2(self):
         global stop_thread
