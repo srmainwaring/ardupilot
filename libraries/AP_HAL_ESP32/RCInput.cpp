@@ -118,10 +118,13 @@ void RCInput::_timer_tick(void)
     if (!_init) {
         return;
     }
+
+#ifndef HAL_BUILD_AP_PERIPH
+
 #ifndef HAL_NO_UARTDRIVER
     const char *rc_protocol = nullptr;
     RCSource source = last_source;
-#endif
+#endif  // HAL_NO_UARTDRIVER
 
 #if AP_RCPROTOCOL_ENABLED
     AP_RCProtocol &rcprot = AP::RC();
@@ -133,7 +136,7 @@ void RCInput::_timer_tick(void)
             rcprot.process_pulse(width_s0, width_s1);
         }
     }
-#endif
+#endif  // HAL_ESP32_RCIN
 
 #endif  // AP_RCPROTOCOL_ENABLED
 
@@ -150,7 +153,7 @@ void RCInput::_timer_tick(void)
         rc_protocol = rcprot.protocol_name();
         source = rcprot.using_uart() ? RCSource::RCPROT_BYTES : RCSource::RCPROT_PULSES;
         // printf("RCInput: decoding %s", last_protocol);
-#endif
+#endif  // HAL_NO_UARTDRIVER
     }
 #endif // AP_RCPROTOCOL_ENABLED
 
@@ -160,10 +163,11 @@ void RCInput::_timer_tick(void)
         last_source = source;
         GCS_SEND_TEXT(MAV_SEVERITY_DEBUG, "RCInput: decoding %s(%u)", last_protocol, unsigned(source));
     }
-#endif
+#endif  // HAL_NO_UARTDRIVER
 
     // note, we rely on the vehicle code checking new_input()
     // and a timeout for the last valid input to handle failsafe
+#endif  // HAL_BUILD_AP_PERIPH
 }
 
 /*
@@ -174,7 +178,7 @@ bool RCInput::rc_bind(int dsmMode)
 #if AP_RCPROTOCOL_ENABLED
     // ask AP_RCProtocol to start a bind
     AP::RC().start_bind();
-#endif
+#endif  // AP_RCPROTOCOL_ENABLED
 
     return true;
 }
