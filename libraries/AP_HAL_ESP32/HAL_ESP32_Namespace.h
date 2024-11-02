@@ -21,4 +21,7 @@ class DigitalSource;
 class Storage;
 class RmtSigReader;
 class RmtSigReaderLegacy;
+#if HAL_NUM_CAN_IFACES
+class CANIface;
+#endif  
 }  // namespace ESP32
