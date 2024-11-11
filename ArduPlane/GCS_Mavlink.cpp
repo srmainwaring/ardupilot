@@ -1412,7 +1412,7 @@ void GCS_MAVLINK_Plane::handle_set_position_target_global_int(const mavlink_mess
             POSITION_TARGET_TYPEMASK_YAW_IGNORE | POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE |
             POSITION_TARGET_TYPEMASK_LAST_BYTE) ^ 0xFFFF;
 
-        // bool msg_valid = true;
+        bool msg_valid = true;
         AP_Mission::Mission_Command cmd = {0};
 
         if (((pos_target.type_mask | POSITION_TARGET_TYPEMASK_LAST_BYTE) ^ 0xFFFF) == alt_mask)
