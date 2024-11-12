@@ -98,6 +98,10 @@
 #define AP_DDS_DELAY_STATUS_TOPIC_MS 100
 #endif
 
+#ifndef AP_DDS_DELAY_MODE_TOPIC_MS
+#define AP_DDS_DELAY_MODE_TOPIC_MS 100
+#endif
+
 #ifndef AP_DDS_CLOCK_PUB_ENABLED
 #define AP_DDS_CLOCK_PUB_ENABLED 1
 #endif
@@ -115,6 +119,10 @@
 #endif
 #ifndef AP_DDS_STATUS_PUB_ENABLED
 #define AP_DDS_STATUS_PUB_ENABLED 1
+#endif
+
+#ifndef AP_DDS_MODE_PUB_ENABLED
+#define AP_DDS_MODE_PUB_ENABLED 1
 #endif
 
 #ifndef AP_DDS_JOY_SUB_ENABLED

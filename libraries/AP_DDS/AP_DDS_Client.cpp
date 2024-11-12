@@ -78,11 +78,14 @@ static constexpr uint16_t DELAY_CLOCK_TOPIC_MS =AP_DDS_DELAY_CLOCK_TOPIC_MS;
 static constexpr uint16_t DELAY_GPS_GLOBAL_ORIGIN_TOPIC_MS = AP_DDS_DELAY_GPS_GLOBAL_ORIGIN_TOPIC_MS;
 #endif // AP_DDS_GPS_GLOBAL_ORIGIN_PUB_ENABLED
 
-static constexpr uint16_t DELAY_MODE_TOPIC_MS = 1000;
 static constexpr uint16_t DELAY_PING_MS = 500;
 #if AP_DDS_STATUS_PUB_ENABLED
 static constexpr uint16_t DELAY_STATUS_TOPIC_MS = AP_DDS_DELAY_STATUS_TOPIC_MS;
 #endif // AP_DDS_STATUS_PUB_ENABLED
+
+#if AP_DDS_MODE_PUB_ENABLED
+static constexpr uint16_t DELAY_MODE_TOPIC_MS = AP_DDS_DELAY_MODE_TOPIC_MS;
+#endif // AP_DDS_MODE_PUB_ENABLED
 
 // Define the subscriber data members, which are static class scope.
 // If these are created on the stack in the subscriber,
@@ -720,10 +723,12 @@ bool AP_DDS_Client::update_topic(ardupilot_msgs_msg_Status& msg)
 }
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
+#if AP_DDS_MODE_PUB_ENABLED
 void AP_DDS_Client::update_topic(ardupilot_msgs_msg_Mode& msg)
 {
     msg.mode = AP::vehicle()->get_mode();
 }
+#endif // AP_DDS_MODE_PUB_ENABLED
 
 /*
   start the DDS thread
@@ -1675,6 +1680,7 @@ void AP_DDS_Client::write_status_topic()
 }
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
+#if AP_DDS_MODE_PUB_ENABLED
 void AP_DDS_Client::write_mode_topic()
 {
     WITH_SEMAPHORE(csem);
@@ -1689,6 +1695,7 @@ void AP_DDS_Client::write_mode_topic()
         }
     }
 }
+#endif // AP_DDS_MODE_PUB_ENABLED
 
 void AP_DDS_Client::update()
 {
@@ -1787,11 +1794,13 @@ void AP_DDS_Client::update()
     }
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
+#if AP_DDS_MODE_PUB_ENABLED
     if (cur_time_ms - last_mode_time_ms > DELAY_MODE_TOPIC_MS) {
         update_topic(mode_topic);
         last_mode_time_ms = cur_time_ms;
         write_mode_topic();
     }
+#endif // AP_DDS_MODE_PUB_ENABLED
 
     status_ok = uxr_run_session_time(&session, 1);
 }

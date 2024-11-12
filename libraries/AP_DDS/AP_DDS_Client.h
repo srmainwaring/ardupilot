@@ -11,8 +11,6 @@
 #include "ardupilot_msgs/msg/GlobalPosition.h"
 #endif // AP_DDS_GLOBAL_POS_CTRL_ENABLED
 
-#include "ardupilot_msgs/msg/Mode.h"
-
 #if AP_DDS_TIME_PUB_ENABLED
 #include "builtin_interfaces/msg/Time.h"
 #endif // AP_DDS_TIME_PUB_ENABLED
@@ -32,6 +30,9 @@
 #if AP_DDS_STATUS_PUB_ENABLED
 #include "ardupilot_msgs/msg/Status.h"
 #endif // AP_DDS_STATUS_PUB_ENABLED
+#if AP_DDS_MODE_PUB_ENABLED
+#include "ardupilot_msgs/msg/Mode.h"
+#endif // AP_DDS_MODE_PUB_ENABLED
 #if AP_DDS_JOY_SUB_ENABLED
 #include "sensor_msgs/msg/Joy.h"
 #endif // AP_DDS_JOY_SUB_ENABLED
@@ -211,7 +212,14 @@ private:
     void write_status_topic();
 #endif // AP_DDS_STATUS_PUB_ENABLED
 
+#if AP_DDS_MODE_PUB_ENABLED
     ardupilot_msgs_msg_Mode mode_topic;
+    // The last ms timestamp AP_DDS wrote a mode message
+    uint64_t last_mode_time_ms;
+    //! @brief Serialize the current mode and publish to the IO stream(s)
+    void write_mode_topic();
+    static void update_topic(ardupilot_msgs_msg_Mode& msg);
+#endif
 
 #if AP_DDS_STATIC_TF_PUB_ENABLED
     // outgoing transforms
@@ -251,8 +259,6 @@ private:
     bool status_ok{false};
     bool connected{false};
 
-    static void update_topic(ardupilot_msgs_msg_Mode& msg);
-
     // subscription callback function
     static void on_topic_trampoline(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* ub, uint16_t length, void* args);
     void on_topic(uxrSession* session, uxrObjectId object_id, uint16_t request_id, uxrStreamId stream_id, struct ucdrBuffer* ub, uint16_t length);
@@ -268,9 +274,6 @@ private:
         .max_bytes_per_second = 0,
         .min_pace_period = 0
     };
-
-    // The last ms timestamp AP_DDS wrote a mode message
-    uint64_t last_mode_time_ms;
 
     // functions for serial transport
     bool ddsSerialInit();
@@ -325,9 +328,6 @@ public:
     //         publishers, subscribers
     //! @return True on successful creation, false on failure
     bool create() WARN_IF_UNUSED;
-
-    //! @brief Serialize the current mode and publish to the IO stream(s)
-    void write_mode_topic();
 
     //! @brief Update the internally stored DDS messages with latest data
     void update();
