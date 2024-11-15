@@ -17,10 +17,9 @@
 
 #include "AP_HAL_ESP32.h"
 #include "Semaphores.h"
-
 #include <AP_RCProtocol/AP_RCProtocol.h>
 
-#include "RmtSigReader.h"
+#include "RmtSigReaderLegacy.h"
 
 #ifndef RC_INPUT_MAX_CHANNELS
 #define RC_INPUT_MAX_CHANNELS 18
