@@ -17,7 +17,7 @@
 
 #include "AP_HAL_ESP32.h"
 #include "Semaphores.h"
-
+#include "RmtSigReaderLegacy.h"
 #include <AP_RCProtocol/AP_RCProtocol.h>
 
 #include "RmtSigReader.h"
@@ -71,5 +71,5 @@ private:
 
     bool pulse_input_enabled;
 
-    ESP32::RmtSigReader sig_reader;
+    ESP32::RmtSigReaderLegacy sig_reader;
 };

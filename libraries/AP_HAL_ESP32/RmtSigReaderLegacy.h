@@ -19,7 +19,7 @@
 #include "AP_HAL_ESP32.h"
 #include "driver/rmt.h"
 
-class ESP32::RmtSigReader
+class ESP32::RmtSigReaderLegacy
 {
 public:
     static const int frequency = 1000000;  //1MHZ

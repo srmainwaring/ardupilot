@@ -1,11 +1,11 @@
 #include <AP_HAL/HAL.h>
-#include "RmtSigReader.h"
+#include "RmtSigReaderLegacy.h"
 
 #ifdef HAL_ESP32_RCIN
 
 using namespace ESP32;
 
-void RmtSigReader::init()
+void RmtSigReaderLegacy::init()
 {
     rmt_config_t config;
     config.rmt_mode = RMT_MODE_RX;
@@ -24,7 +24,7 @@ void RmtSigReader::init()
     rmt_rx_start(config.channel, true);
 }
 
-bool RmtSigReader::add_item(uint32_t duration, bool level)
+bool RmtSigReaderLegacy::add_item(uint32_t duration, bool level)
 {
     bool has_more = true;
     if (duration == 0) {
@@ -46,7 +46,7 @@ bool RmtSigReader::add_item(uint32_t duration, bool level)
     return has_more;
 }
 
-bool RmtSigReader::read(uint32_t &width_high, uint32_t &width_low)
+bool RmtSigReaderLegacy::read(uint32_t &width_high, uint32_t &width_low)
 {
     if (item == nullptr) {
         item = (rmt_item32_t*) xRingbufferReceive(handle, &item_size, 0);
