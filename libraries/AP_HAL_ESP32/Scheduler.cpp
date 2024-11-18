@@ -307,7 +307,7 @@ void IRAM_ATTR Scheduler::_timer_thread(void *arg)
 
 #if HAL_INS_DEFAULT != HAL_INS_NONE
     // wait to ensure INS system inits unless using HAL_INS_NONE
-    while (!_initialized) {
+    while (!sched->_initialized) {
         sched->delay_microseconds(1000);
     }
 #endif
@@ -328,7 +328,7 @@ void IRAM_ATTR Scheduler::_timer_thread(void *arg)
 void IRAM_ATTR Scheduler::_rcout_thread(void* arg)
 {
     Scheduler *sched = (Scheduler *)arg;
-    while (!_initialized) {
+    while (!sched->_initialized) {
         sched->delay_microseconds(1000);
     }
 
@@ -376,10 +376,10 @@ void IRAM_ATTR Scheduler::_run_timers()
 void IRAM_ATTR Scheduler::_rcin_thread(void *arg)
 {
     Scheduler *sched = (Scheduler *)arg;
-    while (!_initialized) {
+    while (!sched->_initialized) {
         sched->delay_microseconds(20000);
     }
-    hal.rcin->init();
+    // hal.rcin->init();
     while (true) {
         sched->delay_microseconds(1000);
         ((RCInput *)hal.rcin)->_timer_tick();
@@ -548,6 +548,7 @@ void IRAM_ATTR Scheduler::_main_thread(void *arg)
     hal.analogin->init();
 #endif
     hal.rcout->init();
+    hal.rcin->init();
 
     sched->callbacks->setup();
 

@@ -17,9 +17,11 @@
 
 #include "AP_HAL_ESP32.h"
 #include "Semaphores.h"
+
 #include <AP_RCProtocol/AP_RCProtocol.h>
 
 #include "RmtSigReaderLegacy.h"
+// #include "SoftSigReaderInt.h"
 
 #ifndef RC_INPUT_MAX_CHANNELS
 #define RC_INPUT_MAX_CHANNELS 18
@@ -70,5 +72,6 @@ private:
 
     bool pulse_input_enabled;
 
-    ESP32::RmtSigReader sig_reader;
+    ESP32::RmtSigReaderLegacy sig_reader;
+    // ESP32::SoftSigReaderInt sig_reader;
 };

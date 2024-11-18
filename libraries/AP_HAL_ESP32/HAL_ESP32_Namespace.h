@@ -19,5 +19,6 @@ class BinarySemaphore;
 class GPIO;
 class DigitalSource;
 class Storage;
+class RmtSigReader;
 class RmtSigReaderLegacy;
 }  // namespace ESP32

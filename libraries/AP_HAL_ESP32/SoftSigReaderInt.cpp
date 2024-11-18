@@ -43,6 +43,7 @@ extern const AP_HAL::HAL& hal;
 
 #if HAL_USE_EICU == TRUE
 
+// #define GPIO_INPUT_IO_0     (gpio_num_t)HAL_ESP32_RCIN //(gpio_num_t)4
 #define GPIO_INPUT_IO_0     (gpio_num_t)4
 #define GPIO_INPUT_PIN_SEL  ((1ULL<<GPIO_INPUT_IO_0))
 #define ESP_INTR_FLAG_DEFAULT 0
