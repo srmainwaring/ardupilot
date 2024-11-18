@@ -74,6 +74,8 @@ public:
 
     uint32_t get_baud_rate() const override { return _baudrate; }
 
+    bool is_dma_enabled() const override { return false; }
+
 private:
     bool _initialized;
     const size_t TX_BUF_SIZE = 1024;

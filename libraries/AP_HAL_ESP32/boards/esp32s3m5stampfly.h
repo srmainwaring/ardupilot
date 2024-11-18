@@ -41,7 +41,7 @@
 
 #define HAL_ESP32_BOARD_NAME "esp32s3m5stampfly"
 
-#define HAL_ESP32_RMT_RX_PIN_NUMBER GPIO_NUM_14
+#define HAL_ESP32_RMT_RX_PIN_NUMBER GPIO_NUM_2
 
 #define HAL_INS_PROBE_LIST PROBE_IMU_SPI(BMI270, "bmi270", ROTATION_ROLL_180_YAW_90)
 
@@ -65,7 +65,7 @@
 #define HAL_USE_ADC 0
 
 // 2 use udp, 1 use tcp...  for udp,client needs to connect as UDPCL in missionplanner etc to 192.168.4.1 port 14550
-#define HAL_ESP32_WIFI 2
+#define HAL_ESP32_WIFI 1
 
 // see boards.py
 #ifndef ENABLE_HEAP
@@ -96,7 +96,7 @@
   {.port=I2C_NUM_1, .sda=GPIO_NUM_13, .scl=GPIO_NUM_15, .speed=400*KHZ, .internal=false}
 
 // rcin on what pin?
-//#define HAL_ESP32_RCIN GPIO_NUM_14
+// #define HAL_ESP32_RCIN HAL_ESP32_RMT_RX_PIN_NUMBER
 
 
 //HARDWARE UARTS. UART 0 apparently goes over USB? so we assign it to pins we
@@ -116,7 +116,7 @@
 
 #define HAL_LOGGING_BACKENDS_DEFAULT 2
 
-#define AP_RCPROTOCOL_ENABLED 0
+#define AP_RCPROTOCOL_ENABLED 1
 
 #define AP_FILESYSTEM_ESP32_ENABLED 0
 #define AP_SCRIPTING_ENABLED 0
@@ -124,3 +124,10 @@
 #define AP_OPTICALFLOW_ENABLED 0
 
 #define FORCE_APJ_DEFAULT_PARAMETERS 1
+
+// #ifdef CONFIG_IDF_TARGET_ESP32S3
+// #ifdef SOC_RMT_SUPPORT_RX_PINGPONG
+// #undef SOC_RMT_SUPPORT_RX_PINGPONG
+// #define SOC_RMT_SUPPORT_RX_PINGPONG 0
+// #endif
+// #endif
