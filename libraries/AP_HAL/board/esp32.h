@@ -1,7 +1,7 @@
 #pragma once
 
 //generated header
-#include <hwdef.h>
+// #include <hwdef.h>
 
 // coming from their respective esp-idf/sdkconfig files ...
 // also note that '#ifdef CONFIG_IDF_TARGET_ESP32' is only true on Classic esp32 targets, not s3.
