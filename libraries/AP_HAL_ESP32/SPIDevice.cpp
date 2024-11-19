@@ -22,9 +22,6 @@
 #include "Semaphores.h"
 #include <stdio.h>
 
-#include "esp_system.h"
-#include "driver/spi_master.h"
-#include "driver/gpio.h"
 using namespace ESP32;
 
 #define MHZ (1000U*1000U)
@@ -219,7 +216,7 @@ SPIDeviceManager::get_device(const char *name)
     SPIDeviceDesc &desc = device_desc[i];
 
 #ifdef SPIDEBUG
-    printf("%s:%d i:%d cs:%d bus:%d dev:%d mode:%d 222\n", __PRETTY_FUNCTION__, __LINE__,i,desc.cs,desc.bus,desc.device,desc.mode);
+    printf("%s:%d 222\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
     // find the bus
     SPIBus *busp;
@@ -253,7 +250,7 @@ SPIDeviceManager::get_device(const char *name)
     }
 
 #ifdef SPIDEBUG
-    printf("%s:%d busp:%d 444\n", __PRETTY_FUNCTION__, __LINE__, busp->bus);
+    printf("%s:%d 444\n", __PRETTY_FUNCTION__, __LINE__);
 #endif
 
     return AP_HAL::OwnPtr<AP_HAL::SPIDevice>(NEW_NOTHROW SPIDevice(*busp, desc));

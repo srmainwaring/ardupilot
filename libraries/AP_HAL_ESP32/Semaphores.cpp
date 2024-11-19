@@ -17,8 +17,6 @@
 
 #include "Semaphores.h"
 
-#include "AP_HAL_ESP32.h"
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -40,7 +38,7 @@ bool Semaphore::give()
 bool Semaphore::take(uint32_t timeout_ms)
 {
     if (timeout_ms == HAL_SEMAPHORE_BLOCK_FOREVER) {
-        xSemaphoreTakeRecursive((QueueHandle_t)handle, portMAX_DELAY);//this is a take_blocking()
+        take_blocking();
         return true;
     }
     if (take_nonblocking()) {
@@ -56,6 +54,11 @@ bool Semaphore::take(uint32_t timeout_ms)
     return false;
 }
 
+void Semaphore::take_blocking()
+{
+    xSemaphoreTakeRecursive((QueueHandle_t)handle, portMAX_DELAY);
+}
+
 bool Semaphore::take_nonblocking()
 {
     bool ok = xSemaphoreTakeRecursive((QueueHandle_t)handle, 0) == pdTRUE;
@@ -69,11 +72,6 @@ bool Semaphore::take_nonblocking()
 bool Semaphore::check_owner()
 {
     return xSemaphoreGetMutexHolder((QueueHandle_t)handle) == xTaskGetCurrentTaskHandle();
-}
-
-void Semaphore::assert_owner(void)
-{
-    //osalDbgAssert(check_owner(), "owner");
 }
 
 

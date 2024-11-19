@@ -22,9 +22,6 @@
 
 #include "esp_partition.h"
 
-#ifndef HAL_STORAGE_SIZE
-define HAL_STORAGE_SIZE 4096
-#endif
 #define STORAGE_SIZE HAL_STORAGE_SIZE
 #define STORAGE_SECTOR_SIZE (128*1024)
 

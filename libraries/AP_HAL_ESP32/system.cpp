@@ -21,9 +21,6 @@
 #include <stdint.h>
 #include "esp_timer.h"
 
-extern const AP_HAL::HAL& hal;
-
-
 namespace AP_HAL
 {
 
@@ -34,15 +31,8 @@ void panic(const char *errormsg, ...)
     va_start(ap, errormsg);
     vprintf(errormsg, ap);
     va_end(ap);
-    printf("\n");
-    hal.scheduler->delay_microseconds(10000);
-    while (1) {
-        va_start(ap, errormsg);
-        vprintf(errormsg, ap);
-        va_end(ap);
-        printf("\n");
-        hal.scheduler->delay(500);
-    }
+
+    while (1) {}
 }
 
 uint32_t micros()
@@ -63,31 +53,6 @@ uint64_t micros64()
 uint64_t millis64()
 {
     return uint64_div1000(micros64());
-}
-
-uint32_t native_micros()
-{
-    return micros();
-}
-
-uint32_t native_millis()
-{
-    return millis();
-}
-
-uint16_t native_millis16()
-{
-    return millis16();
-}
-
-uint64_t native_micros64()
-{
-    return micros64();
-}
-
-uint64_t native_millis64()
-{
-    return millis64();
 }
 
 } // namespace AP_HAL

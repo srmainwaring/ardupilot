@@ -27,12 +27,12 @@ class ESP32::Semaphore : public AP_HAL::Semaphore
 {
 public:
     Semaphore();
-    virtual bool give() override;
-    virtual bool take(uint32_t timeout_ms) override;
-    virtual bool take_nonblocking() override;
+    bool give() override;
+    bool take(uint32_t timeout_ms) override;
+    bool take_nonblocking() override;
+    void take_blocking() override;
 
-    bool check_owner(void);
-    void assert_owner(void);
+    bool check_owner();
 protected:
     void*  handle;
 };
