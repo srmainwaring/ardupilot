@@ -75,11 +75,12 @@ static Empty::UARTDriver serial9Driver;
 static Empty::DSP dspDriver;
 #endif
 
-#if HAL_USE_I2C == TRUE && defined(HAL_I2C_DEVICE_LIST)
+//! @note - does not appear to be set up in board defs? 
+// #if HAL_USE_I2C == TRUE && defined(HAL_I2C_DEVICE_LIST)
 static ESP32::I2CDeviceManager i2cDeviceManager;
-#else
-static Empty::I2CDeviceManager i2cDeviceManager;
-#endif
+// #else
+// static Empty::I2CDeviceManager i2cDeviceManager;
+// #endif
 
 #if HAL_USE_SPI == TRUE
 static ESP32::SPIDeviceManager spiDeviceManager;
