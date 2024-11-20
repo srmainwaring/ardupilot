@@ -63,7 +63,7 @@
 #include "esp_log.h"
 #include "driver/twai.h"
 
-#include "EventSource.h"
+// #include "EventSource.h"
 
 
 
@@ -131,10 +131,10 @@ class ESP32::CANIface : public AP_HAL::CANIface
     bool irq_init_:1;
     bool initialised_:1;
     bool had_activity_:1;
-#if CH_CFG_USE_EVENTS == TRUE
-    AP_HAL::EventHandle* event_handle_;
-    static ESP32::EventSource evt_src_;
-#endif
+// #if CH_CFG_USE_EVENTS == TRUE
+//     AP_HAL::EventHandle* event_handle_;
+//     static ESP32::EventSource evt_src_;
+// #endif
     const uint8_t self_index_;
 
     bool computeTimings(uint32_t target_bitrate, Timings& out_timings);
@@ -239,10 +239,10 @@ public:
                 const AP_HAL::CANFrame* const pending_tx,
                 uint64_t blocking_deadline) override;
     
-#if CH_CFG_USE_EVENTS == TRUE
-    // setup event handle for waiting on events
-    bool set_event_handle(AP_HAL::EventHandle* handle) override;
-#endif
+// #if CH_CFG_USE_EVENTS == TRUE
+//     // setup event handle for waiting on events
+//     bool set_event_handle(AP_HAL::EventHandle* handle) override;
+// #endif
 #if !defined(HAL_BUILD_AP_PERIPH) && !defined(HAL_BOOTLOADER_BUILD)
     // fetch stats text and return the size of the same,
     // results available via @SYS/can0_stats.txt or @SYS/can1_stats.txt 
