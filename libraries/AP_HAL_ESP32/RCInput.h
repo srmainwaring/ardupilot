@@ -24,7 +24,7 @@
 
 #ifndef RC_INPUT_MAX_CHANNELS
 #define RC_INPUT_MAX_CHANNELS 18
-#endif
+#endif  // RC_INPUT_MAX_CHANNELS
 
 class ESP32::RCInput : public AP_HAL::RCInput
 {
