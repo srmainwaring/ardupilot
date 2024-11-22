@@ -37,12 +37,12 @@ void RCInput::init()
     }
 #if AP_RCPROTOCOL_ENABLED
     AP::RC().init();
-#endif
+#endif  // AP_RCPROTOCOL_ENABLED
 
 #ifdef HAL_ESP32_RCIN
     sig_reader.init();
     pulse_input_enabled = true;
-#endif
+#endif  // AP_RCPROTOCOL_ENABLED
 
     _init = true;
 }
@@ -123,7 +123,7 @@ void RCInput::_timer_tick(void)
 #ifndef HAL_NO_UARTDRIVER
     const char *rc_protocol = nullptr;
     RCSource source = last_source;
-#endif
+#endif  // HAL_NO_UARTDRIVER
 
 #if AP_RCPROTOCOL_ENABLED
     AP_RCProtocol &rcprot = AP::RC();
@@ -178,7 +178,7 @@ bool RCInput::rc_bind(int dsmMode)
 #if AP_RCPROTOCOL_ENABLED
     // ask AP_RCProtocol to start a bind
     AP::RC().start_bind();
-#endif
+#endif  // AP_RCPROTOCOL_ENABLED
 
     return true;
 }
