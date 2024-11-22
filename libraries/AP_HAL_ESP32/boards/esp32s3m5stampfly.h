@@ -114,8 +114,9 @@
 
 //I2C bus list. bus 0 is internal, bus 1 is the red grove connector
 #define HAL_ESP32_I2C_BUSES \
-  {.port=I2C_NUM_0, .sda=GPIO_NUM_3, .scl=GPIO_NUM_4, .speed=400*KHZ, .internal=true}, \
-  {.port=I2C_NUM_1, .sda=GPIO_NUM_13, .scl=GPIO_NUM_15, .speed=400*KHZ, .internal=false}
+    {.port=I2C_NUM_0, .sda=GPIO_NUM_3, .scl=GPIO_NUM_4, .speed=400*KHZ, .internal=true}
+    // Use RED Grove connector as UART instead 
+    // {.port=I2C_NUM_1, .sda=GPIO_NUM_13, .scl=GPIO_NUM_15, .speed=400*KHZ, .internal=false}
 
 // rcin on what pin? enable AP_RCPROTOCOL_ENABLED below if using
 // currently on another unmapped pin
@@ -123,12 +124,15 @@
 #define HAL_ESP32_RMT_RX_PIN_NUMBER GPIO_NUM_16
 
 
-// HARDWARE UARTS. UART 0 apparently goes over USB? so we assign it to pins we
-// don't have mapped to anything. might be fixable in the HAL...
-// UART 1 (SERIAL3) is the black grove connector
+//HARDWARE UARTS. UART 0 apparently goes over USB? so we assign it to pins we
+// don't have mapped to anything. UART 1 is the black grove connector
+// UART0 = SERIAL0 = USB
+// UART1 = SERIAL3 (Grove Blk: [1.: Rx, 2: Tx, 3: VCC, 4: GND])
+// UART2 = SERAIL2 (Grove Red: [1.: Rx, 2: Tx, 3: VCC, 4: GND])
 #define HAL_ESP32_UART_DEVICES \
   {.port=UART_NUM_0, .rx=GPIO_NUM_18, .tx=GPIO_NUM_17 }, \
-  {.port=UART_NUM_1, .rx=GPIO_NUM_1, .tx=GPIO_NUM_2 }
+  {.port=UART_NUM_1, .rx=GPIO_NUM_1,  .tx=GPIO_NUM_2 }, \
+  {.port=UART_NUM_2, .rx=GPIO_NUM_15, .tx=GPIO_NUM_13 }
 
 // log over MAVLink by default
 #define HAL_LOGGING_FILESYSTEM_ENABLED 0
