@@ -116,15 +116,6 @@ void *Util::std_realloc(void *addr, uint32_t size)
     return new_mem;
 }
 
-void *Util::heap_realloc(void *heap, void *ptr, size_t new_size)
-{
-    if (heap == nullptr) {
-        return nullptr;
-    }
-
-    return multi_heap_realloc(*(multi_heap_handle_t *)heap, ptr, new_size);
-}
-
 #endif // ENABLE_HEAP
 
 
