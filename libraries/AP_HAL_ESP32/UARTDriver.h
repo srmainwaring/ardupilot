@@ -54,6 +54,10 @@ public:
 
     void _timer_tick(void) override;
 
+    // control optional features
+    bool set_options(uint16_t options) override;
+    uint16_t get_options(void) const override;
+
     uint32_t bw_in_bytes_per_second() const override
     {
         return 10*1024;
@@ -91,6 +95,13 @@ private:
     uint64_t _receive_timestamp[2];
     uint8_t _receive_timestamp_idx;
     uint32_t _baudrate;
+
+    // option bits for port
+    uint16_t _last_options;
+
+    // half duplex control.
+    bool half_duplex;
+    // void half_duplex_setup_tx(void);
 
     void _receive_timestamp_update(void);
 
