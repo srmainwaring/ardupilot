@@ -131,6 +131,9 @@
 #define WIFI_PWD "ardupilot-esp32"
 
 //UARTs
+//UART_NUM_0 = SERIAL0 => USB OTG - MAVLink2 (2)
+//UART_NUM_1 = SERIAL3 => GPS1 (5)
+//UART_NUM_2 = SERIAL2 => TELEM2 - MAVLink (2)
 #define HAL_ESP32_UART_DEVICES \
     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
     {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
