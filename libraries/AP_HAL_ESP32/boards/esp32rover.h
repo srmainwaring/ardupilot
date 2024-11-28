@@ -37,39 +37,41 @@
 
 //Protocols
 // list of protocols/enum:  ardupilot/libraries/AP_SerialManager/AP_SerialManager.h
-// default protocols:    ardupilot/libraries/AP_SerialManager/AP_SerialManager.cpp
-// ESP32 serials:    AP_HAL_ESP32/HAL_ESP32_Class.cpp
+// default protocols:       ardupilot/libraries/AP_SerialManager/AP_SerialManager.cpp
+// ESP32 serials:           AP_HAL_ESP32/HAL_ESP32_Class.cpp
 
-//#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_MAVLink2   //A  UART0: Always: Console, MAVLink2
-//#define DEFAULT_SERIAL0_BAUD            AP_SERIALMANAGER_CONSOLE_BAUD/1000  //115200
+//UART0: Always: Console, MAVLink2
+//#define DEFAULT_SERIAL0_PROTOCOL        SerialProtocol_MAVLink2
+//#define DEFAULT_SERIAL0_BAUD            AP_SERIALMANAGER_CONSOLE_BAUD/1000
 
-//#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2   //C  WiFi:  TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
-//#define DEFAULT_SERIAL1_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+//WiFi: TCP, UDP, or disable (depends on HAL_ESP32_WIFI)
+//#define DEFAULT_SERIAL1_PROTOCOL        SerialProtocol_MAVLink2
+//#define DEFAULT_SERIAL1_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000
 
-#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2   //D  UART2
-#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000  //57600
+//UART2: RC
+#define DEFAULT_SERIAL2_PROTOCOL        SerialProtocol_MAVLink2
+#define DEFAULT_SERIAL2_BAUD            AP_SERIALMANAGER_MAVLINK_BAUD/1000
 
-#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS        //B  UART1: GPS1
-#define DEFAULT_SERIAL3_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000    //38400, Can not define default baudrate here (by config only)
-//#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_None       //B
-//#define DEFAULT_SERIAL3_BAUD            (115200/1000)
+//UART1: GPS1
+#define DEFAULT_SERIAL3_PROTOCOL        SerialProtocol_GPS
+#define DEFAULT_SERIAL3_BAUD            AP_SERIALMANAGER_GPS_BAUD/1000
 
-#define DEFAULT_SERIAL4_PROTOCOL        SerialProtocol_None       //E
+#define DEFAULT_SERIAL4_PROTOCOL        SerialProtocol_None
+#define DEFAULT_SERIAL4_BAUD            (115200/1000)
+
+#define DEFAULT_SERIAL5_PROTOCOL        SerialProtocol_None
 #define DEFAULT_SERIAL5_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL5_PROTOCOL        SerialProtocol_None       //F
-#define DEFAULT_SERIAL5_BAUD            (115200/1000)
-
-#define DEFAULT_SERIAL6_PROTOCOL        SerialProtocol_None       //G
+#define DEFAULT_SERIAL6_PROTOCOL        SerialProtocol_None
 #define DEFAULT_SERIAL6_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL7_PROTOCOL        SerialProtocol_None       //H
+#define DEFAULT_SERIAL7_PROTOCOL        SerialProtocol_None
 #define DEFAULT_SERIAL7_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL8_PROTOCOL        SerialProtocol_None       //I
+#define DEFAULT_SERIAL8_PROTOCOL        SerialProtocol_None
 #define DEFAULT_SERIAL8_BAUD            (115200/1000)
 
-#define DEFAULT_SERIAL9_PROTOCOL        SerialProtocol_None       //J
+#define DEFAULT_SERIAL9_PROTOCOL        SerialProtocol_None
 #define DEFAULT_SERIAL9_BAUD            (115200/1000)
 
 //I2C Buses
