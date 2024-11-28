@@ -207,8 +207,8 @@ void mount_sdcard_spi()
     ESP_LOGI(TAG, "Initializing SD card as SDSPI");
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
-        .max_files = 10,
         .allocation_unit_size = 16 * 1024
+        .max_files = 5,
     };
 
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
