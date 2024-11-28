@@ -87,9 +87,9 @@
     {.name= "mpu9250", .bus=0, .device=0, .cs=GPIO_NUM_5, .mode=0, .lspeed=2*MHZ, .hspeed=8*MHZ}
 
 //RMT pin number
-#define HAL_ESP32_RMT_RX_PIN_NUMBER 4
+#define HAL_ESP32_RMT_RX_PIN_NUMBER 39
 //RCIN pin number - NOTE: disabled due to issue with legacy rmt library.
-// #define HAL_ESP32_RCIN GPIO_NUM_36
+#define HAL_ESP32_RCIN GPIO_NUM_39
 
 //RCOUT
 #define HAL_ESP32_RCOUT {GPIO_NUM_25, GPIO_NUM_27, GPIO_NUM_33, GPIO_NUM_32}
