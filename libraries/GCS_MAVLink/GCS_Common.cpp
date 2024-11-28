@@ -6534,6 +6534,10 @@ bool GCS_MAVLINK::try_send_message(const enum ap_message id)
         ret = send_available_mode_monitor();
         break;
 
+    case MSG_ADSB_VEHICLE:
+        // Odd issue with rover on esp32 - message generated and not handled
+        break;
+
     default:
         // try_send_message must always at some stage return true for
         // a message, or we will attempt to infinitely retry the
