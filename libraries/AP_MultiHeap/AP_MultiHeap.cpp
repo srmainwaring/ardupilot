@@ -91,7 +91,10 @@ bool MultiHeap::available(void) const
  */
 void *MultiHeap::allocate(uint32_t size)
 {
+    printf("MultiHeap: allocate: %ld\n", size);
+
     if (!available() || size == 0) {
+        printf("MultiHeap: allocate failed - not available\n");
         return nullptr;
     }
     for (uint8_t i=0; i<num_heaps; i++) {
@@ -111,6 +114,7 @@ void *MultiHeap::allocate(uint32_t size)
           collection to recover memory
          */
         last_failed = true;
+        printf("MultiHeap: allocate failed - cannot expand\n");
         return nullptr;
     }
 
@@ -118,6 +122,7 @@ void *MultiHeap::allocate(uint32_t size)
         // only expand the available heaps when armed. When disarmed
         // user should fix their SCR_HEAP_SIZE parameter
         last_failed = true;
+        printf("MultiHeap: allocate failed - not armed\n");
         return nullptr;
     }
 
@@ -131,6 +136,7 @@ void *MultiHeap::allocate(uint32_t size)
     const uint32_t min_size = size + heap_overhead;
     if (available < reserve_size+min_size) {
         last_failed = true;
+        printf("MultiHeap: allocate failed - size not available\n");
         return nullptr;
     }
 
@@ -139,6 +145,7 @@ void *MultiHeap::allocate(uint32_t size)
     const uint32_t alloc_size = MIN(available - reserve_size, MAX(size+heap_overhead, round_to));
     if (alloc_size < min_size) {
         last_failed = true;
+        printf("MultiHeap: allocate failed - size not available %ld\n", alloc_size);
         return nullptr;
     }
     for (uint8_t i=0; i<num_heaps; i++) {
@@ -176,6 +183,10 @@ void MultiHeap::deallocate(void *ptr)
  */
 void *MultiHeap::change_size(void *ptr, uint32_t old_size, uint32_t new_size)
 {
+    size_t heap_avail = heap_caps_get_free_size(0);
+    printf("MultiHeap: available: %d\n", heap_avail);
+    printf("MultiHeap: change_size: old: %ld, new: %ld\n", old_size, new_size);
+
     if (new_size == 0) {
         deallocate(ptr);
         return nullptr;
@@ -188,9 +199,11 @@ void *MultiHeap::change_size(void *ptr, uint32_t old_size, uint32_t new_size)
      */
     void *newp = allocate(new_size);
     if (ptr == nullptr) {
+        printf("MultiHeap: original ptr null\n");
         return newp;
     }
     if (newp == nullptr) {
+        printf("MultiHeap: allocate failed: new_size: %ld\n", new_size);
         if (old_size >= new_size) {
             // Lua assumes that the allocator never fails when osize >= nsize
             // the best we can do is return the old pointer
@@ -198,7 +211,9 @@ void *MultiHeap::change_size(void *ptr, uint32_t old_size, uint32_t new_size)
         }
         return nullptr;
     }
+    printf("MultiHeap: memcpy old -> new\n");
     memcpy(newp, ptr, MIN(old_size, new_size));
+    printf("MultiHeap: dealloc old\n");
     deallocate(ptr);
     return newp;
 }
