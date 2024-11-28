@@ -90,7 +90,7 @@ done:
 
 void mount_sdcard_mmc()
 {
-    printf("Mounting sd \n");
+    printf("sdcard: mounting sdcard as sdmmc\n");
     WITH_SEMAPHORE(sem);
 
     /*
@@ -190,9 +190,8 @@ ESP32::SPIBusDesc bus_ = HAL_ESP32_SDSPI;
 
 void mount_sdcard_spi()
 {
-
     esp_err_t ret;
-    printf("Mounting sd \n");
+    printf("sdcard: mounting sdcard as sdspi\n");
     WITH_SEMAPHORE(sem);
 
     //  In SPI mode, pins can be customized...
@@ -240,14 +239,15 @@ void mount_sdcard_spi()
 
         mkdir("/SDCARD/APM", 0777);
         mkdir("/SDCARD/APM/LOGS", 0777);
-        printf("sdcard is mounted\n");
+        printf("sdcard: sdcard is mounted\n");
         //update_fw();
         sdcard_running = true;
     } else {
-        printf("sdcard is not mounted\n");
+        printf("sdcard: sdcard not mounted\n");
         sdcard_running = false;
     }
 }
+
 void mount_sdcard()
 {
     mount_sdcard_spi();
