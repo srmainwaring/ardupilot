@@ -203,6 +203,7 @@ class SizeCompareBranches(object):
             'esp32s3empty',
             'esp32icarous',
             'esp32diy',
+            'esp32rover',
         ]
 
     def find_bin_dir(self):
