@@ -13,18 +13,27 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * This board that does not contain any sensors (but pins are active), it is a great help for a novice user,
- * by flashing an empty board, you can connect via Mavlink (Mission Planner - MP) and gradually add sensors.
- * If you had some sensor configured and it doesn't work then the MP connection does not work and then you may not know what to do next.
-*/
-
 #pragma once
 
 #define HAL_ESP32_BOARD_NAME "esp32rover"
 
 #define TRUE  1
 #define FALSE 0
+
+// make sensor selection clearer
+#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,GET_I2C_DEVICE(bus, addr),##args))
+#define PROBE_IMU_SPI(driver, devname, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,hal.spi->get_device(devname),##args))
+#define PROBE_IMU_SPI2(driver, devname1, devname2, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,hal.spi->get_device(devname1),hal.spi->get_device(devname2),##args))
+
+#define PROBE_BARO_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_Baro_ ## driver::probe(*this,std::move(GET_I2C_DEVICE(bus, addr)),##args))
+#define PROBE_BARO_SPI(driver, devname, args ...) ADD_BACKEND(AP_Baro_ ## driver::probe(*this,std::move(hal.spi->get_device(devname)),##args))
+
+#define PROBE_MAG_I2C(driver, bus, addr, args ...) ADD_BACKEND(DRIVER_ ##driver, AP_Compass_ ## driver::probe(GET_I2C_DEVICE(bus, addr),##args))
+#define PROBE_MAG_SPI(driver, devname, args ...) ADD_BACKEND(DRIVER_ ##driver, AP_Compass_ ## driver::probe(hal.spi->get_device(devname),##args))
+#define PROBE_MAG_IMU(driver, imudev, imu_instance, args ...) ADD_BACKEND(DRIVER_ ##driver, AP_Compass_ ## driver::probe_ ## imudev(imu_instance,##args))
+#define PROBE_MAG_IMU_I2C(driver, imudev, bus, addr, args ...) ADD_BACKEND(DRIVER_ ##driver, AP_Compass_ ## driver::probe_ ## imudev(GET_I2C_DEVICE(bus,addr),##args))
+
+//------------------------------------
 
 //Protocols
 // list of protocols/enum:  ardupilot/libraries/AP_SerialManager/AP_SerialManager.h
@@ -63,22 +72,17 @@
 #define DEFAULT_SERIAL9_PROTOCOL        SerialProtocol_None       //J
 #define DEFAULT_SERIAL9_BAUD            (115200/1000)
 
-//Inertial sensors
-#define HAL_INS_DEFAULT HAL_INS_NONE
-//#define HAL_INS_DEFAULT HAL_INS_MPU9250_I2C
-//#define PROBE_IMU_I2C(driver, bus, addr, args ...) ADD_BACKEND(AP_InertialSensor_ ## driver::probe(*this,GET_I2C_DEVICE(bus, addr),##args))
-//#define HAL_INS_PROBE_LIST PROBE_IMU_I2C(Invensense, 0, 0x68, ROTATION_NONE)
-
 //I2C Buses
-#define HAL_ESP32_I2C_BUSES {.port=I2C_NUM_0, .sda=GPIO_NUM_21, .scl=GPIO_NUM_22, .speed=400*KHZ, .internal=true, .soft=true}
+#define HAL_ESP32_I2C_BUSES \
+    {.port=I2C_NUM_0, .sda=GPIO_NUM_21, .scl=GPIO_NUM_22, .speed=400*KHZ, .internal=TRUE, .soft=TRUE}
 
 //SPI Buses
-#define HAL_ESP32_SPI_BUSES {}
-    // {.host=VSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
+#define HAL_ESP32_SPI_BUSES \
+    {.host=VSPI_HOST, .dma_ch=2, .mosi=GPIO_NUM_23, .miso=GPIO_NUM_19, .sclk=GPIO_NUM_18}
 
 //SPI Devices
-#define HAL_ESP32_SPI_DEVICES {}
-    // {.name= "mpu950", .bus=0, .device=0, .cs=GPIO_NUM_5, .mode = 3, .lspeed=1*MHZ, .hspeed=1*MHZ}
+#define HAL_ESP32_SPI_DEVICES \
+    {.name= "mpu9250", .bus=0, .device=0, .cs=GPIO_NUM_5, .mode=0, .lspeed=2*MHZ, .hspeed=8*MHZ}
 
 //RMT pin number
 #define HAL_ESP32_RMT_RX_PIN_NUMBER 4
@@ -96,13 +100,21 @@
 //BAROMETER
 #define HAL_BARO_ALLOW_INIT_NO_BARO 1
 
+// MPU-9250 is a SIP that combines two chips:
+// MPU-6500 3-axis gyro, 3-axis accel
+// AK8963   3-axis magnetometer
+// https://invensense.tdk.com/products/motion-tracking/9-axis/mpu-9250/
+
 //IMU
-// #define AP_INERTIALSENSOR_ENABLED 1
-// #define AP_INERTIALSENSOR_KILL_IMU_ENABLED 0
+#define HAL_INS_DEFAULT HAL_INS_MPU9250_SPI
+#define HAL_INS_MPU9250_NAME "mpu9250"
+#define HAL_INS_PROBE_LIST PROBE_IMU_SPI(Invensense, HAL_INS_MPU9250_NAME, ROTATION_NONE)
 
 //COMPASS
-#define AP_COMPASS_ENABLE_DEFAULT 0
-#define ALLOW_ARM_NO_COMPASS
+#define HAL_COMPASS_DEFAULT HAL_COMPASS_AK8963_MPU9250
+#define AP_COMPASS_AK8963_ENABLED TRUE
+#define HAL_PROBE_EXTERNAL_I2C_COMPASSES 1
+#define HAL_MAG_PROBE_LIST ADD_BACKEND(DRIVER_AK8963, AP_Compass_AK8963::probe_mpu9250(0, ROTATION_NONE))
 
 //See boards.py
 #ifndef ENABLE_HEAP
@@ -115,7 +127,6 @@
 #define WIFI_PWD "ardupilot-esp32"
 
 //UARTs
-// UART_NUM_0 and UART_NUM_2 are configured to use defaults
 #define HAL_ESP32_UART_DEVICES \
     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
     {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
@@ -134,9 +145,9 @@
 // and spi is more flexible pinouts....
 // dont forget vspi/hspi should be selected to NOT conflict with HAL_ESP32_SPI_BUSES
 
-#define HAL_ESP32_SDCARD 1 //after enabled, uncomment one of below
-//#define HAL_ESP32_SDMMC
-#define HAL_ESP32_SDSPI {.host=HSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_13, .miso=GPIO_NUM_15, .sclk=GPIO_NUM_14, .cs=GPIO_NUM_4}
+#define HAL_ESP32_SDCARD 1
+#define HAL_ESP32_SDSPI \
+    {.host=HSPI_HOST, .dma_ch=1, .mosi=GPIO_NUM_13, .miso=GPIO_NUM_15, .sclk=GPIO_NUM_14, .cs=GPIO_NUM_4}
 
 #define HAL_LOGGING_FILESYSTEM_ENABLED 1
 #define HAL_LOGGING_DATAFLASH_ENABLED 0   // enabled when board is SITL
@@ -148,7 +159,9 @@
 #define SCRIPTING_DIRECTORY "/SDCARD/APM/SCRIPTS"
 
 #define HAL_LOGGING_BACKENDS_DEFAULT 1
-#define HAL_LOGGING_FILE_BUFSIZE 8      // default for param LOG_FILE_BUFSIZE
+
+//Set default for param LOG_FILE_BUFSIZE
+#define HAL_LOGGING_FILE_BUFSIZE 8
 
 //Scripting
 #define MAX_HEAPS 1 // allow 1 heap (default is 10)
