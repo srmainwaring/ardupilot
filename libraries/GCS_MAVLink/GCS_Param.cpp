@@ -257,7 +257,8 @@ void GCS_MAVLINK::handle_param_request_read(const mavlink_message_t &msg)
     if (!param_timer_registered) {
         param_timer_registered = true;
         hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&GCS_MAVLINK::param_io_timer, void));
-    }
+        printf("GCS_MAVLINK: registered param_io_timer\n");
+   }
 }
 
 void GCS_MAVLINK::handle_param_set(const mavlink_message_t &msg)
