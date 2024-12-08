@@ -3483,6 +3483,7 @@ MAV_RESULT GCS_MAVLINK::handle_preflight_reboot(const mavlink_command_int_t &pac
         if (is_equal(packet.param4, 100.0f)) {
             send_text(MAV_SEVERITY_WARNING,"Creating mutex deadlock");
             hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&GCS_MAVLINK::deadlock_sem, void));
+            printf("GCS_MAVLINK: registered deadlock_sem\n");
             while (!_deadlock_sem.taken) {
                 hal.scheduler->delay(1);
             }
