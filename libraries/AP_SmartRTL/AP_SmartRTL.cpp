@@ -131,6 +131,7 @@ void AP_SmartRTL::init()
     if (!_example_mode){
         // register background cleanup to run in IO thread
         hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_SmartRTL::run_background_cleanup, void));
+        printf("AP_SmartRTL: registered run_background_cleanup\n");
     }
 }
 
