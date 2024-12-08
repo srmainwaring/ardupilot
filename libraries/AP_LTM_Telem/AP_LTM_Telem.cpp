@@ -42,6 +42,7 @@ void AP_LTM_Telem::init()
         AP_SERIALMANAGER_LTM_BUFSIZE_TX);
         hal.scheduler->register_io_process(
                 FUNCTOR_BIND_MEMBER(&AP_LTM_Telem::tick, void));
+        printf("AP_LTM_Telem: registered tick\n");
     }
 }
 
