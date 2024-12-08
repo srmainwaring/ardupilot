@@ -382,6 +382,7 @@ bool StorageAccess::attach_file(const char *filename, uint16_t size_kbyte)
     }
 
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&StorageAccess::flush_file, void));
+    printf("StorageAccess: registered flush_file\n");
 
     file = newfile;
     total_size = newfile->bufsize;
