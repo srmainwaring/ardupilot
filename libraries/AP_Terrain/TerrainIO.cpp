@@ -68,6 +68,7 @@ void AP_Terrain::schedule_disk_io(void)
     if (!timer_setup) {
         timer_setup = true;
         hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_Terrain::io_timer, void));
+        printf("AP_Terrain: registered io_timer\n");
     }
 
     switch (disk_io_state) {
