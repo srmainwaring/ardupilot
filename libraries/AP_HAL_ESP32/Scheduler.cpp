@@ -78,7 +78,7 @@ void Scheduler::init()
     // keep main tasks that need speed on CPU 0
     // pin potentially slow stuff to CPU 1, as we have disabled the WDT on that core.
     #define FASTCPU 0
-    #define SLOWCPU 1
+    #define SLOWCPU 0
 
     // pin main thread to Core 0, and we'll also pin other heavy-tasks to core 1, like wifi-related.
     if (xTaskCreatePinnedToCore(_main_thread, "APM_MAIN", Scheduler::MAIN_SS, this, Scheduler::MAIN_PRIO, &_main_task_handle,FASTCPU) != pdPASS) {
