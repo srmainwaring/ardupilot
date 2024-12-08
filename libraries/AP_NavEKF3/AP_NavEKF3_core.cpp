@@ -1007,7 +1007,7 @@ void NavEKF3_core::calcOutputStates()
  * Argument rotVarVecPtr is pointer to a vector defining the earth frame uncertainty variance of the quaternion states
  * used to perform a reset of the quaternion state covariances only. Set to null for normal operation.
 */
-void NavEKF3_core::CovariancePrediction(Vector3F *rotVarVecPtr)
+void IRAM_ATTR NavEKF3_core::CovariancePrediction(Vector3F *rotVarVecPtr)
 {
     ftype daxVar;       // X axis delta angle noise variance rad^2
     ftype dayVar;       // Y axis delta angle noise variance rad^2
