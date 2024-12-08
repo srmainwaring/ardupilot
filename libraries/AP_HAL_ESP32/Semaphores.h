@@ -34,7 +34,8 @@ public:
 
     bool check_owner();
 protected:
-    void*  handle;
+    uint16_t count;
+    SemaphoreHandle_t handle;
 };
 
 class ESP32::BinarySemaphore : public AP_HAL::BinarySemaphore {
