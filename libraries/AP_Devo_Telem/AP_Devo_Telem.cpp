@@ -47,6 +47,7 @@ void AP_DEVO_Telem::init()
         _port->begin(AP_SERIALMANAGER_DEVO_TELEM_BAUD, AP_SERIALMANAGER_DEVO_BUFSIZE_RX, AP_SERIALMANAGER_DEVO_BUFSIZE_TX);
 
         hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_DEVO_Telem::tick, void));
+        printf("AP_DEVO_Telem: registered tick\n");
     }
 }
 
