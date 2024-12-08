@@ -152,6 +152,7 @@ void AP_Frsky_SPort_Passthrough::setup_wfq_scheduler(void)
     set_sensor_id(_frsky_parameters->_dnlink2_id, _SPort_bidir.downlink2_sensor_id);
     // initialize sport
     hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_Frsky_SPort_Passthrough::process_rx_queue, void));
+    printf("AP_Frsky_SPort_Passthrough: registered process_rx_queue\n");
 #endif //HAL_WITH_FRSKY_TELEM_BIDIRECTIONAL
 }
 
