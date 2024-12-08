@@ -496,6 +496,7 @@ void AP_CANManager::handle_can_frame(const mavlink_message_t &msg)
             if (frame_buffer != nullptr && frame_buffer->get_size() != 0) {
                 // register a callback for when frames can't be sent immediately
                 hal.scheduler->register_io_process(FUNCTOR_BIND_MEMBER(&AP_CANManager::process_frame_buffer, void));
+                printf("AP_CANManager: registered process_frame_buffer\n");
                 break;
             }
             delete frame_buffer;
