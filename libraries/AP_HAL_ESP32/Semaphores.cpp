@@ -28,16 +28,26 @@ using namespace ESP32;
 Semaphore::Semaphore()
 {
     handle = xSemaphoreCreateRecursiveMutex();
+    count = 0;
 }
 
 bool Semaphore::give()
 {
-    return xSemaphoreGiveRecursive((QueueHandle_t)handle);
+    bool ok = xSemaphoreGiveRecursive(handle);
+    if (ok) {
+        count--;
+        if (count > 0) {
+            // printf("Semaphore: give: count %d\n", count);
+        }
+    }
+    return ok;
 }
 
 bool Semaphore::take(uint32_t timeout_ms)
 {
     if (timeout_ms == HAL_SEMAPHORE_BLOCK_FOREVER) {
+        //! @todo we are taking a blocking semaphore, but it may not
+        //  have been given, so why do we always return true?
         take_blocking();
         return true;
     }
@@ -56,22 +66,34 @@ bool Semaphore::take(uint32_t timeout_ms)
 
 void Semaphore::take_blocking()
 {
-    xSemaphoreTakeRecursive((QueueHandle_t)handle, portMAX_DELAY);
+    bool ok = xSemaphoreTakeRecursive(handle, portMAX_DELAY);
+    if (ok) {
+        count++;
+        if (count > 1) {
+            // printf("Semaphore: take_blocking: count %d\n", count);
+        }
+    }
+    else {
+        // printf("Semaphore: failed to take_blocking: count %d\n", count);
+    }
 }
 
 bool Semaphore::take_nonblocking()
 {
-    bool ok = xSemaphoreTakeRecursive((QueueHandle_t)handle, 0) == pdTRUE;
+    bool ok = xSemaphoreTakeRecursive(handle, 0) == pdTRUE;
     if (ok) {
+        count++;
         give();
     }
 
+    //! @todo appears that we never take a non-blocking semaphore
+    // printf("Semaphore: take_nonblocking: count %d\n", count);
     return ok;
 }
 
 bool Semaphore::check_owner()
 {
-    return xSemaphoreGetMutexHolder((QueueHandle_t)handle) == xTaskGetCurrentTaskHandle();
+    return xSemaphoreGetMutexHolder(handle) == xTaskGetCurrentTaskHandle();
 }
 
 
