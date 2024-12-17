@@ -45,16 +45,17 @@
 
 #define HAL_INS_PROBE_LIST PROBE_IMU_SPI(BMI270, "bmi270", ROTATION_ROLL_180_YAW_90)
 
-#define HAL_BARO_DEFAULT        HAL_BARO_BMP280_I2C
-#define HAL_BARO_BMP085_NAME        "bmp280"
-#define HAL_BARO_PROBE_LIST         PROBE_BARO_I2C(BMP280, 0, 0x76)
+#define HAL_BARO_ALLOW_INIT_NO_BARO 1
+// #define HAL_BARO_DEFAULT        HAL_BARO_BMP280_I2C
+// #define HAL_BARO_BMP085_NAME        "bmp280"
+// #define HAL_BARO_PROBE_LIST         PROBE_BARO_I2C(BMP280, 0, 0x76)
 
-#define AP_COMPASS_ENABLED 1
-#define AP_COMPASS_BMM150_ENABLED 1
-// #define AP_COMPASS_ENABLE_DEFAULT 0
-#define ALLOW_ARM_NO_COMPASS 1
-#define HAL_MAG_BMM150_NAME "BMM150"
-#define HAL_MAG_PROBE_LIST PROBE_MAG_I2C(BMM150, 0, 0x10, 0, ROTATION_YAW_90)
+#define AP_COMPASS_ENABLE_DEFAULT 0
+// #define ALLOW_ARM_NO_COMPASS 1
+// #define AP_COMPASS_ENABLED 1
+// #define AP_COMPASS_BMM150_ENABLED 1
+// #define HAL_MAG_BMM150_NAME "BMM150"
+// #define HAL_MAG_PROBE_LIST PROBE_MAG_I2C(BMM150, 0, 0x10, 0, ROTATION_YAW_90)
 
 #define AP_AIRSPEED_ENABLED 0
 #define AP_AIRSPEED_ANALOG_ENABLED 0
@@ -71,7 +72,7 @@
 #define HAL_BATTMON_INA3221_AVG_MODE_SEL HAL_BATTMON_INA3221_AVG_MODE_16
 
 // 2 use udp, 1 use tcp...  for udp,client needs to connect as UDPCL in missionplanner etc to 192.168.4.1 port 14550
-#define HAL_ESP32_WIFI 2
+#define HAL_ESP32_WIFI 1
 
 // see boards.py
 #ifndef ENABLE_HEAP
@@ -88,13 +89,14 @@
 
 // SPI BUS setup, including gpio, dma, etc
 #define HAL_ESP32_SPI_BUSES \
-    {.host=SPI2_HOST, .dma_ch=SPI_DMA_CH_AUTO, .mosi=GPIO_NUM_14, .miso=GPIO_NUM_43, .sclk=GPIO_NUM_44}
+    {.host=SPI2_HOST, .dma_ch=SPI_DMA_CH_AUTO, .mosi=GPIO_NUM_36, .miso=GPIO_NUM_37, .sclk=GPIO_NUM_35}
+    // {.host=SPI2_HOST, .dma_ch=SPI_DMA_CH_AUTO, .mosi=GPIO_NUM_14, .miso=GPIO_NUM_43, .sclk=GPIO_NUM_44}
 // SPI2 was used in original firmware
 
 // SPI per-device setup, including speeds, etc.
 #define HAL_ESP32_SPI_DEVICES \
-    {.name= "bmi270", .bus=0, .device=0, .cs=GPIO_NUM_46, .mode=3, .lspeed=10*MHZ, .hspeed=10*MHZ}, \
-    {.name="pixartflow", .bus=0, .device=1, .cs=GPIO_NUM_12, .mode=3, .lspeed=2*MHZ, .hspeed=2*MHZ},
+    {.name= "bmi270", .bus=0, .device=0, .cs=GPIO_NUM_46, .mode=3, .lspeed=10*MHZ, .hspeed=10*MHZ}
+    // {.name="pixartflow", .bus=0, .device=1, .cs=GPIO_NUM_12, .mode=3, .lspeed=2*MHZ, .hspeed=2*MHZ},
 
 //I2C bus list
 #define HAL_ESP32_I2C_BUSES \
