@@ -115,7 +115,7 @@
 // UART1 = SERIAL3 (Grove Blk: [1.: Rx, 2: Tx, 3: VCC, 4: GND])
 // UART2 = SERIAL2 (Grove Red: [1.: Rx, 2: Tx, 3: VCC, 4: GND]) - signal lines have 4.7kΩ pullup to 3V3
 #define HAL_ESP32_UART_DEVICES \
-  {.port=UART_NUM_0, .rx=GPIO_NUM_18, .tx=GPIO_NUM_17 }, \
+  {.port=UART_NUM_0, .rx=GPIO_NUM_44, .tx=GPIO_NUM_43 }, \
   {.port=UART_NUM_1, .rx=GPIO_NUM_1,  .tx=GPIO_NUM_2 }, \
   {.port=UART_NUM_2, .rx=GPIO_NUM_15, .tx=GPIO_NUM_13 }
 
