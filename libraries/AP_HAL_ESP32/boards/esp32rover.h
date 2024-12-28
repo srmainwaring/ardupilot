@@ -136,8 +136,8 @@
 //UART_NUM_2 = SERIAL2 => TELEM2 - MAVLink (2)
 #define HAL_ESP32_UART_DEVICES \
     {.port=UART_NUM_0, .rx=GPIO_NUM_3 , .tx=GPIO_NUM_1 },\
-    {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_18},\
-    {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_26}
+    {.port=UART_NUM_1, .rx=GPIO_NUM_34, .tx=GPIO_NUM_26},\
+    {.port=UART_NUM_2, .rx=GPIO_NUM_16, .tx=GPIO_NUM_17}
 
 //ADC
 #define HAL_DISABLE_ADC_DRIVER 1
