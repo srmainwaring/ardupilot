@@ -106,8 +106,7 @@
     // {.port=I2C_NUM_1, .sda=GPIO_NUM_13, .scl=GPIO_NUM_15, .speed=400*KHZ, .internal=false}
 
 // rcin on what pin?
-//#define HAL_ESP32_RCIN GPIO_NUM_14
-
+#define HAL_ESP32_RCIN GPIO_NUM_14
 
 //HARDWARE UARTS. UART 0 apparently goes over USB? so we assign it to pins we
 // don't have mapped to anything. UART 1 is the black grove connector
@@ -130,7 +129,7 @@
 
 #define HAL_LOGGING_BACKENDS_DEFAULT 2
 
-#define AP_RCPROTOCOL_ENABLED 0
+#define AP_RCPROTOCOL_ENABLED 1
 
 #define AP_FILESYSTEM_ESP32_ENABLED 0
 #define AP_SCRIPTING_ENABLED 0
