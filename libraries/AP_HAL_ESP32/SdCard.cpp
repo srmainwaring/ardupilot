@@ -17,6 +17,7 @@
 
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
+#include <AP_Filesystem/AP_Filesystem.h>
 
 #include "SdCard.h"
 
@@ -208,10 +209,21 @@ void mount_sdcard_spi()
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 5,
-        .allocation_unit_size = 16 * 1024
+        .allocation_unit_size = 16 * 1024 // between 512 and 128 * 512
     };
 
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();    
+    host.slot = bus_.host;
+    spi_dma_chan_t dma_ch = bus_.dma_ch;
+
+    //host.flags = SDMMC_HOST_FLAG_1BIT | SDMMC_HOST_FLAG_DDR;
+    // host.max_freq_khz = SDMMC_FREQ_PROBING; // 400 kHz
+    // host.max_freq_khz = SDMMC_FREQ_DEFAULT; // 20000 kHz
+    host.max_freq_khz = 800;
+
+    // default timeout (ms) is SDMMC_DEFAULT_CMD_TIMEOUT_MS
+    printf("sdcard: command_timeout_ms: %d\n", host.command_timeout_ms);
+
     //TODO change to sdspi_host_init_device for spi sharing
     spi_bus_config_t bus_cfg = {
         .mosi_io_num = bus_.mosi,
@@ -219,9 +231,9 @@ void mount_sdcard_spi()
         .sclk_io_num = bus_.sclk,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = 4000,
+        .max_transfer_sz = 0, // default to 4092 when DMA enabled, or SOC_SPI_MAXIMUM_BUFFER_SIZE when DMA disabled
     };
-    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, SPI_DMA_CHAN);
+    ret = spi_bus_initialize((spi_host_device_t)host.slot, &bus_cfg, dma_ch);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize bus.");
         return;
@@ -231,17 +243,40 @@ void mount_sdcard_spi()
     slot_config.gpio_cs = bus_.cs;
     slot_config.host_id = (spi_host_device_t)host.slot;
 
-    //host.flags = SDMMC_HOST_FLAG_1BIT | SDMMC_HOST_FLAG_DDR;
-    host.max_freq_khz = SDMMC_FREQ_PROBING;
     ret = esp_vfs_fat_sdspi_mount("/SDCARD", &host, &slot_config, &mount_config, &card);
 
     if (ret == ESP_OK) {
         // Card has been initialized, print its properties
+        sdmmc_card_print_info(stdout, card);
 
-        mkdir("/SDCARD/APM", 0777);
-        mkdir("/SDCARD/APM/LOGS", 0777);
-        printf("sdcard is mounted\n");
-        //update_fw();
+        int status;
+        status = mkdir("/SDCARD/APM", 0777);
+        if (status != 0 && errno != EEXIST) {
+            printf("sdcard: mkdir failed: '%s', err: %d\n",
+                "/SDCARD/APM", errno);
+        }        
+        status = mkdir(HAL_BOARD_STORAGE_DIRECTORY, 0777);
+        if (status != 0 && errno != EEXIST) {
+            printf("sdcard: mkdir failed: '%s', err: %d\n",
+                HAL_BOARD_STORAGE_DIRECTORY, errno);
+        }        
+        status = mkdir(HAL_BOARD_LOG_DIRECTORY, 0777);
+        if (status != 0 && errno != EEXIST) {
+            printf("sdcard: mkdir failed: '%s', err: %d\n",
+                HAL_BOARD_LOG_DIRECTORY, errno);
+        }
+        status = mkdir(HAL_BOARD_TERRAIN_DIRECTORY, 0777);
+        if (status != 0 && errno != EEXIST) {
+            printf("sdcard: mkdir failed: '%s', err: %d\n",
+                HAL_BOARD_TERRAIN_DIRECTORY, errno);
+        }
+        status = mkdir(SCRIPTING_DIRECTORY, 0777);
+        if (status != 0 && errno != EEXIST) {
+            printf("sdcard: mkdir failed: '%s', err: %d\n",
+                SCRIPTING_DIRECTORY, errno);
+        }
+
+        printf("sdcard: sdcard is mounted\n");
         sdcard_running = true;
     } else {
         printf("sdcard is not mounted\n");
