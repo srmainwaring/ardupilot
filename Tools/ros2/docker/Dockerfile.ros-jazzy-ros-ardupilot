@@ -1,0 +1,85 @@
+# Dockerfile.ros-jazzy-ros-ardupilot
+#
+# This docker file installs ros ardupilot
+# https://ardupilot.org/dev/docs/ros2.html
+# 
+# build:
+# docker build -f Dockerfile.ros-jazzy-ros-ardupilot --platform=linux/arm64 --tag ros-jazzy-ros-ardupilot .
+#
+# run:
+# docker run -i -t --rm ros-jazzy-ros-ardupilot
+#
+# rsync the workspace:
+# rsync -azP /ardu_ws pi@{hostname}:/home/pi/ardu_ws
+#
+# FROM ros-jazzy-ros-base
+FROM ros:jazzy-ros-base-noble
+
+ENV WS_DIR=/ardu_ws
+ENV VENV_DIR=/venv/ros2-3.12
+
+# install additional dependencies
+RUN apt update && \
+  apt --no-install-recommends install -y \
+  inetutils-ping \
+  openjdk-17-jre \
+  python3.12-venv \
+  rsync \
+  ssh \
+  wget && \
+  rm -rf /var/lib/apt/lists/*
+
+# create python virtual environment and install python packges needed by ardupilot
+RUN python3 -m venv $VENV_DIR && \
+  . $VENV_DIR/bin/activate && \
+  python -m pip install \
+  catkin_pkg \
+  empy==3.3.4 \
+  future \
+  lark \
+  MAVProxy \
+  pexpect \
+  pydocstyle \
+  pytest \
+  pyyaml \
+  setuptools && \
+  pip cache purge
+
+# create workspace and clone dependencies
+RUN apt update && \
+  . $VENV_DIR/bin/activate && \
+  . /opt/ros/jazzy/setup.sh && \
+  mkdir -p $WS_DIR/src && \
+  cd $WS_DIR/src && \
+  wget https://raw.githubusercontent.com/ArduPilot/ardupilot/master/Tools/ros2/ros2.repos && \
+  sed 's/humble/jazzy/g' ros2.repos > ros2-jazzy.repos && \
+  vcs import --recursive < ros2-jazzy.repos && \
+  cd $WS_DIR && \
+  rosdep install --from-paths src --ignore-src --rosdistro=$ROS_DISTRO -y && \
+  rm -rf /var/lib/apt/lists/*
+
+# install micro-xrce-dds-gen
+# https://github.com/ArduPilot/ardupilot/tree/master/libraries/AP_DDS#installing-build-dependencies
+RUN update-java-alternatives --set /usr/lib/jvm/java-1.17.0-openjdk-arm64 && \
+  cd $WS_DIR/src && \
+  git clone --recurse-submodules https://github.com/ardupilot/Micro-XRCE-DDS-Gen.git micro_xrce_dds_gen && \
+  cd micro_xrce_dds_gen && \
+  ./gradlew assemble
+
+ENV PATH="$PATH:$WS_DIR/src/micro_xrce_dds_gen/scripts"
+
+# check ardupilot waf build
+# RUN . $VENV_DIR/bin/activate && \
+#   . /opt/ros/jazzy/setup.sh && \
+#   cd $WS_DIR/src/ardupilot && \
+#   ./waf configure --board sitl --debug --enable-dds && \
+#   ./waf -v build
+
+# colcon build
+RUN . $VENV_DIR/bin/activate && \
+  . /opt/ros/jazzy/setup.sh && \
+  cd $WS_DIR && \
+  colcon build --cmake-args \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DARDUPILOT_WAF_BUILD_ARGS="--enable-dds" && \
+  rm -rf ./build ./log
