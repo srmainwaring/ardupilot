@@ -6795,6 +6795,84 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
             if abs(m.Pos - m.PosCmd) > 20:
                 break
 
+    def GuidedPathNavigation(self):
+        '''test guided path navigation'''
+        # NOTE: default speedup is causing plane to gain altitude too quickly
+        # and overshoot the target altitude, run with speedup=5.
+        # self.takeoff(10)
+        # self.takeoff(alt=10, alt_max=(10+30), relative=True, mode="FBWA", timeout=None)
+
+        self.change_mode('GUIDED')
+        # self.set_attitude_target()
+
+        # do guided path navigation tests here
+        self.progress(f"check valid function: {type(self.mav.mav.set_position_target_global_int_send)}")
+
+        self.progress("Sending SET_POSITION_TARGET_GLOBAL_INT message")
+        target_system = 1
+        target_component = 1
+        coordinate_frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+        type_mask = 0b0000111111111000  # Ignore velocity and acceleration
+        lat_int = int(47.397742 * 1e7)  # Latitude in degrees * 1e7
+        lon_int = int(8.545594 * 1e7)   # Longitude in degrees * 1e7
+        alt = 15                        # Altitude in meters
+        vx = 0                          # X velocity in m/s
+        vy = 0                          # Y velocity in m/s
+        vz = 0                          # Z velocity in m/s
+        afx = 0                         # X acceleration in m/s^2
+        afy = 0                         # Y acceleration in m/s^2
+        afz = 0                         # Z acceleration in m/s^2
+        yaw = 0                         # Yaw in radians
+        yaw_rate = 0                    # Yaw rate in radians/s
+
+        alt_mask = (
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_X_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_Y_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_Z_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VX_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VY_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AX_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AY_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
+        )
+        path_mask = (
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
+        )
+        self.progress("type_mask: 0b{:016b}".format(type_mask))
+        self.progress("alt_mask:  0b{:016b}".format(alt_mask))
+        self.progress("path_mask: 0b{:016b}".format(path_mask))
+
+
+        # Send the SET_POSITION_TARGET_GLOBAL_INT message
+        self.mav.mav.set_position_target_global_int_send(
+            0,  # time_boot_ms (not used)
+            target_system,
+            target_component,
+            coordinate_frame,
+            path_mask,
+            lat_int,
+            lon_int,
+            alt,
+            vx,
+            vy,
+            vz,
+            afx,
+            afy,
+            afz,
+            yaw,
+            yaw_rate
+        )
+
+
+        self.progress("Sent SET_POSITION_TARGET_GLOBAL_INT message")
+
+        # self.fly_home_land_and_disarm()
+
+
     def tests(self):
         '''return list of all tests'''
         ret = []
@@ -6953,6 +7031,7 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
             self.BadRollChannelDefined,
             self.VolzMission,
             self.Volz,
+            self.GuidedPathNavigation,
         ]
 
     def disabled_tests(self):
