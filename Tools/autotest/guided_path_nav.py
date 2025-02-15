@@ -11,7 +11,9 @@ import pytest
 from typing import Self
 
 # Use spatial objects defined in pymavlink
+from pymavlink import quaternion
 from pymavlink.quaternion import Quaternion
+from pymavlink.rotmat import Matrix3
 from pymavlink.rotmat import Vector3
 
 
@@ -108,12 +110,65 @@ class PathSegment:
         self._is_periodic = False
 
     @property
+    def curvature(self) -> float:
+        return self._curvature
+
+    @curvature.setter
+    def curvature(self, value: float) -> None:
+        self._curvature = value
+
+    @property
+    def flightpath_angle(self) -> float:
+        return self._flightpath_angle
+
+    @flightpath_angle.setter
+    def flightpath_angle(self, value: float) -> None:
+        self._flightpath_angle = value
+
+    @property
+    def dt(self) -> float:
+        return self._dt
+
+    @dt.setter
+    def dt(self, value: float) -> None:
+        self._dt = value
+
+    @property
     def reached(self) -> bool:
         return self._reached
 
     @reached.setter
     def reached(self, value: bool) -> None:
         self._reached = value
+
+    @property
+    def is_periodic(self) -> bool:
+        return self._is_periodic
+
+    @is_periodic.setter
+    def is_periodic(self, value: bool) -> None:
+        self._is_periodic = value
+
+    def position(self) -> list[Vector3]:
+        """
+        Return all positions in the path segment.
+        """
+        pos = [x.position for x in self._states]
+        return pos
+
+    def velocity(self) -> list[Vector3]:
+        """
+        Return all velocities in the path segment.
+        """
+        vel = [x.velocity for x in self._states]
+        return vel
+
+    def attitude(self) -> list[Vector3]:
+        """
+        Return all orientations in the path segment.
+        """
+        att = [x.attitude for x in self._states]
+        return att
 
     def first_state(self) -> State:
         """
@@ -127,26 +182,17 @@ class PathSegment:
         """
         return self._states[-1]
 
-    def position(self) -> list[Vector3]:
+    def prepend_state(self, state: State) -> None:
         """
-        Return all positions in the path segment.
+        Insert a state at the front
         """
-        pos = [x.position for x in self.states]
-        return pos
+        self._states.insert(0, state)
 
-    def velocity(self) -> list[Vector3]:
+    def append_state(self, state: State) -> None:
         """
-        Return all velocities in the path segment.
+        Append a state
         """
-        vel = [x.velocity for x in self.states]
-        return vel
-
-    def attitude(self) -> list[Vector3]:
-        """
-        Return all orientations in the path segment.
-        """
-        att = [x.attitude for x in self.states]
-        return att
+        self._states.append(state)
 
     # TODO: check tangent is a unit vector
     @staticmethod
@@ -254,6 +300,12 @@ class PathSegment:
         if not math.isclose(segment_end.z, 0.0):
             raise ValueError("segment_end must have z-component zero")
 
+        # TODO: add checks for zero vector.
+        if position == segment_start:
+            return 0.0
+        if position == segment_end:
+            return 1.0
+
         # unit vectors from arc-centre to positions on the arc
         pos_vector = (position - arc_centre).normalized()
         start_vector = (segment_start - arc_centre).normalized()
@@ -269,7 +321,7 @@ class PathSegment:
         wrap_2pi(psi)
         wrap_2pi(angle_pos)
 
-        residual_pi = math.max(2.0 * math.pi - psi, 0.0)
+        residual_pi = max(2.0 * math.pi - psi, 0.0)
 
         if angle_pos > psi + 0.5 * residual_pi and residual_pi > 0.0:
             angle_pos = angle_pos - 2 * math.pi
@@ -284,9 +336,10 @@ class PathSegment:
         if len(self._states) == 1:
             return 0.0
 
-        segment_start = self._states[0].position
-        segment_end = self._states[0].position
-        if math.fabs(self._curvature) < 0.0001:
+        segment_start = self.first_state().position
+        segment_end = self.last_state().position
+        kappa = math.fabs(self._curvature)
+        if kappa < 0.0001:
             # segment is a line segment
             length = (segment_end - segment_start).length()
             return length
@@ -294,9 +347,10 @@ class PathSegment:
         # compute closest point on a arc segment
         segment_start_2d = Vector3(segment_start.x, segment_start.y, 0.0)
         segment_end_2d = Vector3(segment_end.x, segment_end.y, 0.0)
+        radius = 1.0 / kappa
         if (segment_start_2d - segment_end_2d).length() < epsilon:
             # return full circle length
-            length = 2 * math.pi * (1.0 / math.fabs(self._curvature))
+            length = 2.0 * math.pi * radius
         else:
             segment_start_2d = Vector3(segment_start.x, segment_start.y, 0.0)
             segment_end_2d = Vector3(segment_end.x, segment_end.y, 0.0)
@@ -309,7 +363,7 @@ class PathSegment:
 
             psi = math.atan2(end_vector.y, end_vector.x) - math.atan2(start_vector.y, start_vector.x)
             wrap_2pi(psi)
-            length = (1.0 / math.fabs(self._curvature)) * psi
+            length = radius * psi
 
         return length
 
@@ -333,7 +387,7 @@ class PathSegment:
             theta = PathSegment.get_line_progress(position, segment_start, segment_end)
             tangent = (segment_end - segment_start).normalized()
             # closest point should not be outside segment - constrain theta to [0.0, 1.0]
-            closest_point = math.max(math.min(1.0, theta), 0.0) * (segment_end - segment_start) + segment_start
+            closest_point = max(min(1.0, theta), 0.0) * (segment_end - segment_start) + segment_start
         else:
             # compute closest point on a arc segment
             position_2d = Vector3(position.x, position.y, 0.0)
@@ -487,7 +541,66 @@ class Path:
 
 
 # Test cases (pytest)
-def test_arc_centre():
+def test_wrap_2pi():
+    for n in [-10, -1, 0, 1, 10]:
+        angle_deg = math.degrees(wrap_2pi(math.radians(n * 360.0 + 1.0)))
+        assert angle_deg == pytest.approx(1.0)
+
+        angle_deg = math.degrees(wrap_2pi(math.radians(n * 360.0 + 90.0)))
+        assert angle_deg == pytest.approx(90.0)
+
+        angle_deg = math.degrees(wrap_2pi(math.radians(n * 360.0 + 180.0)))
+        assert angle_deg == pytest.approx(180.0)
+
+        angle_deg = math.degrees(wrap_2pi(math.radians(n * 360.0 + 270.0)))
+        assert angle_deg == pytest.approx(270.0)
+
+    # modulo 360, angle > 0
+    angle_deg = math.degrees(wrap_2pi(math.radians(360.0)))
+    assert angle_deg == pytest.approx(360.0)
+
+    angle_deg = math.degrees(wrap_2pi(math.radians(720.0)))
+    assert angle_deg == pytest.approx(360.0)
+
+    angle_deg = math.degrees(wrap_2pi(math.radians(3600.0)))
+    assert angle_deg == pytest.approx(360.0)
+
+    # modulo 360, angle < 0
+    angle_deg = math.degrees(wrap_2pi(math.radians(-360.0)))
+    assert angle_deg == pytest.approx(0.0)
+
+    angle_deg = math.degrees(wrap_2pi(math.radians(-720.0)))
+    assert angle_deg == pytest.approx(0.0)
+
+    angle_deg = math.degrees(wrap_2pi(math.radians(-3600.0)))
+    assert angle_deg == pytest.approx(0.0)
+
+
+def test_wrap_pi():
+    for n in [-10, -1, 0, 1, 10]:
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 1.0)))
+        assert angle_deg == pytest.approx(1.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 90.0)))
+        assert angle_deg == pytest.approx(90.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 179.0)))
+        assert angle_deg == pytest.approx(179.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 181.0)))
+        assert angle_deg == pytest.approx(-179.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 270.0)))
+        assert angle_deg == pytest.approx(-90.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 360.0)))
+        assert angle_deg == pytest.approx(0.0)
+
+        angle_deg = math.degrees(wrap_pi(math.radians(n * 360 + 361.0)))
+        assert angle_deg == pytest.approx(1.0)
+
+
+def test_path_segment_arc_centre():
     segment_start = Vector3(10.0, 10.0, 0.0)
     segment_start_tangent = Vector3(1.0, -1.0, 0.0) / math.sqrt(2.0)
     radius = math.sqrt(2.0) * 10.0
@@ -507,7 +620,7 @@ def test_arc_centre():
     assert arc_centre.y == 0.0
 
 
-def test_arc_centre2():
+def test_path_segment_arc_centre2():
     segment_start = Vector3(10.0, 10.0, 0.0)
     segment_end = Vector3(20.0, 20.0 - 10.0 * math.sqrt(2.0), 0.0)
     segment_start_tangent = Vector3(1.0, -1.0, 0.0) / math.sqrt(2.0)
@@ -526,7 +639,7 @@ def test_arc_centre2():
     assert arc_centre.y == 20.0
 
 
-def test_line_progress():
+def test_path_segment_line_progress():
     segment_start = Vector3(10.0, 10.0, 0.0)
     segment_end = Vector3(20.0, 20.0, 0.0)
 
@@ -541,3 +654,157 @@ def test_line_progress():
     position = Vector3(18.0, 18.0, 0.0)
     theta = PathSegment.get_line_progress(position, segment_start, segment_end)
     assert theta == pytest.approx(0.8)
+
+
+def test_path_segment_arc_progress():
+    arc_centre = Vector3(20.0, 20.0, 0.0)
+    segment_start = Vector3(10.0, 10.0, 0.0)
+    segment_end = Vector3(30.0, 10.0, 0.0)
+    radius = 10.0 * math.sqrt(2.0)
+    curvature = 1.0 / radius
+
+    position = Vector3(10.0, 10.0, 0.0)
+    assert position == segment_start
+    theta = PathSegment.get_arc_progress(arc_centre, position, segment_start, segment_end, curvature)
+    assert theta == pytest.approx(0.0)
+
+    position = Vector3(30.0, 10.0, 0.0)
+    assert position == segment_end
+    theta = PathSegment.get_arc_progress(arc_centre, position, segment_start, segment_end, curvature)
+    assert theta == pytest.approx(1.0)
+
+    position = Vector3(20.0, 20.0 - radius, 0.0)
+    theta = PathSegment.get_arc_progress(arc_centre, position, segment_start, segment_end, curvature)
+    assert theta == pytest.approx(0.5)
+
+
+def test_path_segment_get_length():
+
+    # 1. line - along x-axis
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, 0.0)
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, 0.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    state2 = State()
+    state2.position = Vector3(30.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, 0.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = 0.0
+    path_segment.is_periodic = False
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    pos_vec = path_segment.position()
+    vel_vec = path_segment.velocity()
+    att_vec = path_segment.attitude()
+
+    # check state vector lengths
+    assert len(pos_vec) == 2
+    assert len(vel_vec) == 2
+    assert len(att_vec) == 2
+
+    # check state vector contents
+    assert pos_vec[0] == state1.position
+    assert vel_vec[0] == state1.velocity
+    assert att_vec[0] == state1.attitude
+    assert pos_vec[1] == state2.position
+    assert vel_vec[1] == state2.velocity
+    assert att_vec[1] == state2.attitude
+
+    # check first state
+    assert path_segment.first_state().position == state1.position
+    assert path_segment.first_state().velocity == state1.velocity
+    assert path_segment.first_state().attitude == state1.attitude
+
+    # check last state
+    assert path_segment.last_state().position == state2.position
+    assert path_segment.last_state().velocity == state2.velocity
+    assert path_segment.last_state().attitude == state2.attitude
+
+    length = path_segment.get_length()
+    assert length == 20.0
+
+    # 2. partial arc - around centre at (20, 20, 10)
+    radius = 10.0 * math.sqrt(2.0)
+    curvature = 1 / radius
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, -5.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    # heading: 45
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(45.0))
+
+    state2 = State()
+    state2.position = Vector3(30.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, 5.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = curvature
+    path_segment.is_periodic = False
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    pos_vec = path_segment.position()
+    vel_vec = path_segment.velocity()
+    att_vec = path_segment.attitude()
+
+    # expected arc length is 1/4 circumference
+    length = path_segment.get_length()
+    assert length == 0.25 * 2.0 * math.pi * radius
+
+    # 2. full circle arc with radius 100.0
+    radius = 100.0
+    curvature = 1 / radius
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, -5.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state2 = State()
+    state2.position = Vector3(10.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, -5.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = curvature
+    path_segment.is_periodic = False
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    pos_vec = path_segment.position()
+    vel_vec = path_segment.velocity()
+    att_vec = path_segment.attitude()
+
+    # expected arc length is circumference
+    length = path_segment.get_length()
+    assert length == 2.0 * math.pi * radius
+
+
+def test_path_segment_get_closest_point():
+    position = Vector3()
