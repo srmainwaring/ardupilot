@@ -13,6 +13,7 @@ from pymavlink import quaternion
 from pymavlink import mavutil
 
 from pymavlink.rotmat import Vector3
+from pymavlink.rotmat import Matrix3
 
 import vehicle_test_suite
 
@@ -6797,79 +6798,287 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
 
     def GuidedPathNavigation(self):
         '''test guided path navigation'''
+        # timeout for receiving mavlink messages
+        mavmsg_timeout = 1
+
         # NOTE: default speedup is causing plane to gain altitude too quickly
         # and overshoot the target altitude, run with speedup=5.
         # self.takeoff(10)
         # self.takeoff(alt=10, alt_max=(10+30), relative=True, mode="FBWA", timeout=None)
 
         self.change_mode('GUIDED')
-        # self.set_attitude_target()
 
         # do guided path navigation tests here
-        self.progress(f"check valid function: {type(self.mav.mav.set_position_target_global_int_send)}")
+        def publish_global_position_setpoint(
+                lat, lon, alt_msl, velocity, acceleration, yaw, yaw_rate):
 
-        self.progress("Sending SET_POSITION_TARGET_GLOBAL_INT message")
-        target_system = 1
-        target_component = 1
-        coordinate_frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
-        type_mask = 0b0000111111111000  # Ignore velocity and acceleration
-        lat_int = int(47.397742 * 1e7)  # Latitude in degrees * 1e7
-        lon_int = int(8.545594 * 1e7)   # Longitude in degrees * 1e7
-        alt = 15                        # Altitude in meters
-        vx = 0                          # X velocity in m/s
-        vy = 0                          # Y velocity in m/s
-        vz = 0                          # Z velocity in m/s
-        afx = 0                         # X acceleration in m/s^2
-        afy = 0                         # Y acceleration in m/s^2
-        afz = 0                         # Z acceleration in m/s^2
-        yaw = 0                         # Yaw in radians
-        yaw_rate = 0                    # Yaw rate in radians/s
+            # self.progress("Check valid function: {}".format(
+            #     type(self.mav.mav.set_position_target_global_int_send)))
 
-        alt_mask = (
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_X_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_Y_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_Z_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VX_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VY_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_VZ_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AX_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AY_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_AZ_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
-        )
-        path_mask = (
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
-          mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
-        )
-        self.progress("type_mask: 0b{:016b}".format(type_mask))
-        self.progress("alt_mask:  0b{:016b}".format(alt_mask))
-        self.progress("path_mask: 0b{:016b}".format(path_mask))
+            self.progress("Sending SET_POSITION_TARGET_GLOBAL_INT message")
+            target_system = self.sysid_thismav() # target system_id
+            target_component = 1 # target component id
+            coordinate_frame = mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+            # type_mask = 0b0000111111111000  # Ignore velocity and acceleration
+            lat_int = int(lat * 1e7)        # Latitude in degrees * 1e7
+            lon_int = int(lon * 1e7)        # Longitude in degrees * 1e7
+            alt = alt_msl                   # Altitude in meters
+            vx = velocity[0]                # X velocity in m/s
+            vy = velocity[1]                # Y velocity in m/s
+            vz = velocity[2]                # Z velocity in m/s
+            afx = acceleration[0]           # X acceleration in m/s^2
+            afy = acceleration[1]           # Y acceleration in m/s^2
+            afz = acceleration[2]           # Z acceleration in m/s^2
+            yaw = 0                         # Yaw in radians
+            yaw_rate = 0                    # Yaw rate in radians/s
+
+            # alt_mask = (
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_X_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_Y_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_Z_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_VX_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_VY_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_VZ_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_AX_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_AY_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+            #   mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
+            # )
+            path_mask = (
+              mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+              mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE
+            )
+            self.progress("path_mask: 0b{:016b}".format(path_mask))
+
+            # Send the SET_POSITION_TARGET_GLOBAL_INT message
+            self.mav.mav.set_position_target_global_int_send(
+                0,  # time_boot_ms (not used)
+                target_system,
+                target_component,
+                coordinate_frame,
+                path_mask,
+                lat_int,
+                lon_int,
+                alt,
+                vx,
+                vy,
+                vz,
+                afx,
+                afy,
+                afz,
+                yaw,
+                yaw_rate
+            )
+            self.progress("Sent SET_POSITION_TARGET_GLOBAL_INT message")
+
+        # algorithm for guided path navigation on offboard computer
+
+        def geoid_height(lat, lon):
+            """
+            Get the geoid height at position: lat, lon.
+            """
+            import pygeodesy
+            from pygeodesy.ellipsoidalKarney import LatLon
+
+            # https://geographiclib.sourceforge.io/C++/doc/geoid.html#geoidinst
+            GEOID_FILE = "/usr/local/share/GeographicLib/geoids/egm96-5.pgm"
+            GEOID_INTERPOLATOR = pygeodesy.GeoidKarney(GEOID_FILE)
+            position = LatLon(lat, lon)
+            N = GEOID_INTERPOLATOR(position)
+            return N
+
+        class VehicleState:
+            def __init__(self):
+                self.vehicle_latitude = None
+                self.vehicle_longitude = None
+                self.vehicle_altitude_amsl = None
+                self.vehicle_altitude_wgs84 = None
+                self.home_latitude = None
+                self.home_longitude = None
+                self.home_altitude_amsl = None
+                self.home_altitude_wgs84 = None
+                self.position_enu = Vector3()
+                self.orientation_enu = None
+                self.twist_linear_enu = Vector3()
+                self.twist_angular_enu = Vector3()
+                self.mode = None
+
+            def __str__(self):
+                msg = ""
+                msg += "v_lat: {}\n".format(self.vehicle_latitude)
+                msg += "v_lon: {}\n".format(self.vehicle_longitude)
+                msg += "v_alt_amsl: {}\n".format(self.vehicle_altitude_amsl)
+                msg += "v_alt_wgs84: {}\n".format(self.vehicle_altitude_wgs84)
+                msg += "h_lat: {}\n".format(self.home_latitude)
+                msg += "h_lon: {}\n".format(self.home_longitude)
+                msg += "h_alt_amsl: {}\n".format(self.home_altitude_amsl)
+                msg += "h_alt_wgs84: {}\n".format(self.home_altitude_wgs84)
+                msg += "pos_enu: {}\n".format(self.position_enu)
+                msg += "rot_enu: {}\n".format(self.orientation_enu)
+                msg += "vel_lin_enu: {}\n".format(self.twist_linear_enu)
+                msg += "vel_ang_enu: {}\n".format(self.twist_angular_enu)
+                return msg
 
 
-        # Send the SET_POSITION_TARGET_GLOBAL_INT message
-        self.mav.mav.set_position_target_global_int_send(
-            0,  # time_boot_ms (not used)
-            target_system,
-            target_component,
-            coordinate_frame,
-            path_mask,
-            lat_int,
-            lon_int,
-            alt,
-            vx,
-            vy,
-            vz,
-            afx,
-            afy,
-            afz,
-            yaw,
-            yaw_rate
-        )
+        def get_state(state):
+            # FlightController -> Navigator
+            # /mavros/global_position/global: sensor_msgs/msg/NavSatFix
+            # /ap/navsat: sensor_msgs/msg/NavSatFix
+            #
+            # NOTE:
+            #   - GLOBAL_POSITION_INT.latitude WGS84 latitude (degE7).
+            #   - GLOBAL_POSITION_INT.longitude WGS84 longitude (degE7).
+            #   - GLOBAL_POSITION_INT.alt is the orthometric height (MSL) in mm.
+            #
+            self.progress("Get vehicle global position")
+            gpi = self.mav.recv_match(
+                type='GLOBAL_POSITION_INT',
+                blocking=True,
+                timeout=5
+            )
+            self.progress("global position: {}".format(gpi))
+            # loc = mavutil.location(gpi.lat*1e-7, gpi.lon*1e-7, 0, 0)
+            state.vehicle_latitude = gpi.lat*1e-7
+            state.vehicle_longitude = gpi.lon*1e-7
+            state.vehicle_altitude_amsl = gpi.alt * 1e-3
+            state.vehicle_altitude_wgs84 = (
+                gpi.alt * 1e-3
+                + geoid_height(state.vehicle_latitude, state.vehicle_longitude))
+            self.progress("vehicle location: {}, {}, {}".format(
+                state.vehicle_latitude,
+                state.vehicle_longitude,
+                state.vehicle_altitude_wgs84))
+
+            # /mavros/global_position/gp_origin: geographic_msgs/msg/GeoPointStamped
+            # /ap/gps_global_origin/filtered: geographic_msgs.msg.GeoPointStamped
+            #
+            # NOTE:
+            #   - HOME_POSITION.latitude WGS84 latitude (degE7).
+            #   - HOME_POSITION.longitude WGS84 longitude (degE7).
+            #   - HOME_POSITION.alt is the orthometric height (MSL) in mm.
+            # 
+            self.progress("Get global origin")
+            hpi = self.poll_home_position()
+            state.home_latitude = gpi.lat*1e-7
+            state.home_longitude = gpi.lon*1e-7
+            state.home_altitude_amsl = hpi.altitude * 1e-3
+            state.home_altitude_wgs84 = (
+                hpi.altitude * 1e-3
+                + geoid_height(state.home_latitude, state.home_longitude))
+            self.progress("home location: {}, {}, {}".format(
+                state.home_latitude, state.home_longitude, state.home_altitude_wgs84))
+
+            # /mavros/local_position/pose: geometry_msgs/msg/PoseStamped
+            # /ap/pose/filtered: geometry_msgs.msg.PoseStamped
+            #
+            # NOTE: LOCAL_POSITION_NED
+            #   - LOCAL_POSITION_NED vehicle position and velocity in NED frame.
+            #   - LOCAL_POSITION_NED.x position in NED frame (m).
+            #   - LOCAL_POSITION_NED.vx velocity in NED frame (m/s).
+            # 
+            pos_ned = self.assert_receive_message("LOCAL_POSITION_NED", mavmsg_timeout)
+            self.progress("local position ned: {}".format(pos_ned))
+            position_x = pos_ned.y
+            position_y = pos_ned.x
+            position_z = pos_ned.z * -1.0
+            state.position_enu = Vector3(position_x, position_y, position_z)
+            twist_linear_x = pos_ned.vy
+            twist_linear_y = pos_ned.vx
+            twist_linear_z = pos_ned.vz * -1.0
+            state.twist_linear_enu = Vector3(twist_linear_x, twist_linear_y, twist_linear_z)
+            self.progress("local position: {}, {}, {}".format(
+                position_x, position_y, position_z))
+            self.progress("local velocity: {}, {}, {}".format(
+                twist_linear_x, twist_linear_y, twist_linear_z))
+
+            # /mavros/local_position/velocity_local: geometry_msgs/msg/TwistStamped
+            # /ap/twist/filtered: geometry_msgs.msg.TwistStamped
+            #
+            # NOTE: for linear components see LOCAL_POSITION_NED above
+            #   - ATTITUDE_QUATERNION - attitide in aeronautical body frame
+            #                           x-front, y-right, z-down
+            #
+            get_names = ["ATTITUDE_QUATERNION"]
+            msgs = self.get_messages_frame(get_names)
+            for get_name in get_names:
+                self.progress("%s: %s" % (get_name, msgs[get_name]))
+            attitude_quaternion = msgs['ATTITUDE_QUATERNION']
+            q_frd = quaternion.Quaternion([
+                attitude_quaternion.q1,
+                attitude_quaternion.q2,
+                attitude_quaternion.q3,
+                attitude_quaternion.q4
+            ])
+            euler_frd = q_frd.euler
+            self.progress("q_frd:%s euler_frd:%s" % (
+                q_frd, euler_frd))
+
+            m_flu = Matrix3()
+            m_flu.from_euler(euler_frd[1], euler_frd[0], euler_frd[2] * -1.0)
+            q_flu = quaternion.Quaternion(m_flu)
+            euler_flu = q_flu.euler
+            self.progress("q_flu:%s euler_flu:%s" % (
+                q_flu, euler_flu))
+
+            state.orientation_enu = quaternion.Quaternion([
+                q_flu[0], q_flu[1], q_flu[2], q_flu[3]])
+            
+            # angular velocity transforms as a vector
+            state.twist_angular_enu = Vector3(
+                attitude_quaternion.pitchspeed,
+                attitude_quaternion.rollspeed,
+                attitude_quaternion.yawspeed * -1.0)
+
+            # /mavros/state: mavros_msgs/msg/State
+            # /ap/mode: ardupilot_msgs.msg.Mode
+            #
+            state.mode = self.get_mode()
+            mode_str = self.get_mode_string_for_mode(state.mode)
+            self.progress("Mode is: {} ({})".format(mode_str, state.mode))
+
+            # Navigator -> FlightController
+            # /mavros/setpoint_raw/global: mavros_msgs/msg/GlobalPositionTarget
+
+        vehicle_state = VehicleState()
+        get_state(vehicle_state)
+        self.progress("vehicle_state: {}".format(vehicle_state))
+
+        # functions for setting waypoints and calculating distances
+
+        self.home_position_as_mav_location
+        vehicle_loc = mavutil.location(
+            vehicle_state.vehicle_latitude, 
+            vehicle_state.vehicle_longitude, 
+            vehicle_state.vehicle_altitude_amsl)
+        home_loc = mavutil.location(
+            vehicle_state.home_latitude, 
+            vehicle_state.home_longitude, 
+            vehicle_state.home_altitude_amsl)
+        
+        wp1_loc = self.offset_location_ne(
+            home_loc,
+            metres_north=100,
+            metres_east=100)
+        self.progress("wp1_loc: {}".format(wp1_loc))
+
+        wp2_loc = self.offset_location_heading_distance(
+            home_loc,
+            bearing=0,
+            distance=100)
+        self.progress("wp2_loc: {}".format(wp2_loc))
+
+        distance = self.get_distance(wp1_loc, wp2_loc)
+        self.progress("distance: {}".format(distance))
+
+        bearing = self.get_bearing(wp1_loc, wp2_loc)
+        self.progress("bearing: {}".format(bearing))
+
+        pass
 
 
-        self.progress("Sent SET_POSITION_TARGET_GLOBAL_INT message")
 
+        # NOTE: is this required, or can we end test while still flying?
         # self.fly_home_land_and_disarm()
 
 
