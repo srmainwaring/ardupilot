@@ -354,7 +354,7 @@ class PathSegment:
         else:
             segment_start_2d = Vector3(segment_start.x, segment_start.y, 0.0)
             segment_end_2d = Vector3(segment_end.x, segment_end.y, 0.0)
-            segment_velocity = self._states[0].velocity
+            segment_velocity = self.first_state().velocity
             segment_start_tangent_2d = Vector3(segment_velocity.x, segment_velocity.y, 0.0).normalized()
 
             arc_center_2d = PathSegment.get_arc_centre(segment_start_2d, segment_start_tangent_2d, self._curvature)
@@ -375,14 +375,15 @@ class PathSegment:
         if len(self._states) == 0:
             raise RuntimeError("PathSegment is empty")
 
-        segment_start = self._states[0].position
-        segment_start_tangent = (self._states[0].velocity).normalized()
-        segment_end = self._states[-1].position
+        segment_start = self.first_state().position
+        segment_start_tangent = (self.first_state().velocity).normalized()
+        segment_end = self.last_state().position
+        kappa = math.fabs(self._curvature)
 
         if len(self._states) == 1:
             # segment only contains a single state, meaning that it is not a line or arc
             theta = 1.0
-        elif math.abs(self._curvature) < epsilon:
+        elif kappa < epsilon:
             # compute closest point on a line segment
             theta = PathSegment.get_line_progress(position, segment_start, segment_end)
             tangent = (segment_end - segment_start).normalized()
@@ -398,7 +399,8 @@ class PathSegment:
             # handle when it is a full circle
             if self._is_periodic:
                 arc_center = PathSegment.get_arc_centre(segment_start_2d, segment_start_tangent_2d, self._curvature)
-                start_vector = (segment_start_2d - arc_center).normalized()
+                # TODO: do not need to normalise here (is done in C++ version)
+                start_vector = segment_start_2d - arc_center
                 position_vector = position_2d - arc_center
                 angle_pos = math.atan2(position_vector.y, position_vector.x) - math.atan2(
                     start_vector.y, start_vector.x
@@ -408,21 +410,22 @@ class PathSegment:
                 theta = angle_pos / (2 * math.pi)
             else:
                 arc_center = PathSegment.get_arc_centre2(
-                    self._curvature, segment_start_2d, segment_start_tangent_2d, segment_end_2d
+                    segment_start_2d, segment_start_tangent_2d, self._curvature, segment_end_2d
                 )
                 theta = PathSegment.get_arc_progress(
                     arc_center, position_2d, segment_start_2d, segment_end_2d, self._curvature
                 )
 
-            closest_point_2d = math.fabs(1.0 / self._curvature) * (position_2d - arc_center).normalized() + arc_center
+            radius = 1.0 / kappa
+            closest_point_2d = radius * (position_2d - arc_center).normalized() + arc_center
             closest_point = Vector3(
                 closest_point_2d.x, closest_point_2d.y, theta * segment_end.z + (1.0 - theta) * segment_start.z
             )
             # position to error vector
             error_vector = (closest_point_2d - arc_center).normalized()
             tangent = Vector3(
-                (self._curvature / math.fabs(self._curvature)) * error_vector.y * -1.0,
-                (self._curvature / math.fabs(self._curvature)) * error_vector.x,
+                (self._curvature / kappa) * error_vector.y * -1.0,
+                (self._curvature / kappa) * error_vector.x,
                 0.0,
             )
 
@@ -760,10 +763,6 @@ def test_path_segment_get_length():
     path_segment.append_state(state1)
     path_segment.append_state(state2)
 
-    pos_vec = path_segment.position()
-    vel_vec = path_segment.velocity()
-    att_vec = path_segment.attitude()
-
     # expected arc length is 1/4 circumference
     length = path_segment.get_length()
     assert length == 0.25 * 2.0 * math.pi * radius
@@ -792,14 +791,10 @@ def test_path_segment_get_length():
 
     path_segment = PathSegment()
     path_segment.curvature = curvature
-    path_segment.is_periodic = False
+    path_segment.is_periodic = True
     path_segment.reached = False
     path_segment.append_state(state1)
     path_segment.append_state(state2)
-
-    pos_vec = path_segment.position()
-    vel_vec = path_segment.velocity()
-    att_vec = path_segment.attitude()
 
     # expected arc length is circumference
     length = path_segment.get_length()
@@ -807,4 +802,146 @@ def test_path_segment_get_length():
 
 
 def test_path_segment_get_closest_point():
-    position = Vector3()
+    # 1. line - along x-axis
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, 0.0)
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, 0.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    state2 = State()
+    state2.position = Vector3(30.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, 0.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = 0.0
+    path_segment.is_periodic = False
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    # closest point is mid-point
+    position = Vector3(20.0, 15.0, 5.0)
+    (theta, closest_point, tangent, curvature) = path_segment.get_closest_point(position)
+    assert theta == 0.5
+    assert closest_point == Vector3(20.0, 10.0, 10.0)
+    assert tangent == Vector3(1.0, 0.0, 0.0)
+    assert curvature == 0.0
+
+    # closest point is segment start (point is before start)
+    # TODO: confirm theta is not expected to be constrained - in this case
+    #       no progress has been made along the line
+    #       (so should be zero rather than negative?)
+    position = Vector3(5.0, 15.0, 5.0)
+    (theta, closest_point, tangent, curvature) = path_segment.get_closest_point(position)
+    assert theta == -0.25
+    assert closest_point == Vector3(10.0, 10.0, 10.0)
+    assert tangent == Vector3(1.0, 0.0, 0.0)
+    assert curvature == 0.0
+
+    # closest point is segment end (point is after end)
+    # TODO: confirm theta is not expected to be constrained - see above
+    position = Vector3(35.0, 15.0, 5.0)
+    (theta, closest_point, tangent, curvature_out) = path_segment.get_closest_point(position)
+    assert theta == 1.25
+    assert closest_point == Vector3(30.0, 10.0, 10.0)
+    assert tangent == Vector3(1.0, 0.0, 0.0)
+    assert curvature_out == 0.0
+
+    # 2. partial arc - around centre at (20, 20, 10)
+    radius = 10.0 * math.sqrt(2.0)
+    curvature = 1 / radius
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, -5.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    # heading: 45
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(45.0))
+
+    state2 = State()
+    state2.position = Vector3(30.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, 5.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = curvature
+    path_segment.is_periodic = False
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    # closest point is mid-point
+    position = Vector3(20.0, 0.0, 5.0)
+    (theta, closest_point, tangent, curvature_out) = path_segment.get_closest_point(position)
+    assert theta == 0.5
+    assert closest_point == Vector3(20.0, 20.0 - 10.0 * math.sqrt(2.0), 10.0)
+    assert tangent == Vector3(1.0, 0.0, 0.0).normalized()
+    assert curvature_out == curvature
+
+    # closest point is segment start (point is before start)
+    position = Vector3(0.0, 0.0, 5.0)
+    (theta, closest_point, tangent, curvature_out) = path_segment.get_closest_point(position)
+    assert theta == 0.0
+    assert closest_point == Vector3(10.0, 10.0, 10.0)
+    assert tangent == Vector3(1.0, -1.0, 0.0).normalized()
+    assert curvature_out == curvature
+
+    # closest point is segment end (point is after end)
+    position = Vector3(40.0, 0.0, 5.0)
+    (theta, closest_point, tangent, curvature_out) = path_segment.get_closest_point(position)
+    assert theta == 1.0
+    assert closest_point == Vector3(30.0, 10.0, 10.0)
+    assert tangent == Vector3(1.0, 1.0, 0.0).normalized()
+    assert curvature_out == curvature
+
+    # 2. full circle arc with radius 100.0
+    radius = 100.0
+    curvature = 1 / radius
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state1 = State()
+    state1.position = Vector3(10.0, 10.0, 10.0)
+    state1.velocity = Vector3(5.0, -5.0, 0.0)
+    state1.attitude = quaternion.Quaternion(m_att)
+
+    # heading: 135
+    m_att = Matrix3()
+    m_att.from_euler(0.0, 0.0, math.radians(135.0))
+
+    state2 = State()
+    state2.position = Vector3(10.0, 10.0, 10.0)
+    state2.velocity = Vector3(5.0, -5.0, 0.0)
+    state2.attitude = quaternion.Quaternion(m_att)
+
+    path_segment = PathSegment()
+    path_segment.curvature = curvature
+    path_segment.is_periodic = True
+    path_segment.reached = False
+    path_segment.append_state(state1)
+    path_segment.append_state(state2)
+
+    # closest point is mid-point - progess is 1/8 circumference
+    arc_centre = state1.position + radius * Vector3(1.0, 1.0, 0.0).normalized()
+    position = Vector3(arc_centre.x, 0.0, 5.0)
+    (theta, closest_point, tangent, curvature_out) = path_segment.get_closest_point(position)
+    assert theta == pytest.approx(0.125)
+    assert closest_point.x == pytest.approx(Vector3(arc_centre.x, arc_centre.y - radius, 10.0).x)
+    assert closest_point.y == pytest.approx(Vector3(arc_centre.x, arc_centre.y - radius, 10.0).y)
+    assert closest_point.z == pytest.approx(Vector3(arc_centre.x, arc_centre.y - radius, 10.0).z)
+    assert tangent.x == pytest.approx(Vector3(1.0, 0.0, 0.0).normalized().x)
+    assert tangent.y == pytest.approx(Vector3(1.0, 0.0, 0.0).normalized().y)
+    assert tangent.z == pytest.approx(Vector3(1.0, 0.0, 0.0).normalized().z)
+    assert curvature_out == curvature
