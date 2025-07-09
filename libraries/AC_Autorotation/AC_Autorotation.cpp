@@ -489,14 +489,14 @@ void AC_Autorotation::calc_yaw_rate_from_roll_target(float& yaw_rate_rad, float&
         target_roll_deg += roll_deadzone_deg;
     }
 
-    // protect against math error in the angle_to_accel calc
+    // protect against math error in the angle_rad_to_accel_mss calc
     target_roll_deg = constrain_float(target_roll_deg, -85, 85);
 
     // Convert it to a lateral acceleration
-    float accel = angle_to_accel(target_roll_deg);
+    float accel = angle_rad_to_accel_mss(target_roll_deg);
 
     // Maintain the same accel limit that we impose on the pilot inputs so as to prioritize managing forward accels/speeds
-    accel = MIN(accel, get_accel_max() * 0.5);
+    accel = MIN(accel, get_accel_max_mss() * 0.5);
 
     // Calculate the yaw rate from the lateral acceleration
     if (fabsf(_desired_vel) > MIN_MANOEUVERING_SPEED) {
@@ -529,7 +529,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
     // Set up yaw rate
     AC_AttitudeControl::HeadingCommand desired_heading;
     desired_heading.heading_mode = AC_AttitudeControl::HeadingMode::Rate_Only;
-    desired_heading.yaw_rate_cds = 0.0;
+    desired_heading.yaw_rate_rads = 0.0;
 
 
     // Check with motors that we have not saturated
@@ -553,7 +553,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
             // Calc the needed lateral accel and yaw rate to make a co-ordinated turn into roll.
             float yaw_rate_rad = 0.0;
             calc_yaw_rate_from_roll_target(yaw_rate_rad, desired_accel_bf.y);
-            desired_heading.yaw_rate_cds = degrees(yaw_rate_rad) * 100.0;
+            desired_heading.yaw_rate_rads = yaw_rate_rad;
 
             // Convert body frame targets into earth frame
             desired_velocity_NED = ahrs.body_to_earth(desired_velocity_bf);
@@ -570,7 +570,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
             float yaw_rate_rad = 0.0;
             float unused_lat_accel = 0.0;
             calc_yaw_rate_from_roll_target(yaw_rate_rad, unused_lat_accel);
-            desired_heading.yaw_rate_cds = degrees(yaw_rate_rad) * 100.0;
+            desired_heading.yaw_rate_rads = yaw_rate_rad;
 
             // We want to account for the descent rate in the desired velocity
             // const float vel_down = get_ef_velocity_up() * -1.0;
@@ -609,7 +609,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
 
             // Pilot can request as much as 1/2 of the max accel laterally to perform a turn.
             // We only allow up to half as we need to prioritize building/maintaining airspeed.
-            desired_accel_bf.y = pilot_norm_accel * get_accel_max() * 0.5;
+            desired_accel_bf.y = pilot_norm_accel * get_accel_max_mss() * 0.5;
 
             // In the case where we have low ground speed (e.g. touch down phase) we still want to let the
             // pilot yaw. We use the min manoeuvering speed as the default "time constant" so that the yaw
@@ -627,7 +627,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
             // accel = (s / w) * w^2
             // accel = s * w
             // w = accel / s
-            desired_heading.yaw_rate_cds = degrees(desired_accel_bf.y / yaw_rate_tc) * 100.0;
+            desired_heading.yaw_rate_rads = desired_accel_bf.y / yaw_rate_tc;
 
             // Only perform coordinated turns when above the min manoeuvering speed
             if (fabsf(desired_velocity_bf.x) < MIN_MANOEUVERING_SPEED) {
@@ -642,7 +642,7 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
 
     // zero yaw rate if we are in a heading hold
     if (_heading_hold) {
-        desired_heading.yaw_rate_cds = 0.0;
+        desired_heading.yaw_rate_rads = 0.0;
     }
 
     // We only use 2D NE position controller so discard z target and convert to cm
@@ -872,7 +872,7 @@ void AC_Autorotation::run_landed(void)
     // Output to the attitude controller
     AC_AttitudeControl::HeadingCommand desired_heading;
     desired_heading.heading_mode = AC_AttitudeControl::HeadingMode::Rate_Only;
-    desired_heading.yaw_rate_cds = 0.0;
+    desired_heading.yaw_rate_rads = 0.0;
     _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(), desired_heading);
 }
 
