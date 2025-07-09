@@ -488,15 +488,41 @@ void AP_MotorsHeli_Single::output_to_motors()
             switch (_spool_state) {
                 case AP_Motors::SpoolState::SHUT_DOWN:
                 case AP_Motors::SpoolState::GROUND_IDLE:
-                case AP_Motors::SpoolState::SPOOLING_DOWN:
-                    // Set DDFP to servo min
-                    output_to_ddfp_tail(0.0);
+                case AP_Motors::SpoolState::SPOOLING_DOWN:    
+                    // GCS_SEND_TEXT(MAV_SEVERITY_INFO, "DDFP: _servo4_out: %f", _servo4_out);
+                    if (_main_rotor.autorotation.active()) {
+                        // Keep tail rotor running during autorotation
+                        float throttle = 0.0;
+                        if (_servo4_out < 0.0) {
+                            throttle = thr_lin.thrust_to_actuator(_servo4_out * -1.0) * -1.0;
+                        }
+                        else {
+                            throttle = thr_lin.thrust_to_actuator(_servo4_out);
+                        }
+                        output_to_ddfp_tail(throttle);
+
+                        // output_to_ddfp_tail(thr_lin.thrust_to_actuator(_servo4_out));
+                    }
+                    else {
+                        // Set DDFP to servo min
+                        output_to_ddfp_tail(0.0);
+                    }
                     break;
 
                 case AP_Motors::SpoolState::SPOOLING_UP:
                 case AP_Motors::SpoolState::THROTTLE_UNLIMITED:
+                    // GCS_SEND_TEXT(MAV_SEVERITY_INFO, "DDFP: _servo4_out: %f", _servo4_out);
+                    float throttle = 0.0;
+                    if (_servo4_out < 0.0) {
+                        throttle = thr_lin.thrust_to_actuator(_servo4_out * -1.0) * -1.0;
+                    }
+                    else {
+                        throttle = thr_lin.thrust_to_actuator(_servo4_out);
+                    }
+                    output_to_ddfp_tail(throttle);
+
                     // Operate DDFP to between DDFP_SPIN_MIN and DDFP_SPIN_MAX using thrust linearisation
-                    output_to_ddfp_tail(thr_lin.thrust_to_actuator(_servo4_out));
+                    // output_to_ddfp_tail(thr_lin.thrust_to_actuator(_servo4_out));
                     break;
             }
             break;
@@ -524,6 +550,7 @@ void AP_MotorsHeli_Single::output_to_motors()
 // handle output limit flags and send throttle to servos lib
 void AP_MotorsHeli_Single::output_to_ddfp_tail(float throttle)
 {
+    //! @todo modified to allow reversible thrust for DDFP 
     // Note: yaw trim thrust has already been applied. the output should only be from 0 to 1.
     // Upper limit
     if (throttle >= 1.0){
@@ -532,12 +559,21 @@ void AP_MotorsHeli_Single::output_to_ddfp_tail(float throttle)
     }
 
     // Lower limit
-    if (throttle <= 0.0){
-        throttle = 0.0;
+    // if (throttle <= 0.0){
+    //     throttle = 0.0;
+    //     limit.yaw = true;
+    // }
+
+    // Lower limit - reversible
+    if (throttle <= -1.0){
+        throttle = -1.0;
         limit.yaw = true;
     }
 
-    SRV_Channels::set_output_scaled(SRV_Channel::k_motor4, throttle);
+    // GCS_SEND_TEXT(MAV_SEVERITY_INFO, "DDFP: throttle: %f", throttle);
+
+    SRV_Channels::set_output_norm(SRV_Channel::k_motor4, throttle);
+    // SRV_Channels::set_output_scaled(SRV_Channel::k_motor4, throttle);
 }
 
 // servo_test - move servos through full range of movement
