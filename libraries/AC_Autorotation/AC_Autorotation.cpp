@@ -158,7 +158,7 @@ AC_Autorotation::AC_Autorotation(AP_MotorsHeli*& motors, AC_AttitudeControl*& at
     _pos_control(pos_ctrl)
     {
     #if AP_RANGEFINDER_ENABLED
-        _ground_surface = new AP_SurfaceDistance(ROTATION_PITCH_270, inav, 2U); // taking the 3rd instance of SurfaceDistance to not conflict with the first two already in copter
+        _ground_surface = new AP_SurfaceDistance(ROTATION_PITCH_270, 2U); // taking the 3rd instance of SurfaceDistance to not conflict with the first two already in copter
     #endif
         AP_Param::setup_object_defaults(this, var_info);
     }
@@ -198,8 +198,8 @@ void AC_Autorotation::init(void)
     _param_head_speed_set_point.set(MAX(_param_head_speed_set_point, 500.0));
 
     // Set limits and initialise NE pos controller
-    _pos_control->set_max_speed_accel_NE_cm(_param_target_speed.get()*100.0, _param_accel_max.get()*100.0);
-    _pos_control->set_correction_speed_accel_NE_cm(_param_target_speed.get()*100.0, _param_accel_max.get()*100.0);
+    _pos_control->set_max_speed_accel_NE_cm(_param_target_speed_ms.get()*100.0, _param_accel_max_mss.get()*100.0);
+    _pos_control->set_correction_speed_accel_NE_cm(_param_target_speed_ms.get()*100.0, _param_accel_max_mss.get()*100.0);
     _pos_control->set_pos_error_max_NE_cm(1000);
     _pos_control->init_NE_controller();
 
@@ -246,7 +246,7 @@ void AC_Autorotation::init_entry(void)
     _motors_heli->set_throttle_filter_cutoff(2.0);
 
     // Set speed target to maintain the current speed whilst we enter the autorotation
-    _desired_vel = _param_target_speed.get();
+    _desired_vel = _param_target_speed_ms.get();
 
     // When entering the autorotation we can have some roll target applied depending on what condition that
     // the position controller initialised on. If we are in the TURN_INTO_WIND or CROSS_TRACK navigation mode
@@ -277,7 +277,7 @@ void AC_Autorotation::init_glide(void)
     _target_head_speed = HEAD_SPEED_TARGET_RATIO;
 
     // Ensure desired forward speed target is set to param value
-    _desired_vel = _param_target_speed.get();
+    _desired_vel = _param_target_speed_ms.get();
 
     // unlock any heading hold if we had one
     _heading_hold = false;
@@ -725,7 +725,7 @@ void AC_Autorotation::initial_flare_hgt_estimate(void)
     // TODO: We need to come up with some way to modify the forward speed target here as the target speed is
     // body frame forward speed and the flare height calculation needs earth frame forward speed.  The trouble is
     // that this is a projection into the future so we cannot provide a measured value at this stage
-    float des_spd_fwd = _param_target_speed.get();
+    float des_spd_fwd = _param_target_speed_ms.get();
     calc_flare_hgt(des_spd_fwd, -1.0 * sink_rate);
 
     gcs().send_text(MAV_SEVERITY_INFO, "Ct/sigma=%.4f W=%.2f kg flare_alt=%.2f", c_t_hover/get_solidity(), _hover_thrust/GRAVITY_MSS, _flare_hgt.get());
