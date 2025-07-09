@@ -18,7 +18,7 @@ class AC_Autorotation
 public:
 
     //Constructor
-    AC_Autorotation(AP_MotorsHeli*& motors, AC_AttitudeControl*& att_crtl, AP_InertialNav& inav, AC_PosControl*& pos_ctrl);
+    AC_Autorotation(AP_MotorsHeli*& motors, AC_AttitudeControl*& att_crtl, AC_PosControl*& pos_ctrl);
 
     void init(void);
 

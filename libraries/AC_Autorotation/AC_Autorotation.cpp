@@ -152,7 +152,7 @@ const AP_Param::GroupInfo AC_Autorotation::var_info[] = {
 };
 
 // Constructor
-AC_Autorotation::AC_Autorotation(AP_MotorsHeli*& motors, AC_AttitudeControl*& att_crtl, AP_InertialNav& inav, AC_PosControl*& pos_ctrl) :
+AC_Autorotation::AC_Autorotation(AP_MotorsHeli*& motors, AC_AttitudeControl*& att_crtl, AC_PosControl*& pos_ctrl) :
     _motors_heli(motors),
     _attitude_control(att_crtl),
     _pos_control(pos_ctrl)
