@@ -654,7 +654,9 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
     _pos_control->update_NE_controller();
 
     // Output to the attitude controller
-    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(), desired_heading);
+    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(),
+                                                      desired_heading.yaw_angle_rad,
+                                                      desired_heading.yaw_rate_rads);
 
     // Calculate the unit velocity vector for wp bearing telemetry data
     if (desired_velocity_NE_cm.length() > MIN_MANOEUVERING_SPEED * 100.0) {
@@ -873,7 +875,9 @@ void AC_Autorotation::run_landed(void)
     AC_AttitudeControl::HeadingCommand desired_heading;
     desired_heading.heading_mode = AC_AttitudeControl::HeadingMode::Rate_Only;
     desired_heading.yaw_rate_rads = 0.0;
-    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(), desired_heading);
+    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(),
+                                                      desired_heading.yaw_angle_rad,
+                                                      desired_heading.yaw_rate_rads);
 }
 
 // Determine the body frame forward speed in m/s
@@ -1119,7 +1123,7 @@ float AC_Autorotation::wp_distance_m(void) const
 
     // We may not be in rangefinder range in which case we just return height above origin
     const AP_AHRS &ahrs = AP::ahrs();
-    float down;
+    postype_t down;
     if (ahrs.get_relative_position_D_origin(down)) {
         return fabsf(down);
     }
