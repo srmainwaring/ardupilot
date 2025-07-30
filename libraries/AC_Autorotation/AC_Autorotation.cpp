@@ -1125,7 +1125,7 @@ float AC_Autorotation::wp_distance_m(void) const
     const AP_AHRS &ahrs = AP::ahrs();
     postype_t down;
     if (ahrs.get_relative_position_D_origin(down)) {
-        return fabsf(down);
+        return fabsf(static_cast<float>(down));
     }
 
     // If we got this far things went really wrong, just return a fixed value so a direction vector
@@ -1133,9 +1133,9 @@ float AC_Autorotation::wp_distance_m(void) const
     return 200.0;
 }
 
-float AC_Autorotation::crosstrack_error(void) const
+float AC_Autorotation::crosstrack_error_m(void) const
 {
-    return _pos_control->crosstrack_error();
+    return _pos_control->crosstrack_error_m();
 }
 
 void AC_Autorotation::exit(void)

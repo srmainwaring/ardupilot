@@ -66,7 +66,7 @@ public:
     // Functions to support NAV_CONTROLLER_OUTPUT telemetry
     int32_t get_wp_bearing(void) const;
     float wp_distance_m(void) const;
-    float crosstrack_error(void) const;
+    float crosstrack_error_m(void) const;
 
     // A helper function to tidy up on mode exit
     void exit(void);
