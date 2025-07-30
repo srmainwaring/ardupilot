@@ -178,9 +178,9 @@ float ModeAutorotate::wp_distance_m() const
     return g2.arot.wp_distance_m();
 }
 
-float ModeAutorotate::crosstrack_error() const
+float ModeAutorotate::crosstrack_error_m() const
 {
-    return g2.arot.crosstrack_error();
+    return g2.arot.crosstrack_error_m();
 }
 
 void ModeAutorotate::exit()

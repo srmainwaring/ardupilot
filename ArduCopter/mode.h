@@ -2054,7 +2054,7 @@ public:
     // Functions to support NAV_CONTROLLER_OUTPUT telemetry
     int32_t wp_bearing() const;
     float wp_distance_m() const override;
-    float crosstrack_error() const override;
+    float crosstrack_error_m() const override;
 
     static const struct AP_Param::GroupInfo  var_info[];
 
