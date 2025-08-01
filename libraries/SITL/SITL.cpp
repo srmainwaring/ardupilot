@@ -611,7 +611,7 @@ const AP_Param::GroupInfo SIM::var_info3[] = {
     // @DisplayName: PWM zero on initialise
     // @Description: Sets PWM outputs to zero while initialising
     // @User: Advanced
-    AP_GROUPINFO("PWM_ZERO", 43, SIM,  pwm_zero_on_init, 0),
+    AP_GROUPINFO("PWM_ZERO", 43, SIM,  pwm_zero_on_init, 1),
 
     // @Group: ARSPD_
     // @Path: ./SITL_Airspeed.cpp
