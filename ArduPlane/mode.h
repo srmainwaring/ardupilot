@@ -62,6 +62,8 @@ public:
 #if HAL_QUADPLANE_ENABLED
         LOITER_ALT_QLAND = 25,
 #endif
+        // Mode number 30 reserved for "offboard" for external/lua control.
+        PLANNED_RTL   = 31,
     };
 
     // Constructor
@@ -906,6 +908,42 @@ protected:
 
     bool exit_heading_aligned() const;
     void restore_mode(const char *reason, ModeReason modereason);
+
+    bool _enter() override;
+};
+
+class ModePlannedRTL : public Mode
+{
+public:
+
+    Number mode_number() const override { return Number::PLANNED_RTL; }
+    const char *name() const override { return "PLANNED_RTL"; }
+    const char *name4() const override { return "PRTL"; }
+
+    // methods that affect movement of the vehicle in this mode
+    void update() override;
+
+    void navigate() override;
+
+    bool isHeadingLinedUp(const Location loiterCenterLoc, const Location targetLoc);
+    bool isHeadingLinedUp_cd(const int32_t bearing_cd, const int32_t heading_cd);
+    bool isHeadingLinedUp_cd(const int32_t bearing_cd);
+
+    bool allows_throttle_nudging() const override { return true; }
+
+    bool does_auto_navigation() const override { return true; }
+
+    bool does_auto_throttle() const override { return true; }
+
+    bool allows_terrain_disable() const override { return false; }
+
+    void update_target_altitude() override;
+    
+    bool mode_allows_autotuning() const override { return false; }
+
+protected:
+    //! @todo initially all functionality is forwarded to ModeLoiter
+    ModeLoiter mode_loiter;
 
     bool _enter() override;
 };
