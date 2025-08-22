@@ -66,6 +66,7 @@ uint8_t GCS_MAVLINK_Plane::base_mode() const
     case Mode::Number::QRTL:
     case Mode::Number::LOITER_ALT_QLAND:
 #endif
+    case Mode::Number::PLANNED_RTL:
         _base_mode = MAV_MODE_FLAG_GUIDED_ENABLED |
                      MAV_MODE_FLAG_STABILIZE_ENABLED;
         // note that MAV_MODE_FLAG_AUTO_ENABLED does not match what
