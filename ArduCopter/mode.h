@@ -103,6 +103,7 @@ public:
         TURTLE =       28,  // Flip over after crash
 
         // Mode number 30 reserved for "offboard" for external/lua control.
+        PLANNED_RTL =  31,  // PLANNED_RTL uses an offboard planner to calculate a safe return home
 
         // Mode number 127 reserved for the "drone show mode" in the Skybrush
         // fork at https://github.com/skybrush-io/ardupilot
@@ -1339,6 +1340,7 @@ public:
 #endif
 
 protected:
+    friend class ModePlannedRTL;
 
     const char *name() const override { return "LOITER"; }
     const char *name4() const override { return "LOIT"; }
@@ -2077,3 +2079,50 @@ private:
 
 };
 #endif
+
+#if MODE_PLANNED_RTL_ENABLED
+class ModePlannedRTL : public Mode {
+
+public:
+    // inherit constructor
+    using Mode::Mode;
+    Number mode_number() const override { return Number::PLANNED_RTL; }
+
+    bool init(bool ignore_checks) override;
+    void run() override;
+
+    bool requires_GPS() const override { return true; }
+    bool has_manual_throttle() const override { return false; }
+    bool allows_arming(AP_Arming::Method method) const override { return true; };
+    bool is_autopilot() const override { return false; }
+    bool has_user_takeoff(bool must_navigate) const override { return true; }
+    bool allows_autotune() const override { return true; }
+    bool allows_auto_trim() const override { return true; }
+
+#if FRAME_CONFIG == HELI_FRAME
+    bool allows_inverted() const override { return true; };
+#endif
+
+#if AC_PRECLAND_ENABLED
+    void set_precision_loiter_enabled(bool value);
+#endif
+
+protected:
+
+    const char *name() const override { return "PLANNED_RTL"; }
+    const char *name4() const override { return "PRTL"; }
+
+    float wp_distance_m() const override;
+    float wp_bearing_deg() const override;
+    float crosstrack_error_m() const override { return pos_control->crosstrack_error_m();}
+
+#if AC_PRECLAND_ENABLED
+    bool do_precision_loiter();
+    void precision_loiter_xy();
+#endif
+
+private:
+    //! @todo initially all functionality is forwarded to ModeLoiter
+    ModeLoiter mode_loiter;
+};
+#endif  // MODE_PLANNED_RTL_ENABLED
