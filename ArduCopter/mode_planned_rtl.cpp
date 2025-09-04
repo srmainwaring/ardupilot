@@ -29,14 +29,14 @@ void ModePlannedRTL::run()
     mode_loiter.run();
 }
 
-float ModePlannedRTL::wp_distance_m() const
+uint32_t ModePlannedRTL::wp_distance() const
 {
-    return mode_loiter.wp_distance_m();
+    return mode_loiter.wp_distance();
 }
 
-float ModePlannedRTL::wp_bearing_deg() const
+int32_t ModePlannedRTL::wp_bearing() const
 {
-    return mode_loiter.wp_bearing_deg();
+    return mode_loiter.wp_bearing();
 }
 
 #endif  // MODE_PLANNED_RTL_ENABLED

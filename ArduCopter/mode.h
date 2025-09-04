@@ -2073,7 +2073,7 @@ public:
     bool is_autopilot() const override { return false; }
     bool has_user_takeoff(bool must_navigate) const override { return true; }
     bool allows_autotune() const override { return true; }
-    bool allows_auto_trim() const override { return true; }
+    // bool allows_auto_trim() const override { return true; }
 
 #if FRAME_CONFIG == HELI_FRAME
     bool allows_inverted() const override { return true; };
@@ -2088,9 +2088,9 @@ protected:
     const char *name() const override { return "PLANNED_RTL"; }
     const char *name4() const override { return "PRTL"; }
 
-    float wp_distance_m() const override;
-    float wp_bearing_deg() const override;
-    float crosstrack_error_m() const override { return pos_control->crosstrack_error_m();}
+    uint32_t wp_distance() const override;
+    int32_t wp_bearing() const override;
+    float crosstrack_error() const override { return pos_control->crosstrack_error();}
 
 #if AC_PRECLAND_ENABLED
     bool do_precision_loiter();
