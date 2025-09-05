@@ -148,6 +148,7 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::AUX_FUNC ch_option,
     case AUX_FUNC::LOITER:
     case AUX_FUNC::MANUAL:
     case AUX_FUNC::RTL:
+    case AUX_FUNC::PLANNED_RTL:
     case AUX_FUNC::TAKEOFF:
     case AUX_FUNC::FBWA:
     case AUX_FUNC::AIRBRAKE:
@@ -261,6 +262,10 @@ bool RC_Channel_Plane::do_aux_function(const AUX_FUNC ch_option, const AuxSwitch
 
     case AUX_FUNC::RTL:
         do_aux_function_change_mode(Mode::Number::RTL, ch_flag);
+        break;
+
+    case AUX_FUNC::PLANNED_RTL:
+        do_aux_function_change_mode(Mode::Number::PLANNED_RTL, ch_flag);
         break;
 
     case AUX_FUNC::TAKEOFF:
