@@ -394,6 +394,7 @@ public:
         TRANSMITTER_TUNING = 219, // use a transmitter knob or slider for in-flight tuning
         TRANSMITTER_TUNING2 = 220, // use another transmitter knob or slider for in-flight tuning
 #endif  // AP_RC_TRANSMITTER_TUNING_ENABLED
+        PLANNED_RTL =        221, // Compute a planned RTL path home
 
         // inputs 248-249 are reserved for the Skybrush fork at
         // https://github.com/skybrush-io/ardupilot
