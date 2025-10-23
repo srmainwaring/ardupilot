@@ -152,8 +152,9 @@ void AP_SurfaceDistance::update()
   difference between the inertial height at that time and the current
   inertial height to give us interpolation of height from rangefinder
  */
-bool AP_SurfaceDistance::get_rangefinder_height_interpolated_m(float& height_m, const uint32_t oor_low_timeout_ms)
+bool AP_SurfaceDistance::get_rangefinder_height_interpolated_m(float& height_m, const uint32_t oor_low_timeout_ms) const
 {
+    // sem must be mutable otherwise breaks constness...
     WITH_SEMAPHORE(sem);
     // surface distance state not enabled
     if (!enabled) {

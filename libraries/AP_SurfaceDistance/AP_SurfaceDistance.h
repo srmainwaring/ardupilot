@@ -24,7 +24,7 @@ public:
     bool rangefinder_configured(void) const;
 
     // get inertially interpolated rangefinder height
-    bool get_rangefinder_height_interpolated_m(float& height_m, const uint32_t oor_low_timeout_ms = 0);
+    bool get_rangefinder_height_interpolated_m(float& height_m, const uint32_t oor_low_timeout_ms = 0) const;
 
     bool enabled;                           // not to be confused with rangefinder enabled, this state is to be set by the vehicle.
     bool alt_healthy;                       // true if we can trust the altitude from the rangefinder
@@ -42,7 +42,7 @@ private:
 #endif
 
     // multi-thread access support
-    HAL_Semaphore sem;
+    mutable HAL_Semaphore sem;
 
     bool rangefinder_is_config;
     bool has_been_healthy;
