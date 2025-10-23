@@ -200,7 +200,7 @@ void AC_Autorotation::init(void)
     // Set limits and initialise NE pos controller
     _pos_control->set_max_speed_accel_NE_cm(_param_target_speed_ms.get()*100.0, _param_accel_max_mss.get()*100.0);
     _pos_control->set_correction_speed_accel_NE_cm(_param_target_speed_ms.get()*100.0, _param_accel_max_mss.get()*100.0);
-    _pos_control->set_pos_error_max_NE_cm(1000);
+    _pos_control->set_pos_error_max_NE_m(10);
     _pos_control->init_NE_controller();
 
     // Reset the landed reason
@@ -654,9 +654,9 @@ void AC_Autorotation::update_navigation_controller(float pilot_norm_accel)
     _pos_control->update_NE_controller();
 
     // Output to the attitude controller
-    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(),
-                                                      desired_heading.yaw_angle_rad,
-                                                      desired_heading.yaw_rate_rads);
+    _attitude_control->input_thrust_vector_heading_rad(_pos_control->get_thrust_vector(),
+                                                       desired_heading.yaw_angle_rad,
+                                                       desired_heading.yaw_rate_rads);
 
     // Calculate the unit velocity vector for wp bearing telemetry data
     if (desired_velocity_NE_cm.length() > MIN_MANOEUVERING_SPEED * 100.0) {
@@ -875,9 +875,9 @@ void AC_Autorotation::run_landed(void)
     AC_AttitudeControl::HeadingCommand desired_heading;
     desired_heading.heading_mode = AC_AttitudeControl::HeadingMode::Rate_Only;
     desired_heading.yaw_rate_rads = 0.0;
-    _attitude_control->input_thrust_vector_heading_cd(_pos_control->get_thrust_vector(),
-                                                      desired_heading.yaw_angle_rad,
-                                                      desired_heading.yaw_rate_rads);
+    _attitude_control->input_thrust_vector_heading_rad(_pos_control->get_thrust_vector(),
+                                                       desired_heading.yaw_angle_rad,
+                                                       desired_heading.yaw_rate_rads);
 }
 
 // Determine the body frame forward speed in m/s
@@ -940,10 +940,9 @@ void AC_Autorotation::update_hagl(void)
 
     // Get the height above ground estimate from the surface tracker library. The rangefinder may go out of range low
     // as we are landing so we allow 5 s of grace whereby we use inertial nav to extrapolate from the last good measurement
-    int32_t hagl = 0;
+    float hagl = 0;
     static const uint32_t oor_low_timer_ms = 5000;
-    if (_ground_surface->get_rangefinder_height_interpolated_cm(hagl, oor_low_timer_ms)) {
-        _hagl = float(hagl) * 0.01;
+    if (_ground_surface->get_rangefinder_height_interpolated_m(hagl, oor_low_timer_ms)) {
         _hagl_valid = true;
     }
 
