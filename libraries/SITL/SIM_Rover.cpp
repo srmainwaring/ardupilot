@@ -149,7 +149,7 @@ void SimRover::update_ackermann_or_skid(const struct sitl_input &input, float de
     if (skid_steering) {
         const float motor1 = input.servos[0] ? normalise_servo_input(input.servos[0]) : 0;
         const float motor2 = input.servos[2] ? normalise_servo_input(input.servos[2]) : 0;
-        steering = motor1 - motor2;
+        steering = 0.5*(motor1 - motor2);
         throttle = 0.5*(motor1 + motor2);
     } else {
         // steering here should really be "old steering" as no-pulses
