@@ -38,3 +38,31 @@
 ### SIM_Gazebo -- template for sim bridge
 - libraries/SITL/SIM_Gazebo.h/.cpp
 - Next step: read this to understand the existing sim data path into AP
+
+## SIM_Gazebo Data Path Audit -- 2026-06-03
+
+### How the existing bridge works
+- Single UDP socket between AP and Gazebo
+- AP sends servo_packet: float motor_speed[16]
+- Gazebo sends fdm_packet: IMU + velocity + position, NO joint state
+- recv_fdm() unpacks fdm_packet into AP internal state each cycle
+
+### What needs to change for humanoid joint feedback
+
+Step 1 -- extend fdm_packet in SIM_Gazebo.h:
+  double joint_position[32];   // rad
+  double joint_velocity[32];   // rad/s
+  double joint_torque[32];     // Nm
+
+Step 2 -- extend servo_packet for more than 16 joints:
+  float motor_speed[32];
+
+Step 3 -- in recv_fdm() after last_timestamp = pkt.timestamp:
+  call AP_Joint_Telem::update() with the new joint arrays
+
+Step 4 -- Gazebo side plugin reads /joint_states and packs into fdm_packet
+
+### Why UDP works here
+- Same socket, same cycle, just bigger structs
+- No new transport needed for sim
+- Real hardware uses different backend (DroneCAN or MAVLink) but same AP_Joint_Telem frontend
