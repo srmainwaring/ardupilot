@@ -1,7 +1,7 @@
 
 ## AP Codebase Audit -- 2026-06-03
 
-### AP_ESC_Telem — closest analogy to joint feedback
+### AP_ESC_Telem -- closest analogy to joint feedback
 - Lives in libraries/AP_ESC_Telem/
 - Backend/frontend split: backend drivers call update_rpm() / update_telem_data()
 - Frontend exposes get_rpm(), get_current() etc to rest of AP
