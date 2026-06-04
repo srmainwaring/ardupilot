@@ -66,3 +66,27 @@ Step 4 -- Gazebo side plugin reads /joint_states and packs into fdm_packet
 - Same socket, same cycle, just bigger structs
 - No new transport needed for sim
 - Real hardware uses different backend (DroneCAN or MAVLink) but same AP_Joint_Telem frontend
+
+## Correction -- 2026-06-03
+
+### SIM_JSON not SIM_Gazebo
+Previous audit referenced SIM_Gazebo and fdm_packet. This was wrong.
+The correct interface used by ardupilot_gazebo is SIM_JSON with ArduPilotPlugin.
+- AP side: libraries/SITL/SIM_JSON.h
+- Gazebo side: ArduPilotPlugin in ardupilot_gazebo repo
+- Communication: UDP, AP sends PWM binary packet, Gazebo replies with JSON payload
+- Lockstepped so both sides stay in sync
+
+### Rhys DroneCAN prototype -- already exists
+Rhys built a working proof of concept for joint state feedback via DroneCAN:
+- repo: srmainwaring/ardupilot_gazebo-1 branch wips/wip-dronecan
+- uses JointStatePublisher plugin in Gazebo
+- Python script bridges gz.msgs joint velocities to DroneCAN ESC status messages
+- AP receives via existing DroneCAN ESC backends
+- This is the template for AP_Joint_Telem feedback in sim
+
+### What needs to happen next
+- Clone srmainwaring/ardupilot_gazebo-1 wips/wip-dronecan and study it
+- Check libraries/SITL/SIM_JSON.h to understand extensible JSON fields
+- Joint feedback follows same pattern as rotor RPM: JointStatePublisher in Gazebo,
+  Python bridge to DroneCAN, AP receives via DroneCAN backend
