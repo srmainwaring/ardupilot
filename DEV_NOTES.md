@@ -90,3 +90,34 @@ Rhys built a working proof of concept for joint state feedback via DroneCAN:
 - Check libraries/SITL/SIM_JSON.h to understand extensible JSON fields
 - Joint feedback follows same pattern as rotor RPM: JointStatePublisher in Gazebo,
   Python bridge to DroneCAN, AP receives via DroneCAN backend
+
+## SIM_JSON Deep Audit -- 2026-06-03
+
+### Key findings from SIM_JSON.h
+- Uses extensible keytable parser, not fixed binary struct like SIM_Gazebo
+- Adding joint state to JSON would just need new keytable rows
+- Already supports servo_packet_32 (32 channels, enough for OP3 20 DOF)
+- State struct has rng, rc, battery, wind -- pattern for adding joints is clear
+- Runs lockstepped at physics rate (~1000 Hz)
+
+### Two options now clear for joint feedback in sim
+
+Option A -- Extend SIM_JSON keytable:
+  Add joint_pos[], joint_vel[], joint_tor[] to state struct
+  Add rows to keytable for each joint
+  Gazebo ArduPilotPlugin packs joint state into JSON reply
+  Pro: single transport, lockstepped, no extra process
+  Con: runs at 1000 Hz whether you want it or not
+
+Option B -- Rhys DroneCAN bridge (already prototyped):
+  SIM_JSON stays unchanged for flight dynamics
+  JointStatePublisher in Gazebo publishes joint state
+  Python script bridges to DroneCAN messages
+  AP receives via existing DroneCAN backends
+  Pro: decoupled rate, matches real hardware transport exactly
+  Con: extra process, more moving parts in sim
+
+### Recommendation
+Option B for real hardware parity.
+Option A as a fast fallback if DroneCAN setup is too complex for sim.
+Both use the same AP_Joint_Telem frontend -- only the backend changes.
