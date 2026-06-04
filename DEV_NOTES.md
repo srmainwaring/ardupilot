@@ -1,5 +1,5 @@
 
-## AP Codebase Audit — 2026-06-03
+## AP Codebase Audit -- 2026-06-03
 
 ### AP_ESC_Telem — closest analogy to joint feedback
 - Lives in libraries/AP_ESC_Telem/
@@ -15,7 +15,7 @@
 - On real hardware: DroneCAN or MAVLink backend calls same function
 - AP_Biomimetic reads joint state via get_joint_position() etc
 
-### SIM_Gazebo — template for sim bridge
+### SIM_Gazebo -- template for sim bridge
 - libraries/SITL/SIM_Gazebo.h/.cpp
 - Next step: read this to understand the existing sim data path into AP
 
