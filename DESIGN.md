@@ -108,3 +108,8 @@ Not in scope: arms, manipulation, RL policy layer, MAVLink waypoint navigation
   discuss.ardupilot.org/t/gsoc-2020-walking-robot-support-for-ardupilot-conclusion/61112
 - AP_Servo_Telem:
   github.com/ArduPilot/ardupilot/blob/master/libraries/AP_Servo_Telem/AP_Servo_Telem.h
+
+## References update -- added ZMP
+
+- Vukobratovic, M. and Borovac, B. (2004). Zero-Moment Point: Thirty-Five Years of Its Life.
+  International Journal of Humanoid Robotics, 1(1), pp. 157-173.
