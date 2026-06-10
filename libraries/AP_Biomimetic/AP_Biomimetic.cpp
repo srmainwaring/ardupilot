@@ -3,6 +3,7 @@
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_HAL/AP_HAL.h>
 #include <GCS_MAVLink/GCS.h>
+#include <AP_AHRS/AP_AHRS.h>
 
 extern const AP_HAL::HAL &hal;
 
@@ -135,7 +136,44 @@ bool AP_Biomimetic::stand()
 
 void AP_Biomimetic::balance_update()
 {
-    // TODO July: LIPM/ZMP CoM correction via ankle pitch adjustment
+    // ZMP/LIPM balance stub -- July milestone
+    //
+    // What this does right now:
+    //   1. reads CoM tilt estimate from AHRS (pitch = forward lean)
+    //   2. computes a proportional ankle pitch correction
+    //   3. applies it symmetrically to both ankle joints (index 4 and 10)
+    //
+    // What slots in here in July:
+    //   - DARE-precomputed LIPM gain replaces the proportional gain
+    //   - lateral (roll) axis correction added alongside pitch
+    //   - ZMP stays inside support polygon check added before correction
+
+    if (p_balance_enable != 1) {
+        return;
+    }
+
+    // read pitch angle from AHRS -- positive means leaning forward
+    const AP_AHRS &ahrs = AP::ahrs();
+    float pitch_rad = ahrs.get_pitch();
+
+    // proportional gain: 1 deg of lean -> 1 deg of ankle correction
+    // TODO July: replace with DARE-precomputed LIPM gain
+    const float kp = 1.0f;
+
+    float ankle_correction_deg = kp * RAD_TO_DEG * pitch_rad;
+
+    // clamp correction to +/- 10 deg so it cannot fight the stand targets
+    ankle_correction_deg = constrain_float(ankle_correction_deg, -10.0f, 10.0f);
+
+    // joint layout per side: hip_roll=0 hip_yaw=1 hip_pitch=2 knee=3 ank_pitch=4 ank_roll=5
+    // left ankle = index 4, right ankle = index 10
+    const uint8_t left_ankle  = 4;
+    const uint8_t right_ankle = 10;
+
+    set_joint_cmd_deg(left_ankle,
+        _stand_targets[left_ankle]  + ankle_correction_deg);
+    set_joint_cmd_deg(right_ankle,
+        _stand_targets[right_ankle] + ankle_correction_deg);
 }
 
 namespace AP {
