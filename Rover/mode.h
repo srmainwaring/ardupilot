@@ -28,6 +28,7 @@ public:
         SMART_RTL    = 12,
         GUIDED       = 15,
         INITIALISING = 16,
+        LEGGED       = 20,
         // Mode number 30 reserved for "offboard" for external/lua control.
     };
 
@@ -956,3 +957,20 @@ protected:
     bool _loitering = false; // true if we are loitering after mission completion
 };
 #endif
+
+class ModeLegged : public Mode
+{
+public:
+    ModeLegged() {}
+    CLASS_NO_COPY(ModeLegged);
+    Number mode_number() const override { return Number::LEGGED; }
+    const char *name() const override { return "LEGGED"; }
+    const char *name4() const override { return "LEGG"; }
+    bool is_autopilot_mode() const override { return true; }
+    void update() override;
+protected:
+    bool _enter() override;
+    void _exit() override;
+private:
+    bool _stand_done;
+};

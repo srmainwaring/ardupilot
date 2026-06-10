@@ -1,0 +1,17 @@
+def build(bld):
+    bld.ap_stlib(
+        name="AP_Biomimetic",
+        ap_vehicle="ROVER",
+        ap_libraries=[
+            "AP_Common",
+            "AP_Math",
+            "AP_Param",
+            "AP_Servo_Telem",
+            "SRV_Channel",
+            "AP_HAL",
+            "GCS_MAVLink",
+        ],
+        source=[
+            "AP_Biomimetic.cpp",
+        ],
+    )

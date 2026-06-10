@@ -39,6 +39,7 @@
 #include <AP_OSD/AP_OSD.h>
 #include <AR_Motors/AP_MotorsUGV.h>
 #include <AP_Mission/AP_Mission.h>
+#include <AP_Biomimetic/AP_Biomimetic.h>
 #include <AP_Mission/AP_Mission_ChangeDetector.h>
 #include <AR_WPNav/AR_WPNav_OA.h>
 #include <AP_OpticalFlow/AP_OpticalFlow.h>
@@ -248,6 +249,8 @@ private:
 #if MODE_DOCK_ENABLED
     ModeDock mode_dock;
 #endif
+    ModeLegged mode_legged;
+    AP_Biomimetic biomimetic;
 
     // cruise throttle and speed learning
     typedef struct {
