@@ -173,3 +173,40 @@ AP_Biomimetic just calls get_telem() per joint index.
 Next: build AP_Biomimetic C++ skeleton and test the full pipeline with
 AP SITL + OP3 sim + bridge all running together. Check CSRV in
 mavexplorer.
+Here are the dev notes for today covering everything that actually got built and fixed, not the handoff context you already had:
+
+---
+
+##  2026-06-10
+
+**DESIGN.md -- Implementation Phases**
+
+Wrote and pushed the Implementation Phases section Rhys requested. Maps every component to Phase 1 (working in SITL by end of GSoC) or Phase 2 (post-GSoC upgrade with documented path). Key decisions captured: joint_state_bridge.py hardcoding is accepted as Phase 1 prototype because it is decoupled and the function is obvious -- the upgrade path is YAML config following the pattern Rhys is developing in ardupilot_gazebo-1. DroneCAN actuator.Status path is marked Phase 1 permanent, not prototype -- that is the right long-term interface and needs to be correct from the start.
+
+Cleaned up the intro after first draft removed "Rhys flagged this in the Discord" and "the key rule Rhys gave" phrasing. Design docs record decisions
+
+Updated document date from 2026-06-08 to 2026-06-10.
+
+Commits: `c29512bb24` (section added), `b513dba9e6` (intro tightened, date updated).
+
+---
+
+**AP_Biomimetic::balance_update() -- ZMP/LIPM stub**
+
+Replaced the empty TODO stub with working plumbing for the July milestone.
+
+What it does now: reads pitch from AHRS via `AP::ahrs().get_pitch()`, multiplies by proportional gain `kp = 1.0f` to get an ankle correction in degrees, clamps to +/- 10 deg so it cannot fight the stand targets, applies symmetrically to left ankle (joint 4) and right ankle (joint 10). Gated on `p_balance_enable == 1` so it does nothing until explicitly enabled.
+
+Added `AP_AHRS/AP_AHRS.h` include to AP_Biomimetic.cpp.
+
+Build confirmed clean: `bin/ardurover 4031694B` text, up 176 bytes from `4031518B`.
+
+What slots in here in July: replace `kp = 1.0f` with DARE-precomputed LIPM gain, add lateral (roll) axis correction, add ZMP inside support polygon check before applying correction.
+
+Joint index reference for this file: per side -- hip_roll=0, hip_yaw=1, hip_pitch=2, knee=3, ank_pitch=4, ank_roll=5. Left side is joints 0-5, right side is joints 6-11. Left ankle = 4, right ankle = 10.
+
+---
+
+**CSRV verification -- not done yet**
+
+Every attempt hit an empty BIN because ardurover was launched before Gazebo. Next session must run Terminal 1 (Gazebo) first, wait for it to be fully up, then Terminal 2 (SITL). The BIN only gets data when the JSON interface has something to connect to.
