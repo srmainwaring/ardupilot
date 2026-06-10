@@ -1,5 +1,5 @@
 # AP_Biomimetic Design Document
-GSoC 2026 -- Neeta Misericordia
+GSoC 2026 | Neeta Misericordia
 Updated: 2026-06-10
 
 ---
