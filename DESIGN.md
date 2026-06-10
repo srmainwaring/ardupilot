@@ -12,7 +12,7 @@ the config file changes.
 
 ---
 
-## The problem Rhys flagged
+## The problem 
 
 ArduPilot sends servo commands and gets nothing back. Humanoid joints are different --
 they report position, velocity, and torque every tick. A balance controller needs that
