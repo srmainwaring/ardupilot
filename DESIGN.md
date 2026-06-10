@@ -113,3 +113,151 @@ Not in scope: arms, manipulation, RL policy layer, MAVLink waypoint navigation
 
 - Vukobratovic, M. and Borovac, B. (2004). Zero-Moment Point: Thirty-Five Years of Its Life.
   International Journal of Humanoid Robotics, 1(1), pp. 157-173.
+
+
+---
+
+## Implementation Phases
+
+GSoC 2026 -- Neeta Misericordia
+Added: 2026-06-10
+
+Rhys flagged this in the Discord: some parts of the system need to be done right from
+the start, others can use a prototype-first approach as long as the upgrade path is
+clear and documented. This section maps every component to one of two phases.
+
+Phase 1 means: working in SITL by end of GSoC. Prototype quality is fine as long as
+it is decoupled, documented, and the function is obvious.
+
+Phase 2 means: post-GSoC upgrade. The component works well enough for GSoC goals but
+has a known limitation that someone can pick up and improve later. The upgrade path is
+described so a new contributor can find it and run with it.
+
+The key rule Rhys gave: the design must not be customized to a specific robot. The
+interface must stay general. That applies in both phases.
+
+---
+
+### AP_Biomimetic core library
+
+Phase: 1
+
+This is the foundation. It has to be solid from day one because everything else
+depends on it. The schema abstraction, the joint tree, the SRV_Channels output path,
+and the AP_Servo_Telem read path all need to be correct and general before any balance
+work can happen. No prototype shortcuts here.
+
+Upgrade path in Phase 2: add support for torque control mode alongside position
+control, once real hardware is in the loop and the DroneCAN actuator.Command torque
+field can be tested.
+
+---
+
+### joint_state_bridge.py
+
+Phase: 1 prototype, Phase 2 upgrade planned
+
+The bridge works and is good enough to run the feedback loop in SITL. The joint
+mapping and topic names are hardcoded. Rhys noted this is a known limitation and his
+intention is to make it configurable via a YAML file, similar to how ros-gz-bridge
+works, but targeting DroneCAN instead of ROS topics.
+
+The prototype is acceptable for GSoC because: it is decoupled from AP_Biomimetic, the
+function is obvious, and the hardcoding only lives in the bridge script. AP_Biomimetic
+itself stays general.
+
+Upgrade path in Phase 2: replace hardcoded joint list with a YAML config file. Follow
+the pattern Rhys is developing in ardupilot_gazebo-1. New robots plug in by writing a
+config file, no code changes needed.
+
+---
+
+### DroneCAN actuator.Status feedback path
+
+Phase: 1
+
+The interface choice (DroneCAN actuator.Status into AP_Servo_Telem) is the right
+long-term design. It matches real hardware exactly and is decoupled from the physics
+loop rate. This is not a prototype, this is the permanent interface. Implement it
+correctly in Phase 1.
+
+---
+
+### ZMP/LIPM balance controller
+
+Phase: 1 stub, Phase 2 full solver
+
+The stub in balance_update() establishes the plumbing: reads CoM estimate from EKF3,
+computes a ZMP correction, returns zero for now. The structure is there so the gait
+planner has somewhere to call into.
+
+The full DARE-precomputed LIPM solver from the Python prototype gets ported to C++
+in Phase 1 (July milestone). That covers the GSoC demo.
+
+Upgrade path in Phase 2: replace the fixed-horizon LIPM with a model predictive
+controller. The MPC layer can be added above balance_update() without changing the
+interface.
+
+---
+
+### Gait primitives
+
+Phase: 1 prototype, Phase 2 upgrade planned
+
+Static gait (fixed step sequence, no reactive adjustment) is enough for the GSoC
+demo. Weight shift and foot sequencing work. The robot walks.
+
+Upgrade path in Phase 2: add reactive gait that adjusts step timing and placement
+based on live ZMP error. This is where the project gets interesting for a post-GSoC
+contributor. The interface in AP_Biomimetic is already set up to support it.
+
+---
+
+### IK solver
+
+Phase: 1
+
+Analytic IK for a 6-DOF leg chain. Fixed at Phase 1 quality. No upgrade needed for
+the scope of this project. If someone later adds arms or a different kinematic chain
+they will write a new solver and register it, the existing leg solver does not change.
+
+---
+
+### Robot config file / schema abstraction
+
+Phase: 1
+
+This is what keeps the library general. The config file is what changes between
+ArduBiped_Proto, ROBOTIS OP3, and Unitree H1. The library code never sees robot-
+specific names. This has to be right in Phase 1 or every robot port becomes a code
+change instead of a config change.
+
+---
+
+### SITL test cases and setup guide
+
+Phase: 1, delivered in August
+
+Automated checks for: joint state round-trip (command in, telemetry back), ZMP stays
+inside support polygon during static stand, gait produces forward displacement. Setup
+guide covers SIM_JSON bridge config, lockstep tuning, and known failure modes.
+
+---
+
+### MAVLink waypoint navigation (AUTO mode)
+
+Phase: 2, stretch goal
+
+The robot walks to a GPS waypoint under AUTO mode. Not in scope for GSoC. Mentioned
+as a stretch goal. The ModeLegged class is already in the mode enum so the entry
+point exists. Someone can build on top of it after GSoC.
+
+---
+
+### Arms and manipulation
+
+Phase: 2, future GSoC
+
+Out of scope for this project entirely. The schema abstraction already supports more
+than 2 limbs so AP_Biomimetic does not need to change. A future contributor adds an
+arm config file and an arm-specific gait primitive. The library stays the same.
