@@ -1,6 +1,6 @@
 # AP_Biomimetic Design Document
 GSoC 2026 -- Neeta Misericordia
-Updated: 2026-06-08
+Updated: 2026-06-10
 
 ---
 
@@ -122,19 +122,16 @@ Not in scope: arms, manipulation, RL policy layer, MAVLink waypoint navigation
 GSoC 2026 -- Neeta Misericordia
 Added: 2026-06-10
 
-Rhys flagged this in the Discord: some parts of the system need to be done right from
-the start, others can use a prototype-first approach as long as the upgrade path is
-clear and documented. This section maps every component to one of two phases.
+Some parts of this system need to be correct from day one. Others can ship as a
+working prototype as long as the function is clear, the component is decoupled, and
+there is an obvious route to upgrade it later. This section maps each component to
+one of those two categories.
 
-Phase 1 means: working in SITL by end of GSoC. Prototype quality is fine as long as
-it is decoupled, documented, and the function is obvious.
+Phase 1: working in SITL by end of GSoC.
+Phase 2: post-GSoC upgrade with a documented path for a future contributor.
 
-Phase 2 means: post-GSoC upgrade. The component works well enough for GSoC goals but
-has a known limitation that someone can pick up and improve later. The upgrade path is
-described so a new contributor can find it and run with it.
-
-The key rule Rhys gave: the design must not be customized to a specific robot. The
-interface must stay general. That applies in both phases.
+The interface must stay general and not be customized to any specific robot.
+That applies in both phases.
 
 ---
 
