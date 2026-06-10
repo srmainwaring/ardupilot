@@ -121,3 +121,29 @@ Option B -- Rhys DroneCAN bridge (already prototyped):
 Option B for real hardware parity.
 Option A as a fast fallback if DroneCAN setup is too complex for sim.
 Both use the same AP_Joint_Telem frontend -- only the backend changes.
+
+## 2026-06-09
+
+Today was a big day. Rhys went ahead and built a working prototype on
+wips/wip-dronecan-extra showing DroneCAN actuator.Status messages flowing
+from Gazebo gimbal servos all the way into AP DataFlash logs as CSRV.
+He also caught that actuator_id indexes from 1 not 0 which would have
+cost me hours to debug. Really grateful he did all that.
+
+On my end I confirmed the OP3 joint topic is /op3_gz_joint_states and
+it publishes gz.msgs.Model which is exactly what the JointStatesConverter
+class expects. Got all 20 joint names from the live topic.
+
+Wrote joint_state_bridge.py for the OP3 -- subscribes to
+/op3_gz_joint_states, reads position and velocity for all 12 leg joints
+by name, publishes actuator.Status per joint via DroneCAN at 50 Hz.
+actuator_id 1-12 for l_hip_yaw through r_ank_roll. Committed to
+Neetagrg/ardupilot_gazebo-1 on branch wip-op3-joint-bridge.
+
+Also confirmed AP_Servo_Telem already has everything needed --
+measured_position, speed, force -- so no new library required.
+AP_Biomimetic just calls get_telem() per joint index.
+
+Next: build AP_Biomimetic C++ skeleton and test the full pipeline with
+AP SITL + OP3 sim + bridge all running together. Check CSRV in
+mavexplorer.
