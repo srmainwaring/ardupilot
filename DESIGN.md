@@ -42,14 +42,14 @@ This adds the joint state feedback path alongside it.
 
 ---
 
-## AP_Servo_Telem -- already exists, no new library needed
+## AP_Servo_Telem - already exists, no new library needed
 
 Confirmed by reading libraries/AP_Servo_Telem/AP_Servo_Telem.h.
 Has all fields needed:
 
-- measured_position (degrees) -- joint position
-- speed (degrees/sec) -- joint velocity
-- force (Nm) -- joint torque
+- measured_position (degrees) - joint position
+- speed (degrees/sec) - joint velocity
+- force (Nm) - joint torque
 - Already logs to DataFlash via write_log() at 10 Hz
 - Already accessible via get_telem() per servo index
 
@@ -67,7 +67,7 @@ AP_Biomimetic reads joint state via AP_Servo_Telem.get_telem().
 
 ## Why DroneCAN over extending SIM_JSON
 
-SIM_JSON could work -- adding joint state is just new keytable rows. But it runs at
+SIM_JSON could work, adding joint state is just new keytable rows. But it runs at
 1000 Hz and ties the feedback rate to the physics loop. DroneCAN runs at a
 configurable rate (50 Hz default), decoupled from physics, and matches real hardware
 exactly. Rhys already prototyped this for ESC RPM at srmainwaring/ardupilot_gazebo-1
@@ -108,9 +108,6 @@ Not in scope: arms, manipulation, RL policy layer, MAVLink waypoint navigation
   discuss.ardupilot.org/t/gsoc-2020-walking-robot-support-for-ardupilot-conclusion/61112
 - AP_Servo_Telem:
   github.com/ArduPilot/ardupilot/blob/master/libraries/AP_Servo_Telem/AP_Servo_Telem.h
-
-## References update -- added ZMP
-
 - Vukobratovic, M. and Borovac, B. (2004). Zero-Moment Point: Thirty-Five Years of Its Life.
   International Journal of Humanoid Robotics, 1(1), pp. 157-173.
 
@@ -118,9 +115,6 @@ Not in scope: arms, manipulation, RL policy layer, MAVLink waypoint navigation
 ---
 
 ## Implementation Phases
-
-GSoC 2026 -- Neeta Misericordia
-Added: 2026-06-10
 
 Some parts of this system need to be correct from day one. Others can ship as a
 working prototype as long as the function is clear, the component is decoupled, and
@@ -135,7 +129,7 @@ That applies in both phases.
 
 ---
 
-### AP_Biomimetic core library
+## AP_Biomimetic core library
 
 Phase: 1
 
@@ -150,7 +144,7 @@ field can be tested.
 
 ---
 
-### joint_state_bridge.py
+## joint_state_bridge.py
 
 Phase: 1 prototype, Phase 2 upgrade planned
 
@@ -169,7 +163,7 @@ config file, no code changes needed.
 
 ---
 
-### DroneCAN actuator.Status feedback path
+## DroneCAN actuator.Status feedback path
 
 Phase: 1
 
@@ -180,7 +174,7 @@ correctly in Phase 1.
 
 ---
 
-### ZMP/LIPM balance controller
+## ZMP/LIPM balance controller
 
 Phase: 1 stub, Phase 2 full solver
 
@@ -197,7 +191,7 @@ interface.
 
 ---
 
-### Gait primitives
+## Gait primitives
 
 Phase: 1 prototype, Phase 2 upgrade planned
 
@@ -210,7 +204,7 @@ contributor. The interface in AP_Biomimetic is already set up to support it.
 
 ---
 
-### IK solver
+## IK solver
 
 Phase: 1
 
@@ -220,7 +214,7 @@ they will write a new solver and register it, the existing leg solver does not c
 
 ---
 
-### Robot config file / schema abstraction
+## Robot config file / schema abstraction
 
 Phase: 1
 
@@ -231,7 +225,7 @@ change instead of a config change.
 
 ---
 
-### SITL test cases and setup guide
+## SITL test cases and setup guide
 
 Phase: 1, delivered in August
 
@@ -241,7 +235,7 @@ guide covers SIM_JSON bridge config, lockstep tuning, and known failure modes.
 
 ---
 
-### MAVLink waypoint navigation (AUTO mode)
+## MAVLink waypoint navigation (AUTO mode)
 
 Phase: 2, stretch goal
 
@@ -251,10 +245,10 @@ point exists. Someone can build on top of it after GSoC.
 
 ---
 
-### Arms and manipulation
+## Arms and manipulation
 
 Phase: 2, future GSoC
 
-Out of scope for this project entirely. The schema abstraction already supports more
+Out of scope for this project. The schema abstraction already supports more
 than 2 limbs so AP_Biomimetic does not need to change. A future contributor adds an
 arm config file and an arm-specific gait primitive. The library stays the same.
