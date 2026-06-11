@@ -255,4 +255,4 @@ arm config file and an arm-specific gait primitive. The library stays the same.
 
 ## Known Constraints
 
-**ArduPilotPlugin + URDF spawn path:** When the OP3 is spawned via `ros_gz_sim create` from URDF, the plugin finds the IMU but sends empty JSON to ardurover. Native SDF models (e.g. `iris_with_gimbal`) do not have this issue. Root cause under investigation with mentor — likely IMU sensor path resolution differs in URDF-converted SDF.
+**ArduPilotPlugin requires native SDF.** The OP3 is loaded via `op3_with_ardupilot/model.sdf` and `worlds/op3_direct.sdf` in ardupilot_gazebo-1. The IMU sensor block must use a self-closing `<imu/>` tag with no extra URDF-derived tags. Reference minimal working example is `models/ardupilot_box/model.sdf`. Do not use `ros_gz_sim create` to spawn the OP3 -- the URDF conversion mis-parents the IMU sensor and the plugin aborts silently.
