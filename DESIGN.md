@@ -252,3 +252,7 @@ Phase: 2, future GSoC
 Out of scope for this project. The schema abstraction already supports more
 than 2 limbs so AP_Biomimetic does not need to change. A future contributor adds an
 arm config file and an arm-specific gait primitive. The library stays the same.
+
+## Known Constraints
+
+**ArduPilotPlugin + URDF spawn path:** When the OP3 is spawned via `ros_gz_sim create` from URDF, the plugin finds the IMU but sends empty JSON to ardurover. Native SDF models (e.g. `iris_with_gimbal`) do not have this issue. Root cause under investigation with mentor — likely IMU sensor path resolution differs in URDF-converted SDF.
