@@ -210,3 +210,30 @@ Joint index reference for this file: per side -- hip_roll=0, hip_yaw=1, hip_pitc
 **CSRV verification -- not done yet**
 
 Every attempt hit an empty BIN because ardurover was launched before Gazebo. Next session must run Terminal 1 (Gazebo) first, wait for it to be fully up, then Terminal 2 (SITL). The BIN only gets data when the JSON interface has something to connect to.
+
+2026-06-11
+
+Spent the session tracking down why ArduPilotPlugin was sending empty JSON to ardurover with the OP3 in sim. Turned out to be a chain of things.
+
+First confirmed the plugin works on this machine by running iris_runway.sdf. Got MasterIn 1856, EKF healthy. So the issue was always OP3 specific.
+
+Tried fixing imuName, tried native SDF conversion with gz sdf -p, tried absolute mesh paths, tried removing conflicting plugins. Still empty JSON every time. Eventually checked gz model and saw the IMU sensor parent was robotis_op3 not base. Read the ArduPilotPlugin source -- line 1156 checks if the sensor parent entity is a Link type and aborts silently if it is not. That is what was happening.
+
+To understand what a working sensor looks like I built a minimal box SDF -- one link, one clean imu sensor, ArduPilotPlugin, nothing else. Got MasterIn 7032 immediately. The working sensor block is:
+
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>50</update_rate>
+      <pose>0 0 0 0 0 0</pose>
+      <imu/>
+    </sensor>
+
+No visualize tag, no topic tag, self-closing imu/ not open/close pair. URDF conversion adds extra tags that are not valid SDF and the converted sensor ends up mis-parented to the model root.
+
+Applied the same clean structure to the OP3 converted SDF, embedded the model directly in the world file instead of using include, relaunched and got MasterIn 1922. OP3 is connected.
+
+The sensor parent in gz model still shows model root not the link -- the plugin finds it via unscoped name fallback. It works but worth keeping an eye on.
+
+models/ardupilot_box is now in ardupilot_gazebo-1 as a minimal working reference for any future model integration with ArduPilotPlugin.
+
+Next: mode 20, joint_state_bridge.py, CSRV in DataFlash.
