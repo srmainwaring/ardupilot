@@ -143,7 +143,7 @@ bool SOCKET_CLASS_NAME::connect(const char *address, uint16_t port)
         }
 
         mreq.imr_multiaddr.s_addr = sockaddr.sin_addr.s_addr;
-        mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+        mreq.imr_interface.s_addr = inet_addr("127.0.0.1");
 
         ret = CALL_PREFIX(setsockopt)(fd_in, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq));
         if (ret == -1) {
