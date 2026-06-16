@@ -259,3 +259,6 @@ So as of end of session: NUM_SERVO_CHANNELS fix confirmed compiled in, LOG_DISAR
 Machine also had a stretch where ardurover would intermittently not respond to MAVProxy connection attempts despite the port being open. Never diagnosed the root cause, seemed to clear up on its own after some kills. Worth retesting after a reboot before assuming it is a real bug.
 
 Lesson for future sessions: do not delete eeprom.bin casually, it resets every saved param including CAN config. If a fresh param state is genuinely needed, save the param list first with param save_logged_params or similar before clearing it.
+
+2026-06-12
+...
