@@ -237,3 +237,25 @@ The sensor parent in gz model still shows model root not the link -- the plugin 
 models/ardupilot_box is now in ardupilot_gazebo-1 as a minimal working reference for any future model integration with ArduPilotPlugin.
 
 Next: mode 20, joint_state_bridge.py, CSRV in DataFlash.
+
+2026-06-12
+
+Spent most of the session trying to verify CSRV (servo telemetry) shows up in the DataFlash log once the DroneCAN actuator.Status pipeline is running. Hit a chain of separate, unrelated problems that all looked like the same symptom at first.
+
+First found that AP_SERVO_TELEM_ENABLED was compiling out the handle_actuator_status function entirely because NUM_SERVO_CHANNELS was not defined for the SITL board. Added NUM_SERVO_CHANNELS 16 to hwdef.dat and confirmed via nm that handle_actuator_status is now in the binary.
+
+Then ran into severe WiFi interference. Running Gazebo plus ardurover plus the DroneCAN bridge at the same time killed my internet connection completely, needing a full process kill to recover. Traced it to gz-transport and AP both joining multicast groups on the WiFi interface instead of loopback. GZ_IP=127.0.0.1 fixed the Gazebo side. Tried patching Socket.cpp to force AP onto loopback too but it did not work cleanly and reverted it -- not a good permanent fix anyway, that file is core infrastructure.
+
+Then discovered param show CSRV* was never going to show anything because CSRV is a DataFlash log message type, not a live parameter. Wasted a lot of time checking params for something that only exists in the BIN log.
+
+Once checking the BIN log directly, found two more blockers stacked on top of each other. First, disk was at 96% full because of an old unused Docker image (open-webui ollama variant, 12.6GB, not even running) which was apparently causing ardurover to hang on log file operations. Removed the image, freed 12GB.
+
+Second and the real blocker: LOG_DISARMED was 0, so ardurover was never writing any log data at all while disarmed, regardless of anything else being correct. Set LOG_DISARMED 1 and log writes started immediately.
+
+Got a clean 30 second run with Gazebo, ardurover, and the bridge all running together, log file actively growing. Checked it for CSRV messages: zero. Checked MSG entries for any CAN node startup text: none. This means CAN_P1_DRIVER and CAN_D1_PROTOCOL had reset back to default after eeprom.bin was deleted earlier in the session to rule out a corrupted state -- so AP never actually had its DroneCAN driver enabled during that successful logging run.
+
+So as of end of session: NUM_SERVO_CHANNELS fix confirmed compiled in, LOG_DISARMED fix confirmed working, but the actual CSRV verification with CAN enabled has not happened yet. Need to redo the full pipeline test with CAN_P1_DRIVER 1 and CAN_D1_PROTOCOL 1 set and saved before the next session.
+
+Machine also had a stretch where ardurover would intermittently not respond to MAVProxy connection attempts despite the port being open. Never diagnosed the root cause, seemed to clear up on its own after some kills. Worth retesting after a reboot before assuming it is a real bug.
+
+Lesson for future sessions: do not delete eeprom.bin casually, it resets every saved param including CAN config. If a fresh param state is genuinely needed, save the param list first with param save_logged_params or similar before clearing it.
