@@ -262,3 +262,14 @@ Lesson for future sessions: do not delete eeprom.bin casually, it resets every s
 
 2026-06-12
 ...
+
+
+2026-06-13
+
+Picked back up after the reboot. Set LOG_DISARMED, CAN_P1_DRIVER, and CAN_D1_PROTOCOL fresh since eeprom.bin holds these and they reset to default whenever it gets touched. Ran the full pipeline: Gazebo with op3_direct.sdf, ardurover, and joint_state_bridge.py all together for 30 seconds.
+
+CSRV confirmed working. 12348 messages in the log, all 12 joint ids (0 through 11) present, real position data flowing, for example Id 0 Pos -1.15 degrees, Id 3 Pos 51.98 degrees. Force and Speed mostly read as qnan which is expected since the OP3 sim does not currently report torque or velocity through the bridge, only position. That is fine for now and matches what AP_Servo_Telem expects to receive incrementally.
+
+This closes the full sim pipeline: Gazebo joint state to DroneCAN actuator.Status to AP_DroneCAN handle_actuator_status to AP_Servo_Telem to CSRV DataFlash log. Every link in that chain is now verified working end to end.
+
+Next: AP_Biomimetic should start reading joint state via AP_Servo_Telem::get_telem() per joint index and feed it into balance_update(). That is the next real coding task.
