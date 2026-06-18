@@ -273,3 +273,14 @@ CSRV confirmed working. 12348 messages in the log, all 12 joint ids (0 through 1
 This closes the full sim pipeline: Gazebo joint state to DroneCAN actuator.Status to AP_DroneCAN handle_actuator_status to AP_Servo_Telem to CSRV DataFlash log. Every link in that chain is now verified working end to end.
 
 Next: AP_Biomimetic should start reading joint state via AP_Servo_Telem::get_telem() per joint index and feed it into balance_update(). That is the next real coding task.
+
+
+2026-06-17
+
+Verified AP_Biomimetic::_read_telem() actually pulls live joint data through the full pipeline. Added a temporary debug print on joint 0, switched to mode 20 (LEGGED), and watched pos go from 0.00 to -0.11 as real Gazebo data flowed through. valid flag was 1 throughout once data started arriving. Confirms the chain Gazebo to bridge to DroneCAN to AP_DroneCAN to AP_Servo_Telem to AP_Biomimetic._state[] is fully working, not just CSRV in isolation.
+
+Removed the debug print, rebuilt, binary size matches the pre-debug build exactly so the removal was clean.
+
+This means the read side of AP_Biomimetic is done and proven. get_joint_state() is ready for the gait planner and balance controller to consume real position data. Speed and torque are still expected to read as 0 or near it since the OP3 bridge currently only sends position, not velocity or force -- that matches what joint_state_bridge.py actually publishes today.
+
+Next: decide whether to extend joint_state_bridge.py to publish velocity (it is available from /op3_gz_joint_states already, just not wired into the DroneCAN message yet) before moving on to gait primitives, or start gait work now with position-only feedback since that is enough for the July ZMP stub.
