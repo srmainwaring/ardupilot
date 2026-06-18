@@ -313,6 +313,10 @@ const AP_Param::Info Rover::var_info[] = {
     GOBJECT(button, "BTN_",  AP_Button),
 #endif
 
+    // @Group: BIOM_
+    // @Path: ../libraries/AP_Biomimetic/AP_Biomimetic.cpp
+    GOBJECT(biomimetic, "BIOM_", AP_Biomimetic),
+
     // @Group:
     // @Path: Parameters.cpp
     GOBJECT(g2, "",  ParametersG2),
