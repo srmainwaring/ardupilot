@@ -20,6 +20,7 @@ public:
     bool get_joint_state(uint8_t joint_idx, float &pos_deg, float &vel_dps, float &torque_nm) const;
     bool stand();
     void balance_update();
+    void gait_step();
 
     static const struct AP_Param::GroupInfo var_info[];
     AP_Float p_hip_pitch_stand_deg;
@@ -27,6 +28,10 @@ public:
     AP_Float p_ank_pitch_stand_deg;
     AP_Float p_stand_rate_dps;
     AP_Int8  p_balance_enable;
+    AP_Int8  p_gait_enable;
+    AP_Float p_gait_period_s;
+    AP_Float p_gait_step_len_deg;
+    AP_Float p_gait_step_height_deg;
 
 private:
     struct JointState {
@@ -52,6 +57,7 @@ private:
 
     bool _initialized;
     bool _standing;
+    float _gait_phase;
 
     static AP_Biomimetic *_singleton;
 };

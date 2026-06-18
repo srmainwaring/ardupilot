@@ -24,12 +24,17 @@ const AP_Param::GroupInfo AP_Biomimetic::var_info[] = {
     AP_GROUPINFO("ANK_P_STAND", 3, AP_Biomimetic, p_ank_pitch_stand_deg,  15.0f),
     AP_GROUPINFO("STAND_RATE",  4, AP_Biomimetic, p_stand_rate_dps,       20.0f),
     AP_GROUPINFO("BAL_EN",      5, AP_Biomimetic, p_balance_enable,           0),
+    AP_GROUPINFO("GAIT_EN",     6, AP_Biomimetic, p_gait_enable,              0),
+    AP_GROUPINFO("GAIT_PERIOD", 7, AP_Biomimetic, p_gait_period_s,          1.5f),
+    AP_GROUPINFO("GAIT_LEN",    8, AP_Biomimetic, p_gait_step_len_deg,     15.0f),
+    AP_GROUPINFO("GAIT_HGT",    9, AP_Biomimetic, p_gait_step_height_deg, 20.0f),
     AP_GROUPEND
 };
 
 AP_Biomimetic::AP_Biomimetic()
     : _initialized(false)
     , _standing(false)
+    , _gait_phase(0.0f)
 {
     AP_Param::setup_object_defaults(this, var_info);
     if (_singleton != nullptr) {
@@ -48,7 +53,9 @@ void AP_Biomimetic::update()
         _initialized = true;
     }
     _read_telem();
-    if (_standing && p_balance_enable == 1) {
+    if (_standing && p_gait_enable == 1) {
+        gait_step();
+    } else if (_standing && p_balance_enable == 1) {
         balance_update();
     }
     _write_servos();
@@ -174,6 +181,72 @@ void AP_Biomimetic::balance_update()
         _stand_targets[left_ankle]  + ankle_correction_deg);
     set_joint_cmd_deg(right_ankle,
         _stand_targets[right_ankle] + ankle_correction_deg);
+}
+
+void AP_Biomimetic::gait_step()
+{
+    // Static gait primitive -- Phase 1 scope per DESIGN.md
+    // Fixed step sequence, no reactive ZMP correction.
+    //
+    // Single phase variable 0.0-1.0 loops continuously.
+    // Left leg uses phase directly, right leg is offset by 0.5 (half cycle)
+    // so the two legs alternate stance/swing -- this is what produces walking
+    // rather than hopping.
+    //
+    // Per-leg phase is split into 4 quarters:
+    //   0.00-0.25  Stance -> Lift   (knee bends, hip starts swinging back to front)
+    //   0.25-0.50  Lift   -> Swing  (knee at max bend, hip sweeps forward)
+    //   0.50-0.75  Swing  -> Plant  (knee starts straightening, hip continues forward)
+    //   0.75-1.00  Plant  -> Stance (foot back on ground, hip sweeps back for next push)
+
+    if (p_gait_enable != 1) {
+        return;
+    }
+
+    const float dt = 1.0f / AP_BIOMIMETIC_UPDATE_HZ;
+    const float period = MAX(p_gait_period_s.get(), 0.1f);
+
+    _gait_phase += dt / period;
+    if (_gait_phase >= 1.0f) {
+        _gait_phase -= 1.0f;
+    }
+
+    const float step_len_deg = p_gait_step_len_deg.get();
+    const float step_hgt_deg = p_gait_step_height_deg.get();
+
+    // joint layout per side: hip_roll=0 hip_yaw=1 hip_pitch=2 knee=3 ank_pitch=4 ank_roll=5
+    for (uint8_t side = 0; side < 2; side++) {
+        const uint8_t base = side * 6;
+        // right leg (side 1) is offset by half a cycle from left leg (side 0)
+        float leg_phase = _gait_phase + (side == 1 ? 0.5f : 0.0f);
+        if (leg_phase >= 1.0f) {
+            leg_phase -= 1.0f;
+        }
+
+        float hip_pitch_deg;
+        float knee_deg;
+        float ank_pitch_deg;
+
+        if (leg_phase < 0.5f) {
+            // stance half of cycle: foot on ground, hip sweeps back to front
+            // as the body moves forward over the planted foot
+            float t = leg_phase / 0.5f;  // 0..1 across stance half
+            hip_pitch_deg = step_len_deg * (0.5f - t);
+            knee_deg      = 0.0f;
+            ank_pitch_deg = 0.0f;
+        } else {
+            // swing half of cycle: foot lifts, swings forward, plants
+            float t = (leg_phase - 0.5f) / 0.5f;  // 0..1 across swing half
+            // knee bend peaks at mid-swing, zero at start/end of swing
+            knee_deg      = step_hgt_deg * sinf(t * float(M_PI));
+            hip_pitch_deg = step_len_deg * (t - 0.5f);
+            ank_pitch_deg = -knee_deg * 0.3f;  // small compensation to keep foot level
+        }
+
+        set_joint_cmd_deg(base + 2, _stand_targets[base + 2] + hip_pitch_deg);
+        set_joint_cmd_deg(base + 3, _stand_targets[base + 3] + knee_deg);
+        set_joint_cmd_deg(base + 4, _stand_targets[base + 4] + ank_pitch_deg);
+    }
 }
 
 namespace AP {
