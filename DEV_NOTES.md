@@ -329,3 +329,91 @@ without producing NaN or joint limit violations during the prototype phase.
 For the research paper: this confirms the OP3 leg is kinematically solvable
 in closed form without needing a numerical solver, which keeps the control
 loop deterministic and timing-safe on embedded hardware.
+
+## Key Findings -- First-of-Kind Notes for Research Documentation
+
+These are findings that emerged during this project that have not been
+encountered or documented in prior ArduPilot or GSoC work. Recorded here
+for the research paper and for future contributors.
+
+### Finding 1 -- AP_SERVO_TELEM_ENABLED silently compiles out on SITL
+
+AP_Servo_Telem is gated by AP_SERVO_TELEM_ENABLED which evaluates to false
+on SITL targets because NUM_SERVO_CHANNELS is never defined in
+libraries/AP_HAL_SITL/hwdef/sitl/hwdef.dat. The result is that
+AP_DroneCAN::handle_actuator_status() is not compiled into the SITL binary
+at all -- confirmed via nm on the binary before and after the fix. No build
+error, no warning, the function simply does not exist in the binary.
+
+This was never noticed before because no prior ArduPilot project needed to
+read actuator telemetry back from a simulated legged robot in SITL.
+Fix: add define NUM_SERVO_CHANNELS 16 to hwdef.dat.
+
+This is the first time joint state feedback has been verified flowing into
+AP_Servo_Telem from a humanoid robot simulation.
+
+### Finding 2 -- LOG_DISARMED=0 produces silent total log failure
+
+ArduPilot writes no DataFlash log data at all when disarmed and LOG_DISARMED
+is 0 (the default). There is no warning in MAVProxy, no console message, no
+indication that logging is suppressed. The log file is created and grows to
+a non-zero size due to headers but contains zero data messages.
+
+For any SITL-based control verification project this is a critical default
+to override before any testing. Set LOG_DISARMED 1 before running any
+pipeline test.
+
+### Finding 3 -- ArduPilotPlugin IMU sensor parent entity bug on Gazebo Harmonic
+
+Gazebo Harmonic URDF-to-SDF conversion mis-parents IMU sensors to the model
+root entity instead of to the link entity. ArduPilotPlugin checks the sensor
+parent entity type at approximately line 1156 of ArduPilotPlugin.cc and
+silently aborts if the parent is not a Link type. The result is empty JSON
+output from the plugin with no error message printed anywhere.
+
+This affects every URDF-based robot used with ArduPilotPlugin on Gazebo
+Harmonic. The fix is to write a native SDF model with a clean IMU sensor
+block and not use ros_gz_sim create or URDF conversion.
+
+Working IMU sensor block pattern confirmed via minimal ardupilot_box reference:
+  sensor name imu_sensor type imu, always_on true, update_rate 50,
+  pose 0 0 0 0 0 0, self-closing imu/ tag, no visualize, no topic tags.
+
+This should be filed as a bug against either Gazebo Harmonic URDF conversion
+or ArduPilotPlugin error handling. A silent abort with no log message makes
+integration debugging extremely difficult.
+
+### Finding 4 -- DroneCAN actuator.Status generalized beyond ESC feedback
+
+DroneCAN actuator.Status has been used in ArduPilot exclusively for ESC and
+motor feedback. This project is the first to use it for proprioceptive joint
+state feedback from a legged robot -- position, velocity, and torque per joint
+at a configurable rate decoupled from the physics loop.
+
+The same AP_DroneCAN backend and AP_Servo_Telem frontend that handle motor
+RPM now carry full humanoid joint state. No new transport library was needed.
+This generalizes the DroneCAN feedback path from aerial vehicles to legged
+robots and potentially to any robot with actuated joints.
+
+The architectural consequence: a future real hardware port only needs a
+DroneCAN-capable joint driver. The AP side does not change.
+
+### Finding 5 -- AP param system requires two registration steps, missing one is silent
+
+For a library param group to be accessible at runtime via MAVProxy or GCS,
+two separate things must be done in the vehicle code:
+
+1. AP_Param::GroupInfo var_info[] defined in the library class -- this is
+   the obvious step documented in AP examples.
+2. GOBJECT macro entry in the vehicle Parameters.cpp AND a matching enum
+   entry in Parameters.h -- this second step is not mentioned in most
+   AP library documentation.
+
+Missing step 2 means the params compile, link, and have correct default
+values internally, but param show and param set in MAVProxy return
+unable to find parameter with no further explanation.
+
+AP_Biomimetic shipped with only step 1 for several sessions before this
+was caught. All BIOM_ params (HIP_P_STAND, KNEE_STAND, ANK_P_STAND,
+STAND_RATE, BAL_EN, GAIT_EN, GAIT_PERIOD, GAIT_LEN, GAIT_HGT) were
+silently unreachable during those sessions.
