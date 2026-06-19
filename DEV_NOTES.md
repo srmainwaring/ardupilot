@@ -284,3 +284,48 @@ Removed the debug print, rebuilt, binary size matches the pre-debug build exactl
 This means the read side of AP_Biomimetic is done and proven. get_joint_state() is ready for the gait planner and balance controller to consume real position data. Speed and torque are still expected to read as 0 or near it since the OP3 bridge currently only sends position, not velocity or force -- that matches what joint_state_bridge.py actually publishes today.
 
 Next: decide whether to extend joint_state_bridge.py to publish velocity (it is available from /op3_gz_joint_states already, just not wired into the DroneCAN message yet) before moving on to gait primitives, or start gait work now with position-only feedback since that is enough for the July ZMP stub.
+
+## 2026-06-19
+
+Reviewed early Lua prototype scripts from Rover/demo/humanoid/scripts/lib/.
+Copied to libraries/AP_Biomimetic/lua_reference/ before gitignoring the demo
+directory. Four files: gait.lua, balance.lua, ik.lua, joints.lua.
+
+### Key findings for C++ port and research documentation
+
+**balance.lua PID gains** -- tuned empirically from the Python gait_controller.py
+prototype: Kp=0.08, Ki=0.001, Kd=0.01, correction clamped to +/-0.2 rad.
+The current C++ balance_update() uses a placeholder kp=1.0 proportional-only
+gain which is too aggressive and has no integral or derivative term.
+When the LIPM solver replaces the stub in July, these three gains are the
+verified starting point. The PID structure in balance.lua (with dt-based
+integration and derivative on error delta) is the correct pattern to follow.
+
+**gait.lua phase model** -- uses five discrete named phases: STAND, SHIFT_R,
+STEP_L, SHIFT_L, STEP_R. Each phase runs for a fixed duration (default 3.0 s).
+Weight shift happens as a separate phase before foot lift -- this is the key
+insight. The C++ gait_step() uses a continuous 0.0-1.0 phase variable which
+blends everything together. If the C++ gait produces instability or falls,
+the discrete phase approach with an explicit weight-shift phase is the
+more conservative fallback. This distinction matters for the research paper:
+discrete phase sequencing with explicit CoM shift vs continuous sinusoidal
+blending are two different gait planning approaches with different stability
+properties.
+
+**joints.lua stand pose** -- hip_pitch=-0.09 rad (-5.2 deg), knee=0.35 rad
+(20.1 deg). The C++ BIOM_HIP_P_STAND default is -15.0 deg and BIOM_KNEE_STAND
+is 30.0 deg. The Lua values produce a more upright stance with less knee bend.
+Since these were tuned against actual SITL runs they are more reliable than
+the C++ defaults which have not been tested yet. Test via live params before
+changing code: param set BIOM_HIP_P_STAND -5.2 and param set BIOM_KNEE_STAND
+20.1 -- no rebuild needed.
+
+**ik.lua solver** -- 2D law of cosines for a symmetric leg with L1=L2=0.20m
+(thigh and shin equal length, matching OP3 geometry). Solves hip_pitch and
+knee given foot position (x forward, z vertical). Includes reachability clamp
+so it never passes an out-of-domain value to acos. This is the direct reference
+for the C++ analytic IK port. The math is validated -- it ran against SITL
+without producing NaN or joint limit violations during the prototype phase.
+For the research paper: this confirms the OP3 leg is kinematically solvable
+in closed form without needing a numerical solver, which keeps the control
+loop deterministic and timing-safe on embedded hardware.
