@@ -78,12 +78,48 @@ void AP_Biomimetic::_read_telem()
     }
 }
 
+// Map AP_Biomimetic internal joint index -> ArduPilotPlugin output channel
+// (channel order is fixed by op3_with_ardupilot/model.sdf <control channel='N'>).
+//
+// AP_Biomimetic layout per side (0-5 / 6-11): hip_roll, hip_yaw, hip_pitch,
+// knee, ank_pitch, ank_roll
+// SDF channel layout per side (0-5 / 6-11):   hip_yaw, hip_roll, hip_pitch,
+// knee, ank_pitch, ank_roll
+//
+// Only hip_roll/hip_yaw are swapped within each leg; the rest line up 1:1.
+const uint8_t AP_Biomimetic::_joint_to_sdf_channel[AP_BIOMIMETIC_NUM_JOINTS] = {
+    1, 0, 2, 3, 4, 5,      // left leg:  hip_roll->ch1, hip_yaw->ch0, rest unchanged
+    7, 6, 8, 9, 10, 11     // right leg: hip_roll->ch7, hip_yaw->ch6, rest unchanged
+};
+
 void AP_Biomimetic::_write_servos()
 {
+    // Inverse of ArduPilotPlugin::UpdateMotorCommands() pwm->cmd conversion
+    // (see ardupilot_gazebo-1/src/ArduPilotPlugin.cc):
+    //   raw_cmd = (pwm - servo_min) / (servo_max - servo_min)   in [0,1]
+    //   cmd_rad = multiplier * (raw_cmd + offset)
+    // SDF values for all 12 leg <control> blocks (model.sdf / op3_direct.sdf):
+    //   multiplier=3.14159, offset=-0.5, servo_min=1100, servo_max=1900
+    // giving cmd_rad range = multiplier * [-0.5, +0.5] = [-1.5708, +1.5708] rad
+    // (+/-90 deg), enough headroom for every BIOM joint limit (max +/-60deg,
+    // knee 0-90deg).
+    //
+    // Inverting for deg -> pwm:
+    //   cmd_rad  = deg * DEG_TO_RAD
+    //   raw_cmd  = cmd_rad / multiplier - offset      (offset = -0.5, so this adds 0.5)
+    //   pwm      = servo_min + raw_cmd * (servo_max - servo_min)
+    const float multiplier  = 3.14159f;
+    const float offset      = -0.5f;
+    const float servo_min   = 1100.0f;
+    const float servo_max   = 1900.0f;
+
     for (uint8_t i = 0; i < AP_BIOMIMETIC_NUM_JOINTS; i++) {
-        SRV_Channels::set_output_scaled(
-            SRV_Channel::Function(SRV_Channel::k_none + i),
-            _cmd[i].target_deg);
+        const uint8_t chan = _joint_to_sdf_channel[i];
+        const float cmd_rad = _cmd[i].target_deg * DEG_TO_RAD;
+        const float raw_cmd = cmd_rad / multiplier - offset;
+        float pwm_f = servo_min + raw_cmd * (servo_max - servo_min);
+        uint16_t pwm = (uint16_t)constrain_float(pwm_f, servo_min, servo_max);
+        SRV_Channels::set_output_pwm_chan(chan, pwm);
     }
 }
 

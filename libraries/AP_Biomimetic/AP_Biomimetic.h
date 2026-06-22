@@ -50,6 +50,7 @@ private:
 
     static const float _joint_min_deg[AP_BIOMIMETIC_NUM_JOINTS];
     static const float _joint_max_deg[AP_BIOMIMETIC_NUM_JOINTS];
+    static const uint8_t _joint_to_sdf_channel[AP_BIOMIMETIC_NUM_JOINTS];
 
     void _read_telem();
     void _write_servos();
