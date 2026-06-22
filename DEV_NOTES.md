@@ -417,3 +417,67 @@ AP_Biomimetic shipped with only step 1 for several sessions before this
 was caught. All BIOM_ params (HIP_P_STAND, KNEE_STAND, ANK_P_STAND,
 STAND_RATE, BAL_EN, GAIT_EN, GAIT_PERIOD, GAIT_LEN, GAIT_HGT) were
 silently unreachable during those sessions.
+
+## 2026-06-22
+
+### _write_servos() fix -- channel mapping and PWM conversion
+
+Root cause found: _write_servos() was calling
+SRV_Channels::set_output_scaled(SRV_Channel::Function(SRV_Channel::k_none + i), ...).
+k_none is the sentinel for no function assigned. Offsetting from it does not
+produce a valid SRV_Channel function. Even if it did, ArduPilotPlugin reads
+its 12 leg channels by raw channel index per the SDF control channel=N blocks,
+not by SRV_Channel function binding. This call could never have reached Gazebo.
+
+Fix: replaced with SRV_Channels::set_output_pwm_chan(chan, pwm), which writes
+PWM directly to a numbered output channel. No SERVOx_FUNCTION param needed.
+Matches exactly how ArduPilotPlugin reads input.
+
+Added _joint_to_sdf_channel[12] remap table. AP_Biomimetic internal layout
+per leg is hip_roll, hip_yaw, hip_pitch, knee, ank_pitch, ank_roll. SDF
+channel order per leg is hip_yaw, hip_roll, hip_pitch, knee, ank_pitch, ank_roll.
+Only the first two are swapped, everything else is 1:1. Confirmed by reading
+jointName and channel= pairs in models/op3_with_ardupilot/model.sdf directly.
+
+PWM conversion derived from ArduPilotPlugin.cc UpdateMotorCommands() source:
+  plugin forward: raw_cmd = (pwm - servo_min) / (servo_max - servo_min)
+                  cmd_rad = multiplier * (raw_cmd + offset)
+  inverted for _write_servos():
+                  raw_cmd = (deg * DEG_TO_RAD) / multiplier - offset
+                  pwm     = servo_min + raw_cmd * (servo_max - servo_min)
+Round-trip verified numerically across -90 to +90 deg -- exact match at every
+test point against the plugin forward formula.
+
+### SDF control type -- COMMAND is a silent no-op for joint driving
+
+All 12 leg control blocks in op3_with_ardupilot/model.sdf were set to type
+COMMAND. Reading ArduPilotPlugin.cc ApplyMotorForces() confirmed that COMMAND
+type only republishes the scaled value onto a Gazebo Transport topic
+(e.g. /op3/cmd_l_hip_yaw) and does nothing else. Nothing in op3_direct.sdf
+subscribed to those topics, so no leg joint was ever driven regardless of
+what _write_servos() sent. The joints were physically uncontrolled the entire
+time prior to this fix.
+
+Fix: switched all 12 leg control blocks to type POSITION. POSITION mode runs
+the plugin built-in PID against JointPosition feedback and applies torque via
+JointForceCmd. The p_gain=2 values already in the SDF were configured for this
+path -- they were just never being used under COMMAND.
+
+### SDF multiplier -- range was too narrow
+
+Multiplier was 1.0 on all 12 leg controls. With offset=-0.5 this gave an
+achievable range of +/-28.6 deg. BIOM_KNEE_STAND target is 30 deg which is
+already outside that range. Changed multiplier to 3.14159 (pi) on all 12
+controls, giving +/-90 deg range. Covers every BIOM_ joint limit including
+the full knee range of 0-90 deg.
+
+### Verification
+
+SERVO_OUTPUT_RAW confirmed showing live varying PWM on knee and ankle channels
+after the fix. Previously all 12 channels were flat at 1100. Hip_pitch channels
+(idx 2 and 8) still stuck at neutral 1500 as of end of session -- root cause
+not yet found, investigating next session.
+
+Committed: AP_Biomimetic.cpp and AP_Biomimetic.h to ardupilot myfork master.
+Committed: worlds/op3_direct.sdf and models/op3_with_ardupilot/model.sdf to
+ardupilot_gazebo-1 wip-op3-joint-bridge.
