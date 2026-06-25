@@ -481,3 +481,58 @@ not yet found, investigating next session.
 Committed: AP_Biomimetic.cpp and AP_Biomimetic.h to ardupilot myfork master.
 Committed: worlds/op3_direct.sdf and models/op3_with_ardupilot/model.sdf to
 ardupilot_gazebo-1 wip-op3-joint-bridge.
+
+## 2026-06-25-- Key Research Finding: Raw Joint Position Control is Insufficient
+
+Tested AP_Biomimetic command output on two robots today: ROBOTIS OP3 and Unitree H1.
+
+Both fall when given raw joint position targets. This is not a tuning problem or a
+
+sim problem. It is a fundamental architectural finding.
+
+### What was tested
+
+OP3: ArduPilotPlugin JPC with p_gain=100, damping=0.01. Robot falls on spawn because
+
+zero-angle pose is T-pose and the JPC cannot hold the robot up without balance-aware
+
+commands arriving from frame zero.
+
+H1: ros2_heinz sim with ROS2 joint position controllers. Upper body holds position
+
+fine. Lower body falls the moment knees bend because CoM shifts and the PD controllers
+
+have no gravity compensation. Confirmed by observing that the real H1 uses RL policies
+
+trained in Isaac Lab for all dynamic motion -- the sim PD controllers alone cannot
+
+replicate this.
+
+### The finding
+
+AP_Biomimetic cannot just send raw joint position targets. It needs to send
+
+balance-aware commands or the robot falls on any hardware.
+
+This is not a simulation limitation. It is the core problem this project exists to
+
+solve. A naive position controller with no gravity compensation or ZMP awareness will
+
+fail on any legged robot regardless of gains or damping values.
+
+### What this means for the project
+
+The kp=1.0 proportional stub in balance_update() is not sufficient. The real
+
+DARE-precomputed LIPM solver needs to replace it before the robot can stand or walk
+
+under physics. This is the July milestone but the finding confirms it is the right
+
+priority.
+
+The ZMP/LIPM controller in AP_Biomimetic is not an optional enhancement. It is the
+
+minimum required for the robot to function at all under real physics. Every joint
+
+command from AP_Biomimetic needs to be balance-aware, not just a target angle.
+
