@@ -35,6 +35,7 @@ AP_Biomimetic::AP_Biomimetic()
     : _initialized(false)
     , _standing(false)
     , _gait_phase(0.0f)
+    , _lipm_e(0.0f)
 {
     AP_Param::setup_object_defaults(this, var_info);
     if (_singleton != nullptr) {
@@ -44,6 +45,9 @@ AP_Biomimetic::AP_Biomimetic()
     memset(_state, 0, sizeof(_state));
     memset(_cmd,   0, sizeof(_cmd));
     memset(_stand_targets, 0, sizeof(_stand_targets));
+    memset(_lipm_x, 0, sizeof(_lipm_x));
+    _bal_integral = 0.0f;
+    _bal_last_pitch = 0.0f;
 }
 
 void AP_Biomimetic::update()
@@ -170,6 +174,16 @@ bool AP_Biomimetic::stand()
             all_close = false;
         }
     }
+    // TEMP DEBUG -- remove after diagnosing hip_pitch stuck-at-0 issue
+    static uint32_t _debug_last_ms = 0;
+    uint32_t now_ms = AP_HAL::millis();
+    if (now_ms - _debug_last_ms > 1000) {
+        _debug_last_ms = now_ms;
+        GCS_SEND_TEXT(MAV_SEVERITY_INFO,
+            "BIOM dbg: tgt2=%.1f cmd2=%.1f tgt3=%.1f cmd3=%.1f",
+            (double)_stand_targets[2], (double)_cmd[2].target_deg,
+            (double)_stand_targets[3], (double)_cmd[3].target_deg);
+    }
     if (all_close && !_standing) {
         _standing = true;
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP_Biomimetic: standing");
@@ -179,44 +193,131 @@ bool AP_Biomimetic::stand()
 
 void AP_Biomimetic::balance_update()
 {
-    // ZMP/LIPM balance stub -- July milestone
+    // LIPM Preview Controller -- DARE-precomputed gains
+    // Ported from humanoid-ardupilot-sitl/scripts/preview_control.py
     //
-    // What this does right now:
-    //   1. reads CoM tilt estimate from AHRS (pitch = forward lean)
-    //   2. computes a proportional ankle pitch correction
-    //   3. applies it symmetrically to both ankle joints (index 4 and 10)
+    // LIPM state: x = [com_pos, com_vel, com_acc]
+    // ZMP output: zmp = com_pos - (zc/g) * com_acc
     //
-    // What slots in here in July:
-    //   - DARE-precomputed LIPM gain replaces the proportional gain
-    //   - lateral (roll) axis correction added alongside pitch
-    //   - ZMP stays inside support polygon check added before correction
+    // Discrete-time system (dt=0.02, zc=0.38m, g=9.81):
+    //   A = [[1, 0.02, 0], [0, 1, 0.02], [0, 0, 1]]
+    //   B = [0, 0, 0.02]
+    //   C = [1, 0, -zc/g]
+    //
+    // Gains from DARE solve (Qe=1.0, R=1e-6):
+    //   Ke = 478.505159
+    //   Kx = [10739.791188, 2517.886340, 84.613451]
+    //   Gp[20] = preview gains (see below)
+    //
+    // Balance PID from Python prototype (balance.lua / zmp_gait_controller.py):
+    //   Kp=0.10, Ki=0.001, Kd=0.01, clamp +/-0.25 rad
 
     if (p_balance_enable != 1) {
         return;
     }
 
-    // read pitch angle from AHRS -- positive means leaning forward
+    // DARE-precomputed preview gains Gp[20]
+    static const float Gp[AP_BIOMIMETIC_PREVIEW_N] = {
+        0.771033f,       // [0]
+        -46571.691562f,  // [1]
+        -33850.834160f,  // [2]
+        -10572.121153f,  // [3]
+        5378.544754f,    // [4]
+        12069.694302f,   // [5]
+        12826.731213f,   // [6]
+        11082.482319f,   // [7]
+        8888.735678f,    // [8]
+        7063.506599f,    // [9]
+        5737.273046f,    // [10]
+        4787.992946f,    // [11]
+        4067.107296f,    // [12]
+        3474.461269f,    // [13]
+        2960.131740f,    // [14]
+        2504.922563f,    // [15]
+        2102.780943f,    // [16]
+        1750.885074f,    // [17]
+        1445.889509f,    // [18]
+        1183.393053f,    // [19]
+    };
+
+    // LIPM state update -- x = [com_pos, com_vel, com_acc]
+    // A matrix (dt=0.02)
+    const float dt   = 1.0f / AP_BIOMIMETIC_UPDATE_HZ;
+    const float zc_g = 0.038745f;  // zc/g = 0.38/9.81
+
+    // ZMP reference is zero for static balance (stand in place)
+    // When gait runs this will be fed from the footstep planner
+    float zmp_ref[AP_BIOMIMETIC_PREVIEW_N] = {};  // all zeros = stand in place
+
+    // Current ZMP from LIPM state
+    float zmp_now = _lipm_x[0] - zc_g * _lipm_x[2];
+
+    // Integral of ZMP error
+    _lipm_e += zmp_now - zmp_ref[0];
+
+    // Preview sum
+    float preview_sum = 0.0f;
+    for (uint8_t i = 0; i < AP_BIOMIMETIC_PREVIEW_N; i++) {
+        preview_sum += Gp[i] * zmp_ref[i];
+    }
+
+    // Control input
+    const float Ke      = 478.505159f;
+    const float Kx0     = 10739.791188f;
+    const float Kx1     = 2517.886340f;
+    const float Kx2     = 84.613451f;
+
+    float u = -Ke * _lipm_e
+              - Kx0 * _lipm_x[0]
+              - Kx1 * _lipm_x[1]
+              - Kx2 * _lipm_x[2]
+              - preview_sum;
+
+    // Propagate LIPM state
+    // x_new = A*x + B*u
+    float x_new[3];
+    x_new[0] = _lipm_x[0] + dt * _lipm_x[1];
+    x_new[1] = _lipm_x[1] + dt * _lipm_x[2];
+    x_new[2] = _lipm_x[2] + dt * u;
+    _lipm_x[0] = x_new[0];
+    _lipm_x[1] = x_new[1];
+    _lipm_x[2] = x_new[2];
+
+    // Read pitch and roll from AHRS for PID balance correction
     const AP_AHRS &ahrs = AP::ahrs();
     float pitch_rad = ahrs.get_pitch();
 
-    // proportional gain: 1 deg of lean -> 1 deg of ankle correction
-    // TODO July: replace with DARE-precomputed LIPM gain
-    const float kp = 1.0f;
+    // PID balance from Python prototype: Kp=0.10, Ki=0.001, Kd=0.01
+    const float Kp_bal = 0.10f;
+    const float Ki_bal = 0.001f;
+    const float Kd_bal = 0.01f;
 
-    float ankle_correction_deg = kp * RAD_TO_DEG * pitch_rad;
+    _bal_integral = constrain_float(_bal_integral + pitch_rad * dt, -0.3f, 0.3f);
+    float bal_d   = (pitch_rad - _bal_last_pitch) / dt;
+    _bal_last_pitch = pitch_rad;
 
-    // clamp correction to +/- 10 deg so it cannot fight the stand targets
-    ankle_correction_deg = constrain_float(ankle_correction_deg, -10.0f, 10.0f);
+    float bal = constrain_float(
+        Kp_bal * pitch_rad + Ki_bal * _bal_integral + Kd_bal * bal_d,
+        -0.25f, 0.25f);
+
+    // CoM lateral position from LIPM drives hip roll
+    // hr = com_y * 2.0 from zmp_gait_controller.py
+    // For static balance com_y stays near zero -- this is the lateral stub
+    float com_y    = 0.0f;  // TODO: add lateral LIPM when gait runs
+    float hr_left  = -com_y * 2.0f + (-bal * 0.3f);
+    float hr_right =  com_y * 2.0f + ( bal * 0.3f);
+
+    // Ankle pitch correction from LIPM com_x
+    float ankle_correction_deg = constrain_float(
+        _lipm_x[0] * RAD_TO_DEG, -10.0f, 10.0f);
 
     // joint layout per side: hip_roll=0 hip_yaw=1 hip_pitch=2 knee=3 ank_pitch=4 ank_roll=5
-    // left ankle = index 4, right ankle = index 10
-    const uint8_t left_ankle  = 4;
-    const uint8_t right_ankle = 10;
-
-    set_joint_cmd_deg(left_ankle,
-        _stand_targets[left_ankle]  + ankle_correction_deg);
-    set_joint_cmd_deg(right_ankle,
-        _stand_targets[right_ankle] + ankle_correction_deg);
+    // left:  hip_roll=0, ank_pitch=4
+    // right: hip_roll=6, ank_pitch=10
+    set_joint_cmd_deg(0,  _stand_targets[0]  + hr_left  * RAD_TO_DEG);
+    set_joint_cmd_deg(6,  _stand_targets[6]  + hr_right * RAD_TO_DEG);
+    set_joint_cmd_deg(4,  _stand_targets[4]  + ankle_correction_deg);
+    set_joint_cmd_deg(10, _stand_targets[10] + ankle_correction_deg);
 }
 
 void AP_Biomimetic::gait_step()

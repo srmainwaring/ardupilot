@@ -8,6 +8,7 @@
 
 #define AP_BIOMIMETIC_NUM_JOINTS    12
 #define AP_BIOMIMETIC_UPDATE_HZ     50
+#define AP_BIOMIMETIC_PREVIEW_N     20
 
 class AP_Biomimetic {
 public:
@@ -59,6 +60,10 @@ private:
     bool _initialized;
     bool _standing;
     float _gait_phase;
+    float _lipm_x[3];
+    float _lipm_e;
+    float _bal_integral;
+    float _bal_last_pitch;
 
     static AP_Biomimetic *_singleton;
 };
