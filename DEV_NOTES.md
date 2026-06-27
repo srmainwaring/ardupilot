@@ -536,3 +536,18 @@ minimum required for the robot to function at all under real physics. Every join
 
 command from AP_Biomimetic needs to be balance-aware, not just a target angle.
 
+
+
+2026-06-26
+
+Build was broken at session start -- the other chat had ported the LIPM preview controller into balance_update() but left several member variables undeclared. Fixed in order: added AP_BIOMIMETIC_PREVIEW_N 20 define to header, declared _lipm_x[3], _lipm_e, _bal_integral, _bal_last_pitch as private members, initialized them in constructor, removed accidental duplicate declarations. Build now clean, binary 4043806 bytes.
+
+Confirmed via SIMSTATE and ATTITUDE that the robot spawns upright and holds standing pose correctly with the static=true + z=0.285 pose fix from the prior session. DCM (AHRS2) still reports roll ~180 deg off and fires PreArm inconsistency warnings -- does not block stand/gait since arming is not required for mode 20 testing. Root cause not fully diagnosed: AHRS accel_weight reads 0.0 despite clean 1g upright reading. Non-blocking, documented.
+
+Found that all 12 ArduPilotPlugin control blocks in op3_direct.sdf had only p_gain=2 with no i/d gains and no useForce=1. This is 50-150x weaker than any gain that has previously held a humanoid joint against gravity in this project. Rewrote all 12 blocks with per-joint-role gains: hip_pitch/roll p=300 i=0.5 d=0.05, knee p=200 i=0.2 d=0.05, hip_yaw/ank_pitch/ank_roll p=150 with matching i/d. All blocks got useForce=1, i_max=2, i_min=-2, cmd_max=500, cmd_min=-500. Gain rewrite committed but NOT yet tested with a live launch.
+
+Identified gap between DESIGN.md claims and actual code: schema/config abstraction and analytic IK solver listed as Phase 1 but neither exists. Joint layout hardcoded for OP3. Does not block June/July deliverables but will block August H1 port. Note as known risk in midterm report.
+
+balance_update() LIPM preview controller builds but has never run live. Test only after gain fix confirmed working.
+
+Commits: ardupilot 63a556fe11, ardupilot_gazebo-1 a06558b.
