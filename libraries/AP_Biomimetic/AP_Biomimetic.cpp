@@ -370,7 +370,7 @@ void AP_Biomimetic::gait_step()
             float t = leg_phase / 0.5f;  // 0..1 across stance half
             hip_pitch_deg = step_len_deg * (0.5f - t);
             knee_deg      = 0.0f;
-            ank_pitch_deg = 0.0f;
+            ank_pitch_deg = hip_pitch_deg * 0.5f;
         } else {
             // swing half of cycle: foot lifts, swings forward, plants
             float t = (leg_phase - 0.5f) / 0.5f;  // 0..1 across swing half
@@ -380,6 +380,11 @@ void AP_Biomimetic::gait_step()
             ank_pitch_deg = -knee_deg * 0.3f;  // small compensation to keep foot level
         }
 
+        // lateral weight shift: lean toward stance leg BEFORE swing phase
+        float hip_roll_deg = 0.0f;
+        float shift_t = sinf(leg_phase * 2.0f * float(M_PI));
+        hip_roll_deg = (side == 0 ? 1.0f : -1.0f) * 12.0f * shift_t;
+        set_joint_cmd_deg(base + 0, _stand_targets[base + 0] + hip_roll_deg);
         set_joint_cmd_deg(base + 2, _stand_targets[base + 2] + hip_pitch_deg);
         set_joint_cmd_deg(base + 3, _stand_targets[base + 3] + knee_deg);
         set_joint_cmd_deg(base + 4, _stand_targets[base + 4] + ank_pitch_deg);
