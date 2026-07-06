@@ -382,6 +382,7 @@ void AP_Biomimetic::gait_step()
 
         // lateral weight shift: lean toward stance leg BEFORE swing phase
         float hip_roll_deg = 0.0f;
+        // weight shift driven by global phase so stance leg gets weight BEFORE swing lifts
         float shift_t = sinf(leg_phase * 2.0f * float(M_PI));
         hip_roll_deg = (side == 0 ? 1.0f : -1.0f) * 12.0f * shift_t;
         set_joint_cmd_deg(base + 0, _stand_targets[base + 0] + hip_roll_deg);
