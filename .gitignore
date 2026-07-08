@@ -175,3 +175,4 @@ venv.bak/
 autotest_result_*_junit.xml
 .python-version
 Rover/demo/
+libraries/AP_Biomimetic/DEV_NOTES.md
