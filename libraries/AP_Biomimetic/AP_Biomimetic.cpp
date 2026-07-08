@@ -368,7 +368,7 @@ void AP_Biomimetic::gait_step()
             // stance half of cycle: foot on ground, hip sweeps back to front
             // as the body moves forward over the planted foot
             float t = leg_phase / 0.5f;  // 0..1 across stance half
-            hip_pitch_deg = -step_len_deg * (0.5f - t);
+            hip_pitch_deg = step_len_deg * (0.5f - t);
             knee_deg      = 0.0f;
             ank_pitch_deg = hip_pitch_deg * 0.5f;
         } else {
@@ -384,7 +384,7 @@ void AP_Biomimetic::gait_step()
         float hip_roll_deg = 0.0f;
         // weight shift driven by global phase so stance leg gets weight BEFORE swing lifts
         float shift_t = sinf(leg_phase * 2.0f * float(M_PI));
-        hip_roll_deg = (side == 0 ? 1.0f : -1.0f) * 3.0f * shift_t;
+        hip_roll_deg = (side == 0 ? 1.0f : -1.0f) * 12.0f * shift_t;
         set_joint_cmd_deg(base + 0, _stand_targets[base + 0] + hip_roll_deg);
         set_joint_cmd_deg(base + 2, _stand_targets[base + 2] + hip_pitch_deg);
         set_joint_cmd_deg(base + 3, _stand_targets[base + 3] + knee_deg);
