@@ -551,3 +551,61 @@ Identified gap between DESIGN.md claims and actual code: schema/config abstracti
 balance_update() LIPM preview controller builds but has never run live. Test only after gain fix confirmed working.
 
 Commits: ardupilot 63a556fe11, ardupilot_gazebo-1 a06558b.
+
+## 2026-07-08 -- Architecture notes and gait state (merged from libraries/AP_Biomimetic/DEV_NOTES.md)
+
+### Command and telemetry paths
+
+Command path (SITL): AP_Biomimetic C++ -> SRV_Channels PWM -> ArduPilotPlugin -> Gazebo JPC -> robot joints.
+Telemetry path: Gazebo joint_states -> joint_state_bridge.py -> DroneCAN actuator.Status -> AP_Servo_Telem -> AP_Biomimetic C++.
+
+Command path uses PWM not DroneCAN because DroneCAN actuator.Command for the command
+side was raised by Rhys on 2026-06-08 but left as an open research question. PWM via
+ArduPilotPlugin is the working SITL solution. DroneCAN actuator.Command bridge for
+real hardware is documented future work.
+
+No ROS2 in the control loop. AP_Biomimetic talks only to ArduPilot native systems:
+AP_Servo_Telem, SRV_Channels, AP_AHRS. Gazebo handles physics via ArduPilotPlugin.
+ROS2 is only relevant for real hardware servo bus drivers, which is future work.
+
+### What is proven as of 2026-07-08
+
+Full pipeline end to end in SITL confirmed. 12-joint DroneCAN telemetry flowing via
+AP_Servo_Telem. AP_Biomimetic stand() and gait_step() running inside ArduPilot Rover
+SITL. Robot takes alternating steps under full ArduPilot control. Dataflash CSRV logs
+confirmed for all 12 joints. Midterm blog post published on ArduPilot Discourse.
+
+### Key decisions and who validated them
+
+DroneCAN actuator.Status for telemetry: agreed with Rhys 2026-06-08.
+AP_Servo_Telem as the AP-side interface: Rhys confirmed 2026-06-08.
+Hardcoded joint mapping as prototype: Rhys approved 2026-06-10.
+Overall direction sensible and would work for sim and hardware: Rhys 2026-06-08.
+
+### Open questions
+
+DroneCAN command path for hardware: how to maintain lockstep (Rhys, 2026-06-08).
+YAML-configurable bridge: Rhys future work, upgrade path for joint_state_bridge.py.
+H1 port: August scope, same AP_Biomimetic library, different SDF and bridge config.
+
+### Gait tuning state 2026-07-08
+
+hip_roll lateral shift: 12 deg sinusoidal per leg phase.
+gait_period: 1.5s, step_len_deg: 15, step_height_deg: 20.
+ankle compensation: hip_pitch * 0.5 stance, -knee * 0.3 swing.
+spawn lean: 0.12 rad pitch.
+Result: alternating steps, falls before 3 consecutive steps.
+Next: tune hip_roll timing and magnitude for lateral balance.
+
+### Walking milestone 2026-07-08
+
+Robot walking confirmed. Three root causes found and fixed:
+1. STAND_RATE was 5 deg/s -- too slow for RTF=0.2. Fixed to 50 deg/s.
+2. GAIT_PERIOD was 2.5s -- robot fell before one cycle. Fixed to 0.3s.
+3. GAIT_LEN positive = backward walking due to sign inversion in gait_step()
+   stance phase. Fixed by using GAIT_LEN -5 for now. Sign flip in code is next.
+
+Working params: HIP_P_STAND -3, KNEE_STAND 15, ANK_P_STAND 15, GAIT_LEN -5,
+GAIT_HGT 3, GAIT_PERIOD 0.3, STAND_RATE 50.
+
+Architecture is proven correct. Walking is now a tuning problem.
