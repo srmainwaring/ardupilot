@@ -20,14 +20,14 @@ const float AP_Biomimetic::_joint_max_deg[AP_BIOMIMETIC_NUM_JOINTS] = {
 
 const AP_Param::GroupInfo AP_Biomimetic::var_info[] = {
     AP_GROUPINFO("HIP_P_STAND", 1, AP_Biomimetic, p_hip_pitch_stand_deg, -15.0f),
-    AP_GROUPINFO("KNEE_STAND",  2, AP_Biomimetic, p_knee_stand_deg,       30.0f),
+    AP_GROUPINFO("KNEE_STAND",  2, AP_Biomimetic, p_knee_stand_deg,       20.0f),
     AP_GROUPINFO("ANK_P_STAND", 3, AP_Biomimetic, p_ank_pitch_stand_deg,  15.0f),
     AP_GROUPINFO("STAND_RATE",  4, AP_Biomimetic, p_stand_rate_dps,       20.0f),
     AP_GROUPINFO("BAL_EN",      5, AP_Biomimetic, p_balance_enable,           0),
     AP_GROUPINFO("GAIT_EN",     6, AP_Biomimetic, p_gait_enable,              0),
     AP_GROUPINFO("GAIT_PERIOD", 7, AP_Biomimetic, p_gait_period_s,          1.5f),
     AP_GROUPINFO("GAIT_LEN",    8, AP_Biomimetic, p_gait_step_len_deg,     15.0f),
-    AP_GROUPINFO("GAIT_HGT",    9, AP_Biomimetic, p_gait_step_height_deg, 20.0f),
+    AP_GROUPINFO("GAIT_HGT",    9, AP_Biomimetic, p_gait_step_height_deg, 12.0f),
     AP_GROUPEND
 };
 
