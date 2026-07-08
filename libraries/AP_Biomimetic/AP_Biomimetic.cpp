@@ -112,10 +112,10 @@ void AP_Biomimetic::_write_servos()
     //   cmd_rad  = deg * DEG_TO_RAD
     //   raw_cmd  = cmd_rad / multiplier - offset      (offset = -0.5, so this adds 0.5)
     //   pwm      = servo_min + raw_cmd * (servo_max - servo_min)
-    const float multiplier  = 3.14159f;
+    const float multiplier  = 1.571f;
     const float offset      = -0.5f;
-    const float servo_min   = 1100.0f;
-    const float servo_max   = 1900.0f;
+    const float servo_min   = 1000.0f;
+    const float servo_max   = 2000.0f;
 
     for (uint8_t i = 0; i < AP_BIOMIMETIC_NUM_JOINTS; i++) {
         const uint8_t chan = _joint_to_sdf_channel[i];
