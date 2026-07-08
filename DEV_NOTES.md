@@ -609,3 +609,38 @@ Working params: HIP_P_STAND -3, KNEE_STAND 15, ANK_P_STAND 15, GAIT_LEN -5,
 GAIT_HGT 3, GAIT_PERIOD 0.3, STAND_RATE 50.
 
 Architecture is proven correct. Walking is now a tuning problem.
+
+## 2026-07-08 -- Robot walking confirmed
+
+Robot is now walking. Not straight, not clean, but walking without falling.
+That is the milestone.
+
+Three things were wrong and all three were found today.
+
+First: STAND_RATE was 5 deg/s. At real_time_factor=0.2 that means 25 sim
+seconds to reach stand pose, about 5 real seconds. The robot was falling at
+around 2 real seconds every time. Gait never ran once in any previous session
+-- we were always tuning a robot that was standing and falling before gait
+ever started. Fix: STAND_RATE 50. Standing now completes in about 1 real second.
+
+Second: GAIT_PERIOD was 2.5 seconds. At RTF=0.2 that is 12.5 real seconds per
+gait cycle. Robot fell before completing one cycle. Fix: GAIT_PERIOD 0.3.
+Full gait cycle now completes in 1.5 real seconds.
+
+Third: GAIT_LEN positive value causes backward walking. The hip pitch sign in
+gait_step() stance phase is inverted relative to SDF convention. Fix for now:
+use GAIT_LEN -5 to walk forward. Proper fix is to flip the sign in the code
+so positive means forward -- that is next session work.
+
+Working params: HIP_P_STAND -3, KNEE_STAND 15, ANK_P_STAND 15, GAIT_LEN -5,
+GAIT_HGT 3, GAIT_PERIOD 0.3, STAND_RATE 50.
+
+Robot circles and walks randomly rather than straight. Root cause is the hip
+roll weight shift hardcoded at 12 deg in gait_step(). That is the next thing
+to reduce or zero out.
+
+Disk filled to 100% mid-session from Gazebo log files in ~/.gz/sim/log/.
+Each session creates 100MB+ files and there were 40+ of them. Deleted all,
+freed 16GB. Add rm -rf ~/.gz/sim/log/ to start of every session.
+
+Architecture is proven correct. Walking is a tuning problem now.
