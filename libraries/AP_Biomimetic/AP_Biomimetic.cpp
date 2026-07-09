@@ -174,16 +174,7 @@ bool AP_Biomimetic::stand()
             all_close = false;
         }
     }
-    // TEMP DEBUG -- remove after diagnosing hip_pitch stuck-at-0 issue
-    static uint32_t _debug_last_ms = 0;
-    uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - _debug_last_ms > 1000) {
-        _debug_last_ms = now_ms;
-        GCS_SEND_TEXT(MAV_SEVERITY_INFO,
-            "BIOM dbg: tgt2=%.1f cmd2=%.1f tgt3=%.1f cmd3=%.1f",
-            (double)_stand_targets[2], (double)_cmd[2].target_deg,
-            (double)_stand_targets[3], (double)_cmd[3].target_deg);
-    }
+
     if (all_close && !_standing) {
         _standing = true;
         GCS_SEND_TEXT(MAV_SEVERITY_INFO, "AP_Biomimetic: standing");
@@ -348,6 +339,9 @@ void AP_Biomimetic::gait_step()
         _gait_phase -= 1.0f;
     }
 
+    // NOTE: negative GAIT_LEN produces forward walking due to sign convention
+    // in stance phase hip_pitch = step_len_deg * (0.5f - t).
+    // Positive GAIT_LEN walks backward. Fix pending -- use negative values for now.
     const float step_len_deg = p_gait_step_len_deg.get();
     const float step_hgt_deg = p_gait_step_height_deg.get();
 
