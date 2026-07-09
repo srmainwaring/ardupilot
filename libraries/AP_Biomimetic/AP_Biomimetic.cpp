@@ -340,7 +340,7 @@ void AP_Biomimetic::gait_step()
     }
 
     // NOTE: negative GAIT_LEN produces forward walking due to sign convention
-    // in stance phase hip_pitch = step_len_deg * (0.5f - t).
+    // in stance phase hip_pitch = step_len_deg * (t - 0.5f).
     // Positive GAIT_LEN walks backward. Fix pending -- use negative values for now.
     const float step_len_deg = p_gait_step_len_deg.get();
     const float step_hgt_deg = p_gait_step_height_deg.get();
@@ -362,7 +362,7 @@ void AP_Biomimetic::gait_step()
             // stance half of cycle: foot on ground, hip sweeps back to front
             // as the body moves forward over the planted foot
             float t = leg_phase / 0.5f;  // 0..1 across stance half
-            hip_pitch_deg = step_len_deg * (0.5f - t);
+            hip_pitch_deg = step_len_deg * (t - 0.5f);
             knee_deg      = 0.0f;
             ank_pitch_deg = hip_pitch_deg * 0.5f;
         } else {
