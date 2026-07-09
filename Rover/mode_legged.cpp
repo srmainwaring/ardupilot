@@ -15,6 +15,12 @@ bool ModeLegged::_enter()
 
 void ModeLegged::update()
 {
+    // biomimetic control runs via dedicated 50Hz scheduler task
+    // see Rover::biomimetic_update()
+}
+
+void ModeLegged::update_biomimetic()
+{
     AP_Biomimetic *bio = AP::biomimetic();
     if (bio == nullptr) {
         return;

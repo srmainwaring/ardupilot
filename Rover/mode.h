@@ -961,13 +961,14 @@ protected:
 class ModeLegged : public Mode
 {
 public:
-    ModeLegged() {}
+    ModeLegged() : _stand_done(false) {}
     CLASS_NO_COPY(ModeLegged);
     Number mode_number() const override { return Number::LEGGED; }
     const char *name() const override { return "LEGGED"; }
     const char *name4() const override { return "LEGG"; }
     bool is_autopilot_mode() const override { return true; }
     void update() override;
+    void update_biomimetic();
 protected:
     bool _enter() override;
     void _exit() override;

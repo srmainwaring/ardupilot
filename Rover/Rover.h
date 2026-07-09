@@ -370,6 +370,7 @@ private:
 
     // Steering.cpp
     void set_servos(void);
+    void biomimetic_update();
 
     // Rover.cpp
     void get_scheduler_tasks(const AP_Scheduler::Task *&tasks,
