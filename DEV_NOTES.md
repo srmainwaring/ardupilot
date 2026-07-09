@@ -644,3 +644,63 @@ Each session creates 100MB+ files and there were 40+ of them. Deleted all,
 freed 16GB. Add rm -rf ~/.gz/sim/log/ to start of every session.
 
 Architecture is proven correct. Walking is a tuning problem now.
+
+## 2026-07-08 -- Gait debugging and hip roll phase investigation
+
+### What was working before this session
+Robot walking in anticlockwise circles without falling. Working params:
+HIP_P_STAND -3, KNEE_STAND 15, ANK_P_STAND 15, GAIT_LEN -5, GAIT_HGT 3,
+GAIT_PERIOD 0.3, STAND_RATE 50.
+
+### Hip roll phase root cause identified
+
+Checked gz topic data for l_hip_roll and r_hip_roll. Both topics showed
+identical values cycling together -- same sign, same magnitude, same timing.
+They should be opposite (when left rolls right, right should roll left).
+
+Root cause: shift_t = sin(leg_phase * 2 * PI). Right leg has leg_phase =
+_gait_phase + 0.5. So right leg shift_t = sin((_gait_phase + 0.5) * 2*PI)
+= -sin(_gait_phase * 2*PI). The 0.5 offset already negates shift_t for the
+right leg. Then the code multiplies by (side==0 ? 1.0f : -1.0f) which
+negates it again for the right leg -- making both legs same sign. Net effect:
+both legs roll the same direction simultaneously instead of alternating.
+This creates a net lateral force that curves the path anticlockwise.
+
+### Fixes attempted and results
+
+Attempt 1: negate shift_t for right leg
+  hip_roll_deg = (side==0 ? 1.0f : -1.0f) * 12.0f * -shift_t
+  Result: worse circling, robot walking more like backward. Reverted.
+
+Attempt 2: remove side multiplier entirely
+  hip_roll_deg = 12.0f * shift_t
+  Result: robot goes sideways and falls -- scissors motion. Reverted.
+  Reason: without side multiplier both legs roll same direction, no
+  lateral stability at all.
+
+Attempt 3: change spawn yaw from 3.14159 to 0, use GAIT_LEN +5
+  Result: still circling. Spawn yaw not the cause. Reverted.
+
+### Working state restored
+Back to original: hip_roll_deg = (side==0 ? 1.0f : -1.0f) * 12.0f * shift_t
+Robot still circles anticlockwise but does not fall. This is the stable state.
+
+### Correct fix (not yet implemented)
+The side multiplier and the phase offset are fighting each other. The fix is
+to change the hip roll to use a different phase reference -- one that is
+in-phase with the stance foot, not with the leg cycle. When left foot is in
+stance (left leg phase 0-0.5), weight should shift left (positive hip roll).
+When right foot is in stance (right leg phase 0-0.5), weight should shift
+right (negative hip roll). This requires tying hip roll to stance phase
+directly rather than using a sinusoid of the full leg phase.
+
+### Video recorded
+Robot walking confirmed on video 2026-07-08. Posted to Discord GSoC-Neeta.
+Nate confirmed it looks good and asked about turning cause and gait
+improvement plan. Responded with hip roll phase explanation and plan:
+fix phase logic, flip GAIT_LEN sign, port LIPM preview controller,
+add lateral LIPM, port to H1.
+
+### Disk space
+Gazebo writes 100MB+ logs per session to ~/.gz/sim/log/. Run
+rm -rf ~/.gz/sim/log/ before every session or disk fills silently.
